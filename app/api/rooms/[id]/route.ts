@@ -1,0 +1,54 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const room = await prisma.room.findUnique({
+    where: { id },
+    include: { tenants: { where: { moveOutDate: null } }, payments: true, expenses: true },
+  });
+  if (!room) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(room);
+}
+
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const body = await req.json();
+  const newRent = Number(body.monthlyRent);
+
+  const room = await prisma.room.update({
+    where: { id },
+    data: {
+      name:        body.name,
+      floor:       body.floor        || null,
+      monthlyRent: newRent,
+      description: body.description  || null,
+    },
+    include: { recurringCharges: true },
+  });
+
+  // Propagate the new rent to future PENDING records that haven't been paid yet.
+  // OVERDUE records keep their original amount (the rate agreed for that period).
+  const newAmountDue = newRent + room.recurringCharges.reduce((s, c) => s + c.amount, 0);
+  await prisma.payment.updateMany({
+    where: { roomId: id, status: "PENDING", amountPaid: 0 },
+    data:  { amountDue: newAmountDue },
+  });
+
+  return NextResponse.json(room);
+}
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const activeTenant = await prisma.tenant.findFirst({
+    where: { roomId: id, moveOutDate: null },
+  });
+  if (activeTenant) {
+    return NextResponse.json(
+      { error: `Cannot delete room with active tenant "${activeTenant.name}". Move them out first.` },
+      { status: 400 }
+    );
+  }
+  await prisma.room.delete({ where: { id } });
+  return NextResponse.json({ success: true });
+}

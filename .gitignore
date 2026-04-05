@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/app/generated/prisma
+
+# SQLite database files (contain real tenant/payment data)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Local app settings file (superseded by DB-backed settings)
+app-settings.json

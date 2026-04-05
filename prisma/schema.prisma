@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id          String   @id @default(cuid())
+  name        String
+  floor       String?
+  monthlyRent Float
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenants          Tenant[]
+  payments         Payment[]
+  expenses         Expense[]
+  recurringCharges RecurringCharge[]
+}
+
+model Tenant {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String
+  email         String?
+  roomId        String?
+  moveInDate    DateTime
+  moveOutDate   DateTime?
+  deposit       Float     @default(0)
+  creditBalance Float     @default(0)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  room             Room?             @relation(fields: [roomId], references: [id])
+  payments         Payment[]
+  oneTimeCharges   OneTimeCharge[]
+  recurringCharges RecurringCharge[]
+}
+
+model Payment {
+  id         String    @id @default(cuid())
+  tenantId   String
+  roomId     String
+  month      String    // "2024-01" format
+  amountDue  Float
+  amountPaid Float     @default(0)
+  paidDate   DateTime?
+  method     String?   // CASH, UPI, BANK, CHEQUE
+  status     String    @default("PENDING") // PENDING, PARTIAL, PAID, OVERDUE
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, month])
+}
+
+model RecurringCharge {
+  id            String   @id @default(cuid())
+  roomId        String
+  tenantId      String?  // null = room-level (all tenants), set = tenant-specific
+  title         String
+  amount        Float
+  effectiveFrom String?  // "YYYY-MM" — null means from the beginning
+  createdAt     DateTime @default(now())
+
+  room   Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model OneTimeCharge {
+  id         String   @id @default(cuid())
+  tenantId   String
+  title      String
+  amount     Float
+  amountPaid Float    @default(0)
+  date       DateTime
+  status     String   @default("PENDING") // PENDING, PARTIAL, PAID
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  title       String
+  amount      Float
+  date        DateTime
+  category    String   @default("OTHER") // PLUMBING, ELECTRICAL, PAINTING, CLEANING, APPLIANCE, OTHER
+  roomId      String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  room Room? @relation(fields: [roomId], references: [id], onDelete: SetNull)
+}
+
+model Setting {
+  key   String @id
+  value String
+}
