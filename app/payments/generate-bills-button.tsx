@@ -31,7 +31,7 @@ export function GenerateBillsButton({ month }: { month: string }) {
     <button
       onClick={handleGenerate}
       disabled={loading}
-      className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+      className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-200"
     >
       {loading ? "Generating..." : "Generate Bills"}
     </button>

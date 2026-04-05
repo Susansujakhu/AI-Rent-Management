@@ -156,7 +156,26 @@ export default function PayPage() {
   };
 
   if (!payment) {
-    return <div className="flex items-center justify-center h-48"><p className="text-gray-400 text-sm">Loading...</p></div>;
+    return (
+      <div className="max-w-lg space-y-6 animate-pulse">
+        <div className="h-7 bg-slate-100 rounded-xl w-44" />
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex justify-between items-center">
+              <div className="h-3.5 bg-slate-100 rounded-lg w-28" />
+              <div className="h-4 bg-slate-100 rounded-lg w-20" />
+            </div>
+          ))}
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
+          <div className="h-10 bg-slate-100 rounded-xl" />
+          <div className="h-10 bg-slate-100 rounded-xl" />
+          <div className="h-10 bg-slate-100 rounded-xl" />
+          <div className="h-10 bg-slate-100 rounded-xl" />
+          <div className="h-10 bg-slate-100 rounded-xl" />
+        </div>
+      </div>
+    );
   }
 
   const balance  = payment.amountDue - payment.amountPaid;
@@ -166,48 +185,64 @@ export default function PayPage() {
   const coverage = entered > 0 ? buildCoveragePreview(entered, allUnpaid, unpaidCharges, !!applyToOneTime) : [];
   const showPreview = coverage.length > 1 || (coverage.length === 1 && (coverage[0].kind === "charge" || coverage[0].label !== formatMonth(payment.month)));
 
-  const StatusBadge = ({ status }: { status: string }) => {
-    const styles: Record<string, string> = {
-      PAID: "bg-green-100 text-green-800", PARTIAL: "bg-blue-100 text-blue-800",
-      PENDING: "bg-yellow-100 text-yellow-800", OVERDUE: "bg-red-100 text-red-800",
-    };
-    return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${styles[status] ?? "bg-gray-100 text-gray-800"}`}>
-        {status}
-      </span>
-    );
+  const STATUS_STYLES: Record<string, string> = {
+    PAID:    "bg-emerald-50 text-emerald-700 border border-emerald-100",
+    PARTIAL: "bg-blue-50 text-blue-700 border border-blue-100",
+    PENDING: "bg-amber-50 text-amber-700 border border-amber-100",
+    OVERDUE: "bg-rose-50 text-rose-700 border border-rose-100",
   };
 
+  const fieldClass = "w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow";
+  const labelClass = "block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide";
+
   return (
-    <div className="max-w-lg space-y-6">
+    <div className="max-w-lg space-y-6 animate-fade-up">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Record Payment</h1>
-        <p className="text-sm text-gray-500 mt-1">{formatMonth(payment.month)}</p>
+        <h1 className="text-2xl font-bold text-slate-900">Record Payment</h1>
+        <p className="text-sm text-slate-500 mt-0.5">{formatMonth(payment.month)}</p>
       </div>
 
-      {/* Payment Info */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      {/* Payment Info Card */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-50">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-sm">
+            {payment.tenant.name.charAt(0)}
+          </div>
+          <div>
+            <p className="font-semibold text-slate-900">{payment.tenant.name}</p>
+            <p className="text-xs text-slate-400">{payment.room.name} · {formatMonth(payment.month)}</p>
+          </div>
+          <span className={`ml-auto inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${STATUS_STYLES[payment.status] ?? "bg-slate-100 text-slate-600"}`}>
+            {payment.status}
+          </span>
+        </div>
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div><p className="text-gray-500">Tenant</p><p className="font-semibold text-gray-900">{payment.tenant.name}</p></div>
-          <div><p className="text-gray-500">Room</p><p className="font-semibold text-gray-900">{payment.room.name}</p></div>
-          <div><p className="text-gray-500">Amount Due</p><p className="font-semibold text-gray-900">{formatCurrency(payment.amountDue, currencySymbol)}</p></div>
-          <div><p className="text-gray-500">Already Paid</p><p className="font-semibold text-gray-900">{formatCurrency(payment.amountPaid, currencySymbol)}</p></div>
-          <div><p className="text-gray-500">Balance (this month)</p><p className="font-semibold text-red-600">{formatCurrency(balance, currencySymbol)}</p></div>
-          <div><p className="text-gray-500">Status</p><StatusBadge status={payment.status} /></div>
+          <div className="bg-slate-50 rounded-xl p-3">
+            <p className="text-xs text-slate-400 font-medium">Amount Due</p>
+            <p className="font-bold text-slate-900 mt-0.5">{formatCurrency(payment.amountDue, currencySymbol)}</p>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3">
+            <p className="text-xs text-slate-400 font-medium">Already Paid</p>
+            <p className="font-bold text-slate-900 mt-0.5">{formatCurrency(payment.amountPaid, currencySymbol)}</p>
+          </div>
+          <div className="bg-rose-50 rounded-xl p-3">
+            <p className="text-xs text-rose-400 font-medium">Balance (this month)</p>
+            <p className="font-bold text-rose-600 mt-0.5">{formatCurrency(balance, currencySymbol)}</p>
+          </div>
           {totalOutstanding > balance && (
-            <div className="col-span-2 pt-1 border-t border-gray-100">
-              <p className="text-gray-500">Total Outstanding (all months)</p>
-              <p className="font-semibold text-red-700 text-base">{formatCurrency(totalOutstanding, currencySymbol)}</p>
+            <div className="bg-rose-50 rounded-xl p-3">
+              <p className="text-xs text-rose-400 font-medium">Total Outstanding</p>
+              <p className="font-bold text-rose-700 mt-0.5">{formatCurrency(totalOutstanding, currencySymbol)}</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Payment Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Amount Paid ({currencySymbol}) <span className="text-red-500">*</span>
+          <label className={labelClass}>
+            Amount Paid ({currencySymbol}) <span className="text-rose-500 normal-case">*</span>
           </label>
           <input
             type="number"
@@ -216,25 +251,25 @@ export default function PayPage() {
               required: "Amount is required",
               min: { value: 0.01, message: "Amount must be greater than 0" },
             })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={fieldClass}
           />
           {errors.amountPaid && (
-            <p className="text-red-500 text-xs mt-1">{errors.amountPaid.message}</p>
+            <p className="text-rose-500 text-xs mt-1.5">{errors.amountPaid.message}</p>
           )}
 
           {/* Distribution preview */}
           {showPreview && (
-            <div className="mt-2 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 text-xs text-blue-800 space-y-1">
-              <p className="font-medium">This payment will cover:</p>
+            <div className="mt-3 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3 text-xs space-y-2">
+              <p className="font-semibold text-indigo-800">This payment will cover:</p>
               {coverage.map((item, i) => (
-                <div key={i} className="flex justify-between items-start">
-                  <span className={item.kind === "charge" ? "text-orange-700" : ""}>
+                <div key={i} className="flex justify-between items-start gap-2">
+                  <span className={`font-medium ${item.kind === "charge" ? "text-orange-700" : "text-indigo-700"}`}>
                     {item.kind === "charge" ? `📋 ${item.label}` : item.label}
                   </span>
-                  <span className="text-right">
+                  <span className="text-right shrink-0">
                     {item.full
-                      ? "Full payment"
-                      : <>{`Partial — ${formatCurrency(item.amount, currencySymbol)}`}<br /><span className="text-red-400">Remaining: {formatCurrency(item.remainingAfter, currencySymbol)}</span></>
+                      ? <span className="text-emerald-600 font-semibold">Full payment</span>
+                      : <><span className="text-indigo-700">Partial — {formatCurrency(item.amount, currencySymbol)}</span><br /><span className="text-rose-400">Remaining: {formatCurrency(item.remainingAfter, currencySymbol)}</span></>
                     }
                   </span>
                 </div>
@@ -244,49 +279,46 @@ export default function PayPage() {
         </div>
 
         {unpaidCharges.length > 0 && (
-          <label className="flex items-center gap-2 cursor-pointer select-none">
+          <label className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
             <input
               type="checkbox"
               {...register("applyToOneTimeCharges")}
-              className="accent-blue-600 w-4 h-4"
+              className="accent-indigo-600 w-4 h-4 rounded"
             />
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-slate-700 font-medium">
               Also apply to one-time charges
-              <span className="ml-1 text-xs text-gray-400">
-                ({unpaidCharges.length} unpaid, {formatCurrency(unpaidCharges.reduce((s, c) => s + (c.amount - c.amountPaid), 0), currencySymbol)} due)
+              <span className="ml-1.5 text-xs font-normal text-slate-400">
+                ({unpaidCharges.length} unpaid · {formatCurrency(unpaidCharges.reduce((s, c) => s + (c.amount - c.amountPaid), 0), currencySymbol)} due)
               </span>
             </span>
           </label>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-          <select
-            {...register("method")}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
+          <label className={labelClass}>Payment Method</label>
+          <select {...register("method")} className={`${fieldClass} bg-white`}>
             {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Payment Date <span className="text-red-500">*</span>
+          <label className={labelClass}>
+            Payment Date <span className="text-rose-500 normal-case">*</span>
           </label>
           <input
             type="date"
             {...register("paidDate", { required: "Date is required" })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={fieldClass}
           />
-          {errors.paidDate && <p className="text-red-500 text-xs mt-1">{errors.paidDate.message}</p>}
+          {errors.paidDate && <p className="text-rose-500 text-xs mt-1.5">{errors.paidDate.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <label className={labelClass}>Notes</label>
           <textarea
             {...register("notes")}
             rows={2}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className={`${fieldClass} resize-none`}
             placeholder="Optional notes"
           />
         </div>
@@ -295,14 +327,14 @@ export default function PayPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
+            className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-200"
           >
             {isSubmitting ? "Recording..." : "Record Payment"}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+            className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
           >
             Cancel
           </button>

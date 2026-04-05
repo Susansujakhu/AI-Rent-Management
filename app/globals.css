@@ -30,6 +30,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --font-inter: "Inter", system-ui, sans-serif;
 }
 
 .dark {
@@ -102,5 +103,35 @@
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ─── Animations ─────────────────────────────────────────── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-up  { animation: fadeUp  0.35s ease-out both; }
+.animate-fade-in  { animation: fadeIn  0.25s ease-out both; }
+.animate-scale-in { animation: scaleIn 0.2s  ease-out both; }
+
+/* Stagger helpers */
+.stagger-1 { animation-delay: 50ms;  }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }

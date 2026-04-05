@@ -5,201 +5,123 @@ import { useForm } from "react-hook-form";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
+import { Users } from "lucide-react";
 
-type Room = {
-  id: string;
-  name: string;
-  floor: string | null;
-  monthlyRent: number;
-  tenants: { id: string }[];
-};
+type Room = { id: string; name: string; floor: string | null; monthlyRent: number; tenants: { id: string }[] };
+type FormData = { name: string; phone: string; email: string; roomId: string; moveInDate: string; moveOutDate: string; deposit: number; notes: string };
 
-type FormData = {
-  name: string;
-  phone: string;
-  email: string;
-  roomId: string;
-  moveInDate: string;
-  moveOutDate: string;
-  deposit: number;
-  notes: string;
-};
+const field = "w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-white";
+const label = "block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5";
+const err   = "text-rose-500 text-xs mt-1.5";
 
 export default function EditTenantPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params.id;
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [currentRoomId, setCurrentRoomId] = useState<string>("");
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>();
-
+  const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm<FormData>();
   const moveInDate = watch("moveInDate");
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/tenants/${id}`).then((r) => r.json()),
-      fetch("/api/rooms").then((r) => r.json()),
+      fetch(`/api/tenants/${id}`).then(r => r.json()),
+      fetch("/api/rooms").then(r => r.json()),
     ]).then(([tenantData, roomsData]) => {
-      setCurrentRoomId(tenantData.roomId ?? "");
       reset({
         name: tenantData.name,
         phone: tenantData.phone,
         email: tenantData.email ?? "",
         roomId: tenantData.roomId ?? "",
-        moveInDate: tenantData.moveInDate
-          ? new Date(tenantData.moveInDate).toISOString().split("T")[0]
-          : "",
-        moveOutDate: tenantData.moveOutDate
-          ? new Date(tenantData.moveOutDate).toISOString().split("T")[0]
-          : "",
+        moveInDate: tenantData.moveInDate ? new Date(tenantData.moveInDate).toISOString().split("T")[0] : "",
+        moveOutDate: tenantData.moveOutDate ? new Date(tenantData.moveOutDate).toISOString().split("T")[0] : "",
         deposit: tenantData.deposit ?? 0,
         notes: tenantData.notes ?? "",
       });
-      // Available rooms: vacant rooms + the tenant's current room
-      const available = (roomsData as Room[]).filter(
-        (r) => r.tenants.length === 0 || r.id === tenantData.roomId
-      );
-      setRooms(available);
+      setRooms((roomsData as Room[]).filter(r => r.tenants.length === 0 || r.id === tenantData.roomId));
     });
   }, [id, reset]);
 
   const onSubmit = async (data: FormData) => {
     try {
-      const res = await fetch(`/api/tenants/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      const res = await fetch(`/api/tenants/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       if (!res.ok) throw new Error();
       toast.success("Tenant updated");
       router.push(`/tenants/${id}`);
-    } catch {
-      toast.error("Failed to update tenant");
-    }
+    } catch { toast.error("Failed to update tenant"); }
   };
 
   return (
-    <div className="max-w-lg space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Tenant</h1>
+    <div className="max-w-lg space-y-6 animate-fade-up">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-sm shadow-violet-200">
+          <Users size={18} className="text-white" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Edit Tenant</h1>
+          <p className="text-sm text-slate-500">Update tenant details below</p>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Full Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            {...register("name", { required: "Name is required" })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <label className={label}>Full Name <span className="text-rose-500 normal-case">*</span></label>
+            <input {...register("name", { required: "Name is required" })} className={field} placeholder="e.g. Ravi Kumar" />
+            {errors.name && <p className={err}>{errors.name.message}</p>}
+          </div>
+          <div>
+            <label className={label}>Phone <span className="text-rose-500 normal-case">*</span></label>
+            <input {...register("phone", { required: "Phone is required" })} className={field} placeholder="98XXXXXXXX" />
+            {errors.phone && <p className={err}>{errors.phone.message}</p>}
+          </div>
+          <div>
+            <label className={label}>Email</label>
+            <input type="email" {...register("email")} className={field} placeholder="optional@email.com" />
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Phone <span className="text-red-500">*</span>
-          </label>
-          <input
-            {...register("phone", { required: "Phone is required" })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input
-            type="email"
-            {...register("email")}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Room</label>
-          <select
-            {...register("roomId")}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
+          <label className={label}>Assign Room</label>
+          <select {...register("roomId")} className={field}>
             <option value="">— No room —</option>
-            {rooms.map((room) => (
-              <option key={room.id} value={room.id}>
-                {room.name}{room.floor ? ` (${room.floor})` : ""} — ₹{room.monthlyRent}/mo
-              </option>
+            {rooms.map(r => (
+              <option key={r.id} value={r.id}>{r.name}{r.floor ? ` (${r.floor})` : ""} — {r.monthlyRent}/mo</option>
             ))}
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Move-In Date <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            {...register("moveInDate", { required: "Move-in date is required" })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {errors.moveInDate && (
-            <p className="text-red-500 text-xs mt-1">{errors.moveInDate.message}</p>
-          )}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={label}>Move-In Date <span className="text-rose-500 normal-case">*</span></label>
+            <input type="date" {...register("moveInDate", { required: "Required" })} className={field} />
+            {errors.moveInDate && <p className={err}>{errors.moveInDate.message}</p>}
+          </div>
+          <div>
+            <label className={label}>Move-Out Date</label>
+            <input type="date" {...register("moveOutDate", {
+              validate: val => { if (!val || !moveInDate) return true; return val >= moveInDate || "Must be on or after move-in"; }
+            })} min={moveInDate || undefined} className={field} />
+            {errors.moveOutDate && <p className={err}>{errors.moveOutDate.message}</p>}
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Move-Out Date</label>
-          <input
-            type="date"
-            {...register("moveOutDate", {
-              validate: (val) => {
-                if (!val || !moveInDate) return true;
-                return val >= moveInDate || "Move-out date must be on or after move-in date";
-              },
-            })}
-            min={moveInDate || undefined}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {errors.moveOutDate && (
-            <p className="text-red-500 text-xs mt-1">{errors.moveOutDate.message}</p>
-          )}
+          <label className={label}>Deposit</label>
+          <input type="number" {...register("deposit", { min: 0 })} className={field} placeholder="0" />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Deposit (₹)</label>
-          <input
-            type="number"
-            {...register("deposit", { min: 0 })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <label className={label}>Notes</label>
+          <textarea {...register("notes")} rows={3} className={`${field} resize-none`} placeholder="Any additional notes..." />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-          <textarea
-            {...register("notes")}
-            rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          />
-        </div>
-
-        <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
+        <div className="flex gap-3 pt-1">
+          <button type="submit" disabled={isSubmitting}
+            className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-200">
             {isSubmitting ? "Saving..." : "Save Changes"}
           </button>
-          <Link
-            href={`/tenants/${id}`}
-            className="flex-1 text-center border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-          >
+          <Link href={`/tenants/${id}`} className="flex-1 text-center border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
             Cancel
           </Link>
         </div>
