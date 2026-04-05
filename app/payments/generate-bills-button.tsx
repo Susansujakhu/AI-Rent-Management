@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Sparkles } from "lucide-react";
 
 export function GenerateBillsButton({ month }: { month: string }) {
   const router = useRouter();
@@ -31,9 +32,10 @@ export function GenerateBillsButton({ month }: { month: string }) {
     <button
       onClick={handleGenerate}
       disabled={loading}
-      className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-200"
+      className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-md shadow-indigo-200/60 hover:shadow-lg hover:shadow-indigo-200/80 hover:-translate-y-0.5 active:translate-y-0"
     >
-      {loading ? "Generating..." : "Generate Bills"}
+      <Sparkles size={14} className={loading ? "animate-pulse" : ""} />
+      {loading ? "Generating…" : "Generate Bills"}
     </button>
   );
 }

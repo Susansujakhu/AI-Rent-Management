@@ -5,25 +5,28 @@ import { useForm } from "react-hook-form";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import { PAYMENT_METHODS } from "@/lib/utils";
+import { CreditCard, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 type Charge = {
   id: string; title: string; amount: number; amountPaid: number;
   status: string; date: string; notes: string | null;
   tenant: { name: string };
 };
-type FormData = { amountPaid: number; notes: string };
+type FormData = { amountPaid: number; method: string; notes: string };
 
-function formatAmount(n: number, symbol: string) {
+function fmt(n: number, symbol: string) {
   return `${symbol}${new Intl.NumberFormat("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)}`;
 }
 
 export default function PayOneTimeChargePage() {
   const router = useRouter();
   const { id: tenantId, chargeId } = useParams<{ id: string; chargeId: string }>();
-  const [charge, setCharge] = useState<Charge | null>(null);
+  const [charge, setCharge]               = useState<Charge | null>(null);
   const [currencySymbol, setCurrencySymbol] = useState("रू");
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormData>();
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } =
+    useForm<FormData>({ defaultValues: { method: "CASH" } });
 
   useEffect(() => {
     fetch("/api/settings")
@@ -34,7 +37,7 @@ export default function PayOneTimeChargePage() {
       .then((r) => r.json())
       .then((data: Charge) => {
         setCharge(data);
-        reset({ amountPaid: data.amount - data.amountPaid });
+        reset({ amountPaid: data.amount - data.amountPaid, method: "CASH" });
       });
   }, [chargeId, reset]);
 
@@ -53,52 +56,124 @@ export default function PayOneTimeChargePage() {
     }
   };
 
-  if (!charge) return <div className="flex items-center justify-center h-48"><p className="text-gray-400 text-sm">Loading...</p></div>;
+  const fieldCls = "w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-shadow bg-white";
+  const labelCls = "block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5";
+
+  if (!charge) {
+    return (
+      <div className="max-w-lg space-y-4 animate-pulse">
+        <div className="h-6 bg-slate-100 rounded-xl w-32" />
+        <div className="h-7 bg-slate-100 rounded-xl w-56" />
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex justify-between">
+              <div className="h-3.5 bg-slate-100 rounded-lg w-24" />
+              <div className="h-3.5 bg-slate-100 rounded-lg w-20" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const balance = charge.amount - charge.amountPaid;
 
   return (
-    <div className="max-w-lg space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Pay One-time Charge</h1>
+    <div className="max-w-lg space-y-6 animate-fade-up">
+      {/* Back link */}
+      <Link
+        href={`/tenants/${tenantId}`}
+        className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 transition-colors"
+      >
+        <ArrowLeft size={14} /> Back to tenant
+      </Link>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-5 text-sm space-y-2">
-        <div className="flex justify-between"><span className="text-gray-500">Tenant</span><span className="font-semibold">{charge.tenant.name}</span></div>
-        <div className="flex justify-between"><span className="text-gray-500">Description</span><span className="font-semibold">{charge.title}</span></div>
-        <div className="flex justify-between"><span className="text-gray-500">Total Amount</span><span className="font-semibold">{formatAmount(charge.amount, currencySymbol)}</span></div>
-        <div className="flex justify-between"><span className="text-gray-500">Already Paid</span><span className="font-semibold">{formatAmount(charge.amountPaid, currencySymbol)}</span></div>
-        <div className="flex justify-between"><span className="text-gray-500">Balance</span><span className="font-semibold text-red-600">{formatAmount(balance, currencySymbol)}</span></div>
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm shadow-emerald-200">
+          <CreditCard size={18} className="text-white" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Pay One-time Charge</h1>
+          <p className="text-sm text-slate-500 truncate max-w-xs">{charge.title}</p>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      {/* Charge summary */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-50">
+          <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-700 font-bold text-sm shrink-0">
+            {charge.tenant.name.charAt(0)}
+          </div>
+          <div>
+            <p className="font-semibold text-slate-900">{charge.tenant.name}</p>
+            <p className="text-xs text-slate-400">{charge.title}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 text-sm">
+          <div className="bg-slate-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-slate-400 font-medium mb-1">Total</p>
+            <p className="font-bold text-slate-900">{fmt(charge.amount, currencySymbol)}</p>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-slate-400 font-medium mb-1">Paid</p>
+            <p className="font-bold text-emerald-600">{fmt(charge.amountPaid, currencySymbol)}</p>
+          </div>
+          <div className="bg-rose-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-rose-400 font-medium mb-1">Balance</p>
+            <p className="font-bold text-rose-600">{fmt(balance, currencySymbol)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Amount Paid ({currencySymbol}) <span className="text-red-500">*</span></label>
+          <label className={labelCls}>Amount Paid ({currencySymbol}) <span className="text-rose-500 normal-case">*</span></label>
           <input
-            type="number" step="0.01"
+            type="number"
+            step="0.01"
             {...register("amountPaid", {
               required: "Amount is required",
               min: { value: 0.01, message: "Must be greater than 0" },
-              max: { value: balance, message: `Cannot exceed balance (${formatAmount(balance, currencySymbol)})` },
+              max: { value: balance, message: `Cannot exceed balance (${fmt(balance, currencySymbol)})` },
             })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={fieldCls}
           />
-          {errors.amountPaid && <p className="text-red-500 text-xs mt-1">{errors.amountPaid.message}</p>}
+          {errors.amountPaid && <p className="text-rose-500 text-xs mt-1.5">{errors.amountPaid.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <label className={labelCls}>Payment Method</label>
+          <select {...register("method")} className={`${fieldCls}`}>
+            {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className={labelCls}>Notes</label>
           <textarea
-            {...register("notes")} rows={2} placeholder="Optional notes"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            {...register("notes")}
+            rows={2}
+            placeholder="Optional notes..."
+            className={`${fieldCls} resize-none`}
           />
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={isSubmitting}
-            className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 transition-all shadow-sm shadow-emerald-200"
+          >
             {isSubmitting ? "Recording..." : "Record Payment"}
           </button>
-          <button type="button" onClick={() => router.back()}
-            className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+          >
             Cancel
           </button>
         </div>

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   const tenant = await prisma.tenant.findUnique({
     where: { id },
@@ -22,6 +24,7 @@ function resolveStatus(paid: number, due: number, wasOverdue: boolean): string {
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   const body = await req.json();
 
@@ -108,6 +111,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   await prisma.tenant.delete({ where: { id } });
   return NextResponse.json({ success: true });

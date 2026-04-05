@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET() {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const rooms = await prisma.room.findMany({
     include: { tenants: { where: { moveOutDate: null } } },
     orderBy: { name: "asc" },
@@ -10,6 +12,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const body = await req.json();
   const room = await prisma.room.create({
     data: {

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category");
 
@@ -14,6 +16,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const body = await req.json();
   const expense = await prisma.expense.create({
     data: {

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { searchParams } = new URL(req.url);
   const month    = searchParams.get("month");
   const tenantId = searchParams.get("tenantId");

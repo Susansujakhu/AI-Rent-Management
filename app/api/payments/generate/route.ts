@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthAPI } from "@/lib/auth";
 
 function monthString(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}`;
 }
 
-// Returns all months from startMonth to endMonth inclusive, as "YYYY-MM" strings
 function monthRange(startMonth: string, endMonth: string): string[] {
   const months: string[] = [];
   const [sy, sm] = startMonth.split("-").map(Number);
@@ -21,8 +21,9 @@ function monthRange(startMonth: string, endMonth: string): string[] {
 }
 
 export async function POST(req: Request) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const body = await req.json();
-  const { month } = body; // target billing month e.g. "2026-04"
+  const { month } = body;
 
   if (!month) {
     return NextResponse.json({ error: "month is required" }, { status: 400 });
@@ -35,10 +36,8 @@ export async function POST(req: Request) {
 
   const today = new Date();
   const currentMonth = monthString(today.getFullYear(), today.getMonth() + 1);
-  // Never generate bills beyond current month
   const upToMonth = month > currentMonth ? currentMonth : month;
 
-  // 12-month lookback window
   const lookbackDate = new Date();
   lookbackDate.setMonth(lookbackDate.getMonth() - 11);
   const lookbackMonth = monthString(lookbackDate.getFullYear(), lookbackDate.getMonth() + 1);
@@ -52,10 +51,7 @@ export async function POST(req: Request) {
       tenant.moveInDate.getMonth() + 1
     );
 
-    // Start from whichever is more recent: move-in or 12-month lookback
     const startMonth = moveInMonth > lookbackMonth ? moveInMonth : lookbackMonth;
-
-    // Generate all missing months from startMonth up to the target month
     const months = monthRange(startMonth, upToMonth);
 
     for (const m of months) {

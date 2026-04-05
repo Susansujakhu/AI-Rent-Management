@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   const expense = await prisma.expense.findUnique({
     where: { id },
@@ -12,6 +14,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   const body = await req.json();
   const expense = await prisma.expense.update({
@@ -29,6 +32,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   await prisma.expense.delete({ where: { id } });
   return NextResponse.json({ success: true });

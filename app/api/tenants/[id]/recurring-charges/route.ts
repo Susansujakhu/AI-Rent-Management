@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthAPI } from "@/lib/auth";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id: tenantId } = await params;
   const { title, amount, effectiveFrom } = await req.json();
 

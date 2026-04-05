@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   const room = await prisma.room.findUnique({
     where: { id },
@@ -12,6 +14,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   const body = await req.json();
   const newRent = Number(body.monthlyRent);
@@ -27,8 +30,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     include: { recurringCharges: true },
   });
 
-  // Propagate the new rent to future PENDING records that haven't been paid yet.
-  // OVERDUE records keep their original amount (the rate agreed for that period).
   const newAmountDue = newRent + room.recurringCharges.reduce((s, c) => s + c.amount, 0);
   await prisma.payment.updateMany({
     where: { roomId: id, status: "PENDING", amountPaid: 0 },
@@ -39,6 +40,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   const activeTenant = await prisma.tenant.findFirst({
     where: { roomId: id, moveOutDate: null },

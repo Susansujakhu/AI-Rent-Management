@@ -47,6 +47,9 @@ function shortMonth(month: string) {
 }
 
 export default async function DashboardPage() {
+  const { requireAuth } = await import("@/lib/auth");
+  await requireAuth();
+
   const month    = currentMonth();
   const settings = await getSettings();
   const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
@@ -143,6 +146,12 @@ export default async function DashboardPage() {
 
   const occupiedRooms = await prisma.room.count({ where: { tenants: { some: { moveOutDate: null } } } });
   const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+
+  // Anniversary — active tenants whose move-in month matches current month
+  const anniversaryTenants = activeTenants.filter(t => {
+    const m = t.moveInDate.getMonth() + 1;
+    return m === Number(month.split("-")[1]);
+  });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -316,6 +325,33 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Anniversary Reminders */}
+      {anniversaryTenants.length > 0 && (
+        <div className="animate-fade-up bg-gradient-to-r from-violet-50 to-indigo-50 rounded-2xl border border-violet-100 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">🎉</span>
+            <h2 className="font-semibold text-violet-900">Move-in Anniversaries this month</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {anniversaryTenants.map(t => {
+              const years = now.getFullYear() - t.moveInDate.getFullYear();
+              return (
+                <Link key={t.id} href={`/tenants/${t.id}`}
+                  className="flex items-center gap-2 bg-white/80 border border-violet-100 rounded-xl px-3 py-2 text-sm hover:bg-white hover:border-violet-200 transition-all">
+                  <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 text-xs font-bold">
+                    {t.name.charAt(0)}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800">{t.name}</span>
+                    <span className="text-xs text-violet-500 ml-1.5">{years} yr{years !== 1 ? "s" : ""}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-fade-up stagger-4">

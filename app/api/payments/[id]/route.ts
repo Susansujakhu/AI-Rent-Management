@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   const payment = await prisma.payment.findUnique({
     where: { id },
@@ -19,6 +21,7 @@ function resolveStatus(paid: number, due: number, wasOverdue: boolean): string {
 
 // DELETE = void/reverse a payment back to unpaid state
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   const current = await prisma.payment.findUnique({ where: { id } });
   if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -41,6 +44,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   const body = await req.json();
 
@@ -49,8 +53,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   const totalEntered = Number(body.amountPaid);
 
-  // Get ALL unpaid months for this tenant, oldest first.
-  // This covers: overdue past months → current month → future months.
   const allUnpaid = await prisma.payment.findMany({
     where: {
       tenantId: current.tenantId,
@@ -61,7 +63,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   let remaining = totalEntered;
 
-  // When checkbox is checked: clear one-time charges first, then rent months
   if (body.applyToOneTimeCharges) {
     const unpaidCharges = await prisma.oneTimeCharge.findMany({
       where: { tenantId: current.tenantId, status: { not: "PAID" } },
@@ -102,7 +103,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
   }
 
-  // Any excess beyond all known unpaid months/charges → save as credit balance for future months
   if (remaining > 0) {
     await prisma.tenant.update({
       where: { id: current.tenantId },

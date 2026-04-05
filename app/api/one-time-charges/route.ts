@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { searchParams } = new URL(req.url);
   const tenantId = searchParams.get("tenantId");
-  const status   = searchParams.get("status"); // "unpaid" = exclude PAID
+  const status   = searchParams.get("status");
 
   const charges = await prisma.oneTimeCharge.findMany({
     where: {
@@ -16,6 +18,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const body = await req.json();
   const charge = await prisma.oneTimeCharge.create({
     data: {
