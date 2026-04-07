@@ -50,3 +50,7 @@ next-env.d.ts
 
 # Local app settings file (superseded by DB-backed settings)
 app-settings.json
+
+# WhatsApp session & Puppeteer cache (runtime data, regenerated on each login)
+.wwebjs_auth/
+.wwebjs_cache/

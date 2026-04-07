@@ -31,9 +31,10 @@ model Tenant {
   moveInDate    DateTime
   moveOutDate   DateTime?
   deposit       Float     @default(0)
-  creditBalance Float     @default(0)
-  notes         String?
-  createdAt     DateTime  @default(now())
+  creditBalance   Float     @default(0)
+  notes           String?
+  whatsappNotify  Boolean   @default(true)
+  createdAt       DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   room             Room?             @relation(fields: [roomId], references: [id])

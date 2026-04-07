@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
-import { CheckSquare, Square, CreditCard, Search, X } from "lucide-react";
+import { CheckSquare, Square, CreditCard, Search, X, MessageCircle } from "lucide-react";
 
 type Payment = {
   id: string;
@@ -64,6 +64,49 @@ function TenantAvatar({ name }: { name: string }) {
 function fmtDate(d: string | null) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("en", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function ReminderButton({ paymentId, status }: { paymentId: string; status: string }) {
+  const [sending, setSending] = useState(false);
+
+  const handleSend = async () => {
+    setSending(true);
+    try {
+      await sendReminder(paymentId, status === "OVERDUE" ? "overdue" : "due");
+      toast.success("Reminder sent via WhatsApp ✅");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to send";
+      if (msg.includes("not connected")) {
+        toast.error("WhatsApp not connected — go to Settings to connect");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleSend}
+      disabled={sending}
+      title="Send WhatsApp reminder"
+      className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 border border-green-200 px-2.5 py-1.5 rounded-lg hover:bg-green-100 font-semibold transition-colors disabled:opacity-50"
+    >
+      <MessageCircle size={11} className={sending ? "animate-pulse" : ""} />
+      {sending ? "…" : "Remind"}
+    </button>
+  );
+}
+
+async function sendReminder(paymentId: string, type: "overdue" | "due") {
+  const res = await fetch("/api/whatsapp/send-reminder", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paymentId, type }),
+  });
+  const data = await res.json() as { error?: string };
+  if (!res.ok) throw new Error(data.error ?? "Failed to send");
 }
 
 export function PaymentsTable({ payments, currencySymbol }: { payments: Payment[]; currencySymbol: string }) {
@@ -217,13 +260,16 @@ export function PaymentsTable({ payments, currencySymbol }: { payments: Payment[
                       : <span />
                     }
                     {p.status !== "PAID" && (
-                      <Link
-                        href={`/payments/${p.id}/pay`}
-                        className="inline-flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
-                      >
-                        <CreditCard size={11} />
-                        Pay
-                      </Link>
+                      <div className="flex items-center gap-1.5">
+                        <Link
+                          href={`/payments/${p.id}/pay`}
+                          className="inline-flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+                        >
+                          <CreditCard size={11} />
+                          Pay
+                        </Link>
+                        <ReminderButton paymentId={p.id} status={p.status} />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -293,13 +339,16 @@ export function PaymentsTable({ payments, currencySymbol }: { payments: Payment[
                 <td className="px-4 py-4 text-center"><StatusBadge status={p.status} /></td>
                 <td className="px-4 py-4 text-right">
                   {p.status !== "PAID" && (
-                    <Link
-                      href={`/payments/${p.id}/pay`}
-                      className="inline-flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-semibold transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <CreditCard size={11} />
-                      Pay
-                    </Link>
+                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ReminderButton paymentId={p.id} status={p.status} />
+                      <Link
+                        href={`/payments/${p.id}/pay`}
+                        className="inline-flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-semibold transition-colors"
+                      >
+                        <CreditCard size={11} />
+                        Pay
+                      </Link>
+                    </div>
                   )}
                 </td>
               </tr>
