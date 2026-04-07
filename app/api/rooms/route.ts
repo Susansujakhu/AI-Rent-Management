@@ -14,11 +14,20 @@ export async function GET() {
 export async function POST(req: Request) {
   const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const body = await req.json();
+
+  if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
+    return NextResponse.json({ error: "name is required" }, { status: 400 });
+  }
+  const monthlyRent = Number(body.monthlyRent);
+  if (!Number.isFinite(monthlyRent) || monthlyRent < 0) {
+    return NextResponse.json({ error: "monthlyRent must be a non-negative number" }, { status: 400 });
+  }
+
   const room = await prisma.room.create({
     data: {
-      name: body.name,
+      name: body.name.trim(),
       floor: body.floor || null,
-      monthlyRent: Number(body.monthlyRent),
+      monthlyRent,
       description: body.description || null,
     },
   });

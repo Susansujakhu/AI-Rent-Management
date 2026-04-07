@@ -6,7 +6,11 @@ import { requireAuthAPI } from "@/lib/auth";
 export async function GET(req: Request) {
   const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { searchParams } = new URL(req.url);
-  const year = parseInt(searchParams.get("year") ?? String(new Date().getFullYear()));
+  const yearParam = searchParams.get("year");
+  const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+    return NextResponse.json({ error: "year must be a valid 4-digit year" }, { status: 400 });
+  }
 
   const settings = await getSettings();
   const sym = settings.currencySymbol;
@@ -40,15 +44,23 @@ export async function GET(req: Request) {
 
   const label = (m: string) => new Date(parseInt(m.slice(0, 4)), parseInt(m.slice(5)) - 1).toLocaleDateString("en", { month: "long", year: "numeric" });
 
+  /** Escape a CSV cell: wrap in quotes and escape inner quotes. */
+  function csvCell(value: string | number): string {
+    const s = String(value);
+    // Prefix formula-injection characters so spreadsheets don't execute them
+    const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    return `"${safe.replace(/"/g, '""')}"`;
+  }
+
   const rows = months.map(m => {
     const due = payByMonth[m]?.due ?? 0;
     const col = payByMonth[m]?.col ?? 0;
     const exp = expByMonth[m] ?? 0;
     const rate = due > 0 ? `${Math.round((col / due) * 100)}%` : "—";
-    return [label(m), due, col, rate, exp, col - exp].join(",");
+    return [label(m), due, col, rate, exp, col - exp].map(csvCell).join(",");
   });
 
-  const header = `Month,Rent Due (${sym}),Collected (${sym}),Collection Rate,Expenses (${sym}),Net Income (${sym})`;
+  const header = ["Month", `Rent Due (${sym})`, `Collected (${sym})`, "Collection Rate", `Expenses (${sym})`, `Net Income (${sym})`].map(csvCell).join(",");
   const csv = [header, ...rows].join("\n");
 
   return new NextResponse(csv, {

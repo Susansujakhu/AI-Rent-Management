@@ -20,11 +20,26 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const body = await req.json();
+
+  if (!body.tenantId || typeof body.tenantId !== "string") {
+    return NextResponse.json({ error: "tenantId is required" }, { status: 400 });
+  }
+  if (!body.title || typeof body.title !== "string" || !body.title.trim()) {
+    return NextResponse.json({ error: "title is required" }, { status: 400 });
+  }
+  const amount = Number(body.amount);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return NextResponse.json({ error: "amount must be a positive number" }, { status: 400 });
+  }
+  if (!body.date || isNaN(new Date(body.date).getTime())) {
+    return NextResponse.json({ error: "date must be a valid date" }, { status: 400 });
+  }
+
   const charge = await prisma.oneTimeCharge.create({
     data: {
       tenantId: body.tenantId,
-      title:    body.title,
-      amount:   Number(body.amount),
+      title:    body.title.trim(),
+      amount,
       date:     new Date(body.date),
       notes:    body.notes || null,
     },

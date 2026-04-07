@@ -5,10 +5,12 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
 import { MoveOutButton } from "./move-out-button";
+import { WhatsAppToggle } from "./whatsapp-toggle";
 import { VoidPaymentButton } from "./void-payment-button";
+import { SendReminderButton } from "./send-reminder-button";
 import { TenantRecurringChargesPanel } from "./tenant-recurring-charges";
 import { getSettings } from "@/lib/settings";
-import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, Sparkles } from "lucide-react";
+import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, Sparkles, MessageCircle } from "lucide-react";
 
 function monthString(year: number, month: number) {
   return `${year}-${String(month).padStart(2, "0")}`;
@@ -133,7 +135,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   const settings = await getSettings();
   const fmt = (n: number) => formatCurrency(n, settings.currencySymbol);
 
-  const isActive = !tenant.moveOutDate;
+  const isActive         = !tenant.moveOutDate;
   const totalCollected   = tenant.payments.reduce((sum, p) => sum + p.amountPaid, 0) + tenant.oneTimeCharges.reduce((sum, c) => sum + c.amountPaid, 0);
   const totalOutstanding = tenant.payments.reduce((sum, p) => sum + Math.max(0, p.amountDue - p.amountPaid), 0) + tenant.oneTimeCharges.reduce((sum, c) => sum + Math.max(0, c.amount - c.amountPaid), 0);
   const overdueCount = tenant.payments.filter(p => p.status === "OVERDUE").length;
@@ -259,6 +261,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         </div>
       )}
 
+      {/* WhatsApp notification toggle */}
+      <WhatsAppToggle tenantId={id} enabled={tenant.whatsappNotify} />
+
       {/* Contact info card */}
       {(tenant.deposit > 0 || tenant.notes) && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-3">
@@ -322,10 +327,18 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
                     <span>{fmt(p.amountPaid)} / {fmt(p.amountDue)}</span>
                     <div className="flex items-center gap-2">
                       {p.status !== "PAID" && (
-                        <Link href={`/payments/${p.id}/pay`}
-                          className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
-                          Pay
-                        </Link>
+                        <>
+                          <Link href={`/payments/${p.id}/pay`}
+                            className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                            Pay
+                          </Link>
+                          <SendReminderButton
+                            paymentId={p.id}
+                            paymentStatus={p.status}
+                            hasPhone={!!tenant.phone}
+                            whatsappNotify={tenant.whatsappNotify}
+                          />
+                        </>
                       )}
                       {p.amountPaid > 0 && (
                         <Link href={`/payments/${p.id}/receipt`}
@@ -365,10 +378,18 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           {p.status !== "PAID" && (
-                            <Link href={`/payments/${p.id}/pay`}
-                              className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
-                              Pay
-                            </Link>
+                            <>
+                              <Link href={`/payments/${p.id}/pay`}
+                                className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                                Pay
+                              </Link>
+                              <SendReminderButton
+                                paymentId={p.id}
+                                paymentStatus={p.status}
+                                hasPhone={!!tenant.phone}
+                                whatsappNotify={tenant.whatsappNotify}
+                              />
+                            </>
                           )}
                           {p.amountPaid > 0 && (
                             <>

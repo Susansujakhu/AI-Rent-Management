@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createHash, randomBytes } from "crypto";
+import { randomBytes } from "crypto";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
@@ -13,12 +14,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
   }
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
+  // Only allow one account — block signup if any user already exists
+  const userCount = await prisma.user.count();
+  if (userCount > 0) {
+    return NextResponse.json({ error: "Registration is closed" }, { status: 403 });
   }
+  // No need to check for duplicate email: if count=0 no users exist yet.
 
-  const passwordHash = createHash("sha256").update(password).digest("hex");
+  const passwordHash = await bcrypt.hash(password, 12);
   const token        = randomBytes(32).toString("hex");
   const expiresAt    = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 days
 
@@ -28,6 +31,7 @@ export async function POST(req: Request) {
   const res = NextResponse.json({ ok: true });
   res.cookies.set("rms_session", token, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,

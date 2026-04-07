@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
+import { sendWhatsAppMessage, msgPaymentReceived, getWAStatus } from "@/lib/whatsapp";
+import { formatCurrency, formatMonth, PAYMENT_METHODS } from "@/lib/utils";
+import { getSettings } from "@/lib/settings";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauth = await requireAuthAPI(); if (unauth) return unauth;
@@ -52,6 +55,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const totalEntered = Number(body.amountPaid);
+  if (!Number.isFinite(totalEntered) || totalEntered <= 0) {
+    return NextResponse.json({ error: "amountPaid must be a positive number" }, { status: 400 });
+  }
+  if (body.method && !PAYMENT_METHODS.includes(body.method as typeof PAYMENT_METHODS[number])) {
+    return NextResponse.json({ error: `method must be one of: ${PAYMENT_METHODS.join(", ")}` }, { status: 400 });
+  }
 
   const allUnpaid = await prisma.payment.findMany({
     where: {
@@ -97,7 +106,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         amountPaid: newPaid,
         status:     resolveStatus(newPaid, p.amountDue, p.status === "OVERDUE"),
         method:     body.method  || null,
-        paidDate:   body.paidDate ? new Date(body.paidDate) : null,
+        paidDate:   body.paidDate && !isNaN(new Date(body.paidDate).getTime())
+                      ? new Date(body.paidDate)
+                      : null,
         ...(p.id === id ? { notes: body.notes || null } : {}),
       },
     });
@@ -114,5 +125,22 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     where: { id },
     include: { tenant: true, room: true },
   });
+
+  // Send WhatsApp confirmation if connected and tenant has notifications enabled
+  if (updated && getWAStatus() === "ready" && updated.tenant.phone && updated.amountPaid > 0 && updated.tenant.whatsappNotify) {
+    const settings = await getSettings();
+    const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
+    // Load custom template if set
+    const tplRow   = await prisma.setting.findUnique({ where: { key: "wa_tpl_payment_received" } });
+    const msg      = msgPaymentReceived(
+      updated.tenant.name,
+      fmt(updated.amountPaid),
+      formatMonth(updated.month),
+      updated.room.name,
+      tplRow?.value,
+    );
+    sendWhatsAppMessage(updated.tenant.phone, msg).catch(console.error);
+  }
+
   return NextResponse.json(updated);
 }

@@ -2,8 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(req: Request) {
   const unauth = await requireAuthAPI(); if (unauth) return unauth;
+
+  const { searchParams } = new URL(req.url);
+  if (searchParams.get("confirm") !== "1") {
+    return NextResponse.json(
+      { error: "Add ?confirm=1 to acknowledge you are downloading all tenant data." },
+      { status: 400 }
+    );
+  }
   const [rooms, tenants, payments, expenses, charges, oneTimeCharges, settings] = await Promise.all([
     prisma.room.findMany(),
     prisma.tenant.findMany(),

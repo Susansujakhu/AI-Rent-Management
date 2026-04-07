@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createHash } from "crypto";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   const cookieStore = await cookies();
@@ -23,8 +24,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Current password is required" }, { status: 400 });
   }
 
-  const currentHash = createHash("sha256").update(currentPassword).digest("hex");
-  if (currentHash !== session.user.passwordHash) {
+  // Support both legacy SHA-256 and bcrypt hashes
+  const storedHash = session.user.passwordHash;
+  const isLegacy   = /^[0-9a-f]{64}$/.test(storedHash);
+  const currentOk  = isLegacy
+    ? createHash("sha256").update(currentPassword).digest("hex") === storedHash
+    : await bcrypt.compare(currentPassword, storedHash);
+
+  if (!currentOk) {
     return NextResponse.json({ error: "Current password is incorrect" }, { status: 401 });
   }
 
@@ -32,7 +39,7 @@ export async function POST(req: Request) {
 
   if (typeof newPassword === "string" && newPassword) {
     if (newPassword.length < 6) return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
-    updates.passwordHash = createHash("sha256").update(newPassword).digest("hex");
+    updates.passwordHash = await bcrypt.hash(newPassword, 12);
   }
 
   if (typeof newEmail === "string" && newEmail && newEmail !== session.user.email) {

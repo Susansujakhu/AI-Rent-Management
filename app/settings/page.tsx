@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Check, Settings, Eye, EyeOff, Coins, ShieldCheck, DatabaseBackup, Download, UserCog } from "lucide-react";
+import { Check, Settings, Eye, EyeOff, Coins, ShieldCheck, DatabaseBackup, Download, UserCog, MessageCircle, Wifi, WifiOff, RefreshCw, Smartphone } from "lucide-react";
 
 const PRESETS = [
   { label: "Nepali Rupee", code: "NPR", symbol: "रू", flag: "🇳🇵" },
@@ -13,6 +13,8 @@ const PRESETS = [
   { label: "Custom",       code: "CUSTOM", symbol: "",  flag: "✏️" },
 ];
 
+type WAStatus = "disconnected" | "connecting" | "qr" | "ready";
+
 export default function SettingsPage() {
   const [selectedCode, setSelectedCode] = useState("NPR");
   const [customSymbol, setCustomSymbol] = useState("");
@@ -22,6 +24,16 @@ export default function SettingsPage() {
 
   // Account info
   const [userEmail,    setUserEmail]    = useState("");
+
+  // WhatsApp state
+  const [waStatus,   setWaStatus]   = useState<WAStatus>("disconnected");
+  const [waQR,       setWaQR]       = useState<string | null>(null);
+  const [waPhone,    setWaPhone]    = useState<string | null>(null);
+  const [waPolling,  setWaPolling]  = useState(false);
+  const [waTplPayment,  setWaTplPayment]  = useState("");
+  const [waTplDue,      setWaTplDue]      = useState("");
+  const [waTplOverdue,  setWaTplOverdue]  = useState("");
+  const [savingTpl,     setSavingTpl]     = useState(false);
 
   // Change password/email form
   const [currentPassword,  setCurrentPassword]  = useState("");
@@ -49,7 +61,70 @@ export default function SettingsPage() {
       if (me) setUserEmail(me.email);
       setLoaded(true);
     });
+
+    // Initial WhatsApp status + templates
+    fetch("/api/whatsapp/status")
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { status: WAStatus; qrImage: string | null; phone: string | null } | null) => {
+        if (d) { setWaStatus(d.status); setWaQR(d.qrImage); setWaPhone(d.phone); }
+      });
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then((d: Record<string, string>) => {
+        if (d["wa_tpl_payment_received"]) setWaTplPayment(d["wa_tpl_payment_received"]);
+        if (d["wa_tpl_rent_due"])         setWaTplDue(d["wa_tpl_rent_due"]);
+        if (d["wa_tpl_rent_overdue"])     setWaTplOverdue(d["wa_tpl_rent_overdue"]);
+      });
   }, []);
+
+  // Poll WhatsApp status while connecting or waiting for QR scan
+  useEffect(() => {
+    if (waStatus !== "connecting" && waStatus !== "qr") { setWaPolling(false); return; }
+    setWaPolling(true);
+    const interval = setInterval(async () => {
+      const res = await fetch("/api/whatsapp/status");
+      if (!res.ok) return;
+      const d = await res.json() as { status: WAStatus; qrImage: string | null; phone: string | null };
+      setWaStatus(d.status); setWaQR(d.qrImage); setWaPhone(d.phone);
+      if (d.status === "ready" || d.status === "disconnected") {
+        clearInterval(interval);
+        setWaPolling(false);
+        if (d.status === "ready") toast.success("WhatsApp connected! 🎉");
+      }
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [waStatus]);
+
+  const handleConnectWA = async () => {
+    setWaStatus("connecting");
+    await fetch("/api/whatsapp/connect", { method: "POST" });
+  };
+
+  const handleSaveTemplates = async () => {
+    setSavingTpl(true);
+    try {
+      await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          wa_tpl_payment_received: waTplPayment || undefined,
+          wa_tpl_rent_due:         waTplDue     || undefined,
+          wa_tpl_rent_overdue:     waTplOverdue || undefined,
+        }),
+      });
+      toast.success("Message templates saved");
+    } catch {
+      toast.error("Failed to save templates");
+    } finally {
+      setSavingTpl(false);
+    }
+  };
+
+  const handleDisconnectWA = async () => {
+    await fetch("/api/whatsapp/connect", { method: "DELETE" });
+    setWaStatus("disconnected"); setWaQR(null); setWaPhone(null);
+    toast.success("WhatsApp disconnected");
+  };
 
   const currentSymbol = selectedCode === "CUSTOM"
     ? customSymbol
@@ -111,7 +186,7 @@ export default function SettingsPage() {
   const labelCls = "block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2";
 
   return (
-    <div className="space-y-6 max-w-lg">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-200">
@@ -122,6 +197,10 @@ export default function SettingsPage() {
           <p className="text-sm text-slate-500">Configure app preferences</p>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      {/* Left column */}
+      <div className="space-y-6">
 
       {/* Currency */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -253,6 +332,130 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      </div>{/* end left column */}
+
+      {/* Right column */}
+      <div className="space-y-6">
+
+      {/* WhatsApp */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100 border-l-4 border-l-green-500">
+          <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+            <MessageCircle size={15} className="text-green-600" />
+          </div>
+          <div>
+            <h2 className="font-bold text-slate-900">WhatsApp Notifications</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Auto-notify tenants on payments &amp; reminders</p>
+          </div>
+          <div className="ml-auto">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
+              waStatus === "ready"
+                ? "bg-green-50 text-green-700 border-green-200"
+                : waStatus === "qr" || waStatus === "connecting"
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-slate-100 text-slate-500 border-slate-200"
+            }`}>
+              {waStatus === "ready" ? <Wifi size={10} /> : <WifiOff size={10} />}
+              {waStatus === "ready" ? "Connected" : waStatus === "qr" ? "Scan QR" : waStatus === "connecting" ? "Connecting…" : "Disconnected"}
+            </span>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {waStatus === "ready" && (
+            <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
+                  <Smartphone size={16} className="text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-green-900">WhatsApp Active</p>
+                  <p className="text-xs text-green-600 font-medium">+{waPhone}</p>
+                </div>
+              </div>
+              <button onClick={handleDisconnectWA}
+                className="text-xs text-rose-500 hover:text-rose-600 font-semibold border border-rose-200 hover:border-rose-300 px-3 py-1.5 rounded-lg transition-colors">
+                Disconnect
+              </button>
+            </div>
+          )}
+
+          {(waStatus === "qr") && waQR && (
+            <div className="flex flex-col items-center gap-3 py-2">
+              <p className="text-sm font-semibold text-slate-700">Scan with your WhatsApp</p>
+              <p className="text-xs text-slate-400 text-center max-w-xs">Open WhatsApp → tap ⋮ → Linked devices → Link a device → scan this code</p>
+              <div className="p-3 bg-white border-2 border-green-200 rounded-2xl shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={waQR} alt="WhatsApp QR Code" className="w-56 h-56" />
+              </div>
+              <div className="flex items-center gap-2 text-xs text-amber-600 font-medium">
+                <RefreshCw size={12} className="animate-spin" />
+                Waiting for scan…
+              </div>
+            </div>
+          )}
+
+          {waStatus === "connecting" && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <div className="w-10 h-10 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-slate-500">Starting WhatsApp… this may take 15–30 seconds</p>
+            </div>
+          )}
+
+          {waStatus === "disconnected" && (
+            <div className="space-y-3">
+              <div className="bg-slate-50 rounded-xl p-4 space-y-1.5 text-xs text-slate-500">
+                <p className="font-semibold text-slate-700 text-sm">What gets sent automatically:</p>
+                <p>✅ Payment confirmation when rent is recorded</p>
+                <p>⚠️ Manual overdue reminders from payments page</p>
+                <p className="text-slate-400">Toggle notifications per tenant on their profile page</p>
+              </div>
+              <button onClick={handleConnectWA}
+                className="w-full bg-green-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-green-700 transition-all shadow-md shadow-green-200/60 flex items-center justify-center gap-2">
+                <MessageCircle size={16} />
+                Connect WhatsApp
+              </button>
+              <p className="text-xs text-slate-400 text-center">Uses your personal WhatsApp via QR code. Free, no account needed.</p>
+            </div>
+          )}
+
+          {/* Message templates — always visible */}
+          <div className="border-t border-slate-100 pt-5 space-y-4">
+            <div>
+              <p className="text-sm font-bold text-slate-700 mb-1">Message Templates</p>
+              <p className="text-xs text-slate-400">Customize the messages sent to tenants. Use <code className="bg-slate-100 px-1 rounded text-slate-600">{"{name}"}</code> <code className="bg-slate-100 px-1 rounded text-slate-600">{"{amount}"}</code> <code className="bg-slate-100 px-1 rounded text-slate-600">{"{month}"}</code> <code className="bg-slate-100 px-1 rounded text-slate-600">{"{room}"}</code> as placeholders.</p>
+            </div>
+
+            {[
+              { key: "payment",  label: "✅ Payment Received",  val: waTplPayment,  set: setWaTplPayment,  def: "Hi {name}! ✅\n\nYour payment of *{amount}* for *{room}* ({month}) has been received.\n\nThank you! 🙏" },
+              { key: "due",      label: "📋 Rent Due",          val: waTplDue,      set: setWaTplDue,      def: "Hi {name}! 📋\n\nYour rent of *{amount}* for *{room}* is due for *{month}*.\n\nPlease pay on time. Thank you!" },
+              { key: "overdue",  label: "⚠️ Rent Overdue",     val: waTplOverdue,  set: setWaTplOverdue,  def: "Hi {name}! ⚠️\n\nYour rent of *{amount}* for *{room}* ({month}) is *overdue*.\n\nPlease contact us to settle your dues. Thank you." },
+            ].map(({ key, label, val, set, def }) => (
+              <div key={key}>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{label}</label>
+                <textarea
+                  value={val}
+                  onChange={e => set(e.target.value)}
+                  rows={5}
+                  placeholder={def}
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent bg-slate-50/50 transition-all resize-none font-mono text-xs"
+                />
+                {val && (
+                  <button onClick={() => set("")} className="text-xs text-slate-400 hover:text-slate-600 mt-1">
+                    Reset to default
+                  </button>
+                )}
+              </div>
+            ))}
+
+            <button onClick={handleSaveTemplates} disabled={savingTpl}
+              className="w-full border border-green-200 text-green-700 bg-green-50 hover:bg-green-100 py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50">
+              {savingTpl ? "Saving…" : "Save Templates"}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Data Backup */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100 border-l-4 border-l-violet-500">
@@ -268,13 +471,16 @@ export default function SettingsPage() {
           <p className="text-xs text-slate-400 leading-relaxed">
             Includes rooms, tenants, payments, expenses, and charges. Credentials are not exported.
           </p>
-          <a href="/api/backup" download
+          <a href="/api/backup?confirm=1" download
             className="inline-flex items-center gap-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white px-5 py-3 rounded-xl text-sm font-bold hover:from-slate-700 hover:to-slate-600 transition-all shadow-md shadow-slate-300/60">
             <Download size={15} />
             Download Backup
           </a>
         </div>
       </div>
+
+      </div>{/* end right column */}
+      </div>{/* end grid */}
     </div>
   );
 }

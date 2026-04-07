@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { prisma } from "./prisma";
 
+const SESSION_DURATION_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
+const SESSION_RENEW_BEFORE = 7  * 24 * 60 * 60 * 1000; // renew when < 7 days remain
+
 async function getSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get("rms_session")?.value;
@@ -14,10 +17,21 @@ async function getSession() {
   });
 
   if (!session) return null;
-  if (session.expiresAt < new Date()) {
+
+  const now = new Date();
+  if (session.expiresAt < now) {
     await prisma.session.delete({ where: { token } });
     return null;
   }
+
+  // Sliding expiry: extend the session if it's close to expiring
+  const timeLeft = session.expiresAt.getTime() - now.getTime();
+  if (timeLeft < SESSION_RENEW_BEFORE) {
+    const newExpiry = new Date(now.getTime() + SESSION_DURATION_MS);
+    await prisma.session.update({ where: { token }, data: { expiresAt: newExpiry } });
+    session.expiresAt = newExpiry;
+  }
+
   return session;
 }
 

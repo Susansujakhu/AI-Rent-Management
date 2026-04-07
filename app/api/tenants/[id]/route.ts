@@ -29,13 +29,22 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const body = await req.json();
 
   const data: Record<string, unknown> = {};
-  if (body.name      !== undefined) data.name      = body.name;
-  if (body.phone     !== undefined) data.phone     = body.phone;
-  if ("email"    in body) data.email    = body.email    || null;
-  if ("roomId"   in body) data.roomId   = body.roomId   || null;
-  if (body.moveInDate !== undefined) data.moveInDate = new Date(body.moveInDate);
-  if (body.deposit    !== undefined) data.deposit    = Number(body.deposit) || 0;
-  if ("notes"    in body) data.notes    = body.notes    || null;
+  if (body.name  !== undefined) data.name  = body.name;
+  if (body.phone !== undefined) data.phone = body.phone;
+  if ("email"   in body) data.email  = body.email  || null;
+  if ("roomId"  in body) data.roomId = body.roomId || null;
+  if (body.moveInDate !== undefined) {
+    const d = new Date(body.moveInDate);
+    if (isNaN(d.getTime())) return NextResponse.json({ error: "moveInDate must be a valid date" }, { status: 400 });
+    data.moveInDate = d;
+  }
+  if (body.deposit !== undefined) {
+    const dep = Number(body.deposit);
+    if (!Number.isFinite(dep) || dep < 0) return NextResponse.json({ error: "deposit must be a non-negative number" }, { status: 400 });
+    data.deposit = dep;
+  }
+  if ("notes"          in body) data.notes          = body.notes || null;
+  if ("whatsappNotify" in body) data.whatsappNotify = Boolean(body.whatsappNotify);
 
   // ── Move-out handling ────────────────────────────────────────────────────────
   if ("moveOutDate" in body && !body.moveOutDate) {
@@ -43,6 +52,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     data.moveOutDate = null;
   } else if ("moveOutDate" in body && body.moveOutDate) {
     const moveOutDate = new Date(body.moveOutDate);
+    if (isNaN(moveOutDate.getTime())) return NextResponse.json({ error: "moveOutDate must be a valid date" }, { status: 400 });
     data.moveOutDate  = moveOutDate;
 
     const tenant = await prisma.tenant.findUnique({

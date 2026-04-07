@@ -25,8 +25,8 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { month } = body;
 
-  if (!month) {
-    return NextResponse.json({ error: "month is required" }, { status: 400 });
+  if (!month || typeof month !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    return NextResponse.json({ error: "month must be in YYYY-MM format" }, { status: 400 });
   }
 
   const activeTenants = await prisma.tenant.findMany({
@@ -54,24 +54,29 @@ export async function POST(req: Request) {
     const startMonth = moveInMonth > lookbackMonth ? moveInMonth : lookbackMonth;
     const months = monthRange(startMonth, upToMonth);
 
+    // Fetch all existing payments for this tenant in one query instead of N per-month lookups
+    const existingPayments = await prisma.payment.findMany({
+      where: { tenantId: tenant.id, month: { in: months } },
+      select: { month: true },
+    });
+    const existingMonths = new Set(existingPayments.map(p => p.month));
+
+    const amountDue = tenant.room.monthlyRent + tenant.room.recurringCharges.reduce((s, c) => s + c.amount, 0);
+
     for (const m of months) {
-      const existing = await prisma.payment.findUnique({
-        where: { tenantId_month: { tenantId: tenant.id, month: m } },
+      if (existingMonths.has(m)) continue;
+      const isPast = m < currentMonth;
+      await prisma.payment.create({
+        data: {
+          tenantId: tenant.id,
+          roomId: tenant.roomId,
+          month: m,
+          amountDue,
+          amountPaid: 0,
+          status: isPast ? "OVERDUE" : "PENDING",
+        },
       });
-      if (!existing) {
-        const isPast = m < currentMonth;
-        await prisma.payment.create({
-          data: {
-            tenantId: tenant.id,
-            roomId: tenant.roomId,
-            month: m,
-            amountDue: tenant.room.monthlyRent + tenant.room.recurringCharges.reduce((s, c) => s + c.amount, 0),
-            amountPaid: 0,
-            status: isPast ? "OVERDUE" : "PENDING",
-          },
-        });
-        created++;
-      }
+      created++;
     }
   }
 

@@ -17,7 +17,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const unauth = await requireAuthAPI(); if (unauth) return unauth;
   const { id } = await params;
   const body = await req.json();
+
+  if (body.name !== undefined && (!body.name || typeof body.name !== "string" || !body.name.trim())) {
+    return NextResponse.json({ error: "name cannot be empty" }, { status: 400 });
+  }
   const newRent = Number(body.monthlyRent);
+  if (!Number.isFinite(newRent) || newRent < 0) {
+    return NextResponse.json({ error: "monthlyRent must be a non-negative number" }, { status: 400 });
+  }
 
   const room = await prisma.room.update({
     where: { id },
