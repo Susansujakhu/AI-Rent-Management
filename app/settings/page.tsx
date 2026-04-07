@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Check, Settings, Eye, EyeOff, Coins, ShieldCheck, DatabaseBackup, Download, UserCog, MessageCircle, Wifi, WifiOff, RefreshCw, Smartphone } from "lucide-react";
+import { Check, Settings, Eye, EyeOff, Coins, ShieldCheck, DatabaseBackup, Download, UserCog, MessageCircle, Wifi, WifiOff, RefreshCw, Smartphone, Bell, Clock } from "lucide-react";
 
 const PRESETS = [
   { label: "Nepali Rupee", code: "NPR", symbol: "रू", flag: "🇳🇵" },
@@ -35,6 +35,12 @@ export default function SettingsPage() {
   const [waTplOverdue,  setWaTplOverdue]  = useState("");
   const [savingTpl,     setSavingTpl]     = useState(false);
 
+  // Auto reminders
+  const [autoReminders,    setAutoReminders]    = useState(false);
+  const [reminderHour,     setReminderHour]     = useState(9);
+  const [reminderLastRun,  setReminderLastRun]  = useState<string | null>(null);
+  const [savingReminders,  setSavingReminders]  = useState(false);
+
   // Change password/email form
   const [currentPassword,  setCurrentPassword]  = useState("");
   const [newPassword,      setNewPassword]      = useState("");
@@ -59,6 +65,9 @@ export default function SettingsPage() {
         setCustomCode(code);
       }
       if (me) setUserEmail(me.email);
+      if (settings["auto_reminders_enabled"] === "true") setAutoReminders(true);
+      if (settings["reminder_hour"]) setReminderHour(parseInt(settings["reminder_hour"]));
+      if (settings["reminder_last_run"]) setReminderLastRun(settings["reminder_last_run"]);
       setLoaded(true);
     });
 
@@ -124,6 +133,26 @@ export default function SettingsPage() {
     await fetch("/api/whatsapp/connect", { method: "DELETE" });
     setWaStatus("disconnected"); setWaQR(null); setWaPhone(null);
     toast.success("WhatsApp disconnected");
+  };
+
+  const handleSaveReminders = async () => {
+    setSavingReminders(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method:  "PUT",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          auto_reminders_enabled: autoReminders ? "true" : "false",
+          reminder_hour:          String(reminderHour),
+        }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(autoReminders ? "Auto reminders enabled" : "Auto reminders disabled");
+    } catch {
+      toast.error("Failed to save reminder settings");
+    } finally {
+      setSavingReminders(false);
+    }
   };
 
   const currentSymbol = selectedCode === "CUSTOM"
@@ -407,7 +436,8 @@ export default function SettingsPage() {
               <div className="bg-slate-50 rounded-xl p-4 space-y-1.5 text-xs text-slate-500">
                 <p className="font-semibold text-slate-700 text-sm">What gets sent automatically:</p>
                 <p>✅ Payment confirmation when rent is recorded</p>
-                <p>⚠️ Manual overdue reminders from payments page</p>
+                <p>✅ Daily overdue reminders (if enabled in Auto Reminders)</p>
+                <p>⚠️ Manual reminders from each tenant&apos;s payment ledger</p>
                 <p className="text-slate-400">Toggle notifications per tenant on their profile page</p>
               </div>
               <button onClick={handleConnectWA}
@@ -453,6 +483,92 @@ export default function SettingsPage() {
               {savingTpl ? "Saving…" : "Save Templates"}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Auto Reminders */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100 border-l-4 border-l-amber-500">
+          <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+            <Bell size={15} className="text-amber-600" />
+          </div>
+          <div>
+            <h2 className="font-bold text-slate-900">Auto Overdue Reminders</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Automatically message tenants with overdue rent each day</p>
+          </div>
+          <div className="ml-auto">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
+              autoReminders
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-slate-100 text-slate-400 border-slate-200"
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${autoReminders ? "bg-amber-500" : "bg-slate-300"}`} />
+              {autoReminders ? "On" : "Off"}
+            </span>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Enable toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Enable daily reminders</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Sends an overdue notice to every tenant with unpaid rent, once per day
+              </p>
+            </div>
+            <button
+              onClick={() => setAutoReminders(v => !v)}
+              className={`relative w-11 h-6 rounded-full transition-all duration-200 focus:outline-none ${autoReminders ? "bg-amber-500" : "bg-slate-200"}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${autoReminders ? "translate-x-5" : "translate-x-0"}`} />
+            </button>
+          </div>
+
+          {/* Time picker */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Clock size={11} />
+              Send time (server local time)
+            </label>
+            <select
+              value={reminderHour}
+              onChange={e => setReminderHour(parseInt(e.target.value))}
+              disabled={!autoReminders}
+              className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-slate-50/50 transition-all disabled:opacity-40"
+            >
+              {Array.from({ length: 24 }, (_, h) => {
+                const label = h === 0 ? "12:00 AM" : h < 12 ? `${h}:00 AM` : h === 12 ? "12:00 PM" : `${h - 12}:00 PM`;
+                return <option key={h} value={h}>{label}</option>;
+              })}
+            </select>
+          </div>
+
+          {/* Last run info */}
+          <div className="bg-slate-50 rounded-xl px-4 py-3 flex items-center justify-between border border-slate-100">
+            <span className="text-xs text-slate-400 font-medium">Last run</span>
+            <span className="text-xs font-bold text-slate-600">
+              {reminderLastRun
+                ? new Date(reminderLastRun + "T00:00:00").toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })
+                : "Never"}
+            </span>
+          </div>
+
+          <div className="text-xs text-slate-400 space-y-1 bg-amber-50/60 rounded-xl p-3 border border-amber-100">
+            <p className="font-semibold text-amber-800">How it works</p>
+            <p>✅ Only sends to tenants with WhatsApp notifications <span className="font-medium">on</span></p>
+            <p>✅ Only sends for payments with status <span className="font-medium">OVERDUE</span></p>
+            <p>✅ Sends at most once per day, even after server restarts</p>
+            <p>⚠️ Requires WhatsApp to be connected</p>
+          </div>
+
+          <button
+            onClick={handleSaveReminders}
+            disabled={savingReminders}
+            className="w-full bg-amber-500 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-amber-600 disabled:opacity-50 transition-all shadow-sm shadow-amber-200"
+          >
+            {savingReminders ? "Saving…" : "Save Reminder Settings"}
+          </button>
         </div>
       </div>
 

@@ -11,14 +11,21 @@ export async function GET() {
 }
 
 const ALLOWED_SETTING_KEYS = new Set([
+  // Property info
   "propertyName",
   "ownerName",
   "ownerPhone",
   "ownerAddress",
-  "currencySymbol",
+  // Currency (snake_case — matches what the settings page sends)
+  "currency_symbol",
+  "currency_code",
+  // WhatsApp templates
   "wa_tpl_payment_received",
   "wa_tpl_rent_due",
   "wa_tpl_rent_overdue",
+  // Auto reminder scheduler
+  "auto_reminders_enabled",
+  "reminder_hour",
 ]);
 
 export async function PUT(request: Request) {
