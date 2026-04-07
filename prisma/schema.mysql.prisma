@@ -1,0 +1,152 @@
+// ── MySQL schema for cPanel deployment ───────────────────────────────────────
+// When deploying to cPanel/MySQL:
+//   1. Copy this file over prisma/schema.prisma
+//   2. Set DATABASE_URL="mysql://user:pass@localhost:3306/dbname" in .env
+//   3. Run: npx prisma db push
+//   4. Import export.sql via phpMyAdmin
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id          String   @id @default(cuid())
+  name        String
+  floor       String?
+  monthlyRent Float
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenants          Tenant[]
+  payments         Payment[]
+  expenses         Expense[]
+  recurringCharges RecurringCharge[]
+}
+
+model Tenant {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String
+  email         String?
+  roomId        String?
+  moveInDate    DateTime
+  moveOutDate   DateTime?
+  deposit       Float     @default(0)
+  creditBalance Float     @default(0)
+  notes         String?   @db.Text
+  whatsappNotify  Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  portalEnabled  Boolean   @default(false)
+  portalToken    String?   @unique
+
+  room             Room?             @relation(fields: [roomId], references: [id])
+  payments         Payment[]
+  oneTimeCharges   OneTimeCharge[]
+  recurringCharges RecurringCharge[]
+  portalSessions   TenantSession[]
+}
+
+model Payment {
+  id         String    @id @default(cuid())
+  tenantId   String
+  roomId     String
+  month      String
+  amountDue  Float
+  amountPaid Float     @default(0)
+  paidDate   DateTime?
+  method     String?
+  status     String    @default("PENDING")
+  notes      String?   @db.Text
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, month])
+}
+
+model RecurringCharge {
+  id            String   @id @default(cuid())
+  roomId        String
+  tenantId      String?
+  title         String
+  amount        Float
+  effectiveFrom String?
+  createdAt     DateTime @default(now())
+
+  room   Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model OneTimeCharge {
+  id         String   @id @default(cuid())
+  tenantId   String
+  title      String
+  amount     Float
+  amountPaid Float    @default(0)
+  date       DateTime
+  status     String   @default("PENDING")
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  title       String
+  amount      Float
+  date        DateTime
+  category    String   @default("OTHER")
+  roomId      String?
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  room Room? @relation(fields: [roomId], references: [id], onDelete: SetNull)
+}
+
+model Setting {
+  key   String @id
+  value String @db.Text
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+
+  sessions Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TenantSession {
+  id        String   @id @default(cuid())
+  tenantId  String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
