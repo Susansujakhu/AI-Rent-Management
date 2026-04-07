@@ -37,10 +37,14 @@ model Tenant {
   createdAt       DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  portalEnabled  Boolean   @default(false)
+  portalToken    String?   @unique  // owner-shareable magic-link token
+
   room             Room?             @relation(fields: [roomId], references: [id])
   payments         Payment[]
   oneTimeCharges   OneTimeCharge[]
   recurringCharges RecurringCharge[]
+  portalSessions   TenantSession[]
 }
 
 model Payment {
@@ -127,4 +131,16 @@ model Session {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ── Tenant Portal ────────────────────────────────────────────────────────────
+
+model TenantSession {
+  id        String   @id @default(cuid())
+  tenantId  String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }

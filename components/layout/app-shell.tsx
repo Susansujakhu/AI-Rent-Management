@@ -6,9 +6,10 @@ import { BottomNav } from "./bottom-nav";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === "/login" || pathname === "/signup";
+  const isAuthPage   = pathname === "/login" || pathname === "/signup";
+  const isPortalPage = pathname.startsWith("/portal");
 
-  if (isAuthPage) {
+  if (isAuthPage || isPortalPage) {
     return <>{children}</>;
   }
 

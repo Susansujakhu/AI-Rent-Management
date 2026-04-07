@@ -9,6 +9,7 @@ import { WhatsAppToggle } from "./whatsapp-toggle";
 import { VoidPaymentButton } from "./void-payment-button";
 import { SendReminderButton } from "./send-reminder-button";
 import { TenantRecurringChargesPanel } from "./tenant-recurring-charges";
+import { PortalAccessCard } from "./portal-access";
 import { getSettings } from "@/lib/settings";
 import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, Sparkles, MessageCircle } from "lucide-react";
 
@@ -263,6 +264,17 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
       {/* WhatsApp notification toggle */}
       <WhatsAppToggle tenantId={id} enabled={tenant.whatsappNotify} />
+
+      {/* Tenant Portal Access */}
+      {process.env.TENANT_PORTAL_ENABLED === "true" && (
+        <PortalAccessCard
+          tenantId={id}
+          tenantName={tenant.name}
+          tenantPhone={tenant.phone}
+          portalEnabled={tenant.portalEnabled}
+          portalToken={tenant.portalToken ?? null}
+        />
+      )}
 
       {/* Contact info card */}
       {(tenant.deposit > 0 || tenant.notes) && (
