@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -54,3 +55,9 @@ app-settings.json
 # WhatsApp session & Puppeteer cache (runtime data, regenerated on each login)
 .wwebjs_auth/
 .wwebjs_cache/
+
+# MySQL data export (generated file, contains real data)
+export.sql
+
+# Prisma schema backup created by setup.mjs during MySQL switch
+prisma/schema.sqlite.prisma

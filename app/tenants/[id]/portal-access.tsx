@@ -18,7 +18,8 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
   const [loading, setLoading]   = useState<string | null>(null);
   const [copied,  setCopied]    = useState(false);
 
-  const origin     = typeof window !== "undefined" ? window.location.origin : "";
+  const origin     = process.env.NEXT_PUBLIC_APP_URL
+    ?? (typeof window !== "undefined" ? window.location.origin : "");
   const portalLink = token ? `${origin}/portal/t/${token}` : null;
 
   const enable = async () => {

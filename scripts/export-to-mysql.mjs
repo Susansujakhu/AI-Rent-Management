@@ -1,31 +1,57 @@
 /**
  * export-to-mysql.mjs
- * Reads all data from the local SQLite database and outputs a MySQL-compatible
+ * Reads all data from the local SQLite database and writes a MySQL-compatible
  * SQL file that you can import via phpMyAdmin.
  *
  * Usage:
- *   node scripts/export-to-mysql.mjs > export.sql
+ *   node scripts/export-to-mysql.mjs
+ *   node scripts/export-to-mysql.mjs my-backup.sql   (custom filename)
  *
- * Then import export.sql via phpMyAdmin → Import tab.
+ * Then import the generated file via phpMyAdmin → Import tab.
  */
 
-import { PrismaClient } from "@prisma/client";
+import Database                      from "better-sqlite3";
+import { writeFileSync, existsSync } from "fs";
+import { join, dirname }             from "path";
+import { fileURLToPath }             from "url";
 
-const prisma = new PrismaClient();
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const dbPath    = join(__dirname, "..", "prisma", "dev.db");
+const outFile   = process.argv[2] ?? join(__dirname, "..", "export.sql");
 
-function esc(val) {
+if (!existsSync(dbPath)) {
+  console.error(`✗ SQLite database not found at: ${dbPath}`);
+  process.exit(1);
+}
+
+const db = new Database(dbPath, { readonly: true });
+
+// Columns that SQLite stores as millisecond integer timestamps
+const DATETIME_COLS = new Set([
+  "createdAt", "updatedAt", "moveInDate", "moveOutDate",
+  "paidDate", "date", "expiresAt",
+]);
+
+function toMysqlDatetime(ms) {
+  return new Date(ms).toISOString().slice(0, 19).replace("T", " ");
+}
+
+function escCol(col, val) {
   if (val === null || val === undefined) return "NULL";
+  if (DATETIME_COLS.has(col)) {
+    // SQLite stores datetimes as ms integers or ISO strings
+    if (typeof val === "number") return `'${toMysqlDatetime(val)}'`;
+    if (typeof val === "string" && val.includes("T")) return `'${val.slice(0, 19).replace("T", " ")}'`;
+  }
   if (typeof val === "boolean") return val ? "1" : "0";
   if (typeof val === "number") return String(val);
-  if (val instanceof Date) return `'${val.toISOString().slice(0, 19).replace("T", " ")}'`;
-  // Escape string for MySQL
   return `'${String(val).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "\\r")}'`;
 }
 
 function insertRow(table, row) {
-  const cols = Object.keys(row).map(c => `\`${c}\``).join(", ");
-  const vals = Object.values(row).map(esc).join(", ");
-  return `INSERT INTO \`${table}\` (${cols}) VALUES (${vals});`;
+  const cols = Object.keys(row);
+  const vals = cols.map(c => escCol(c, row[c]));
+  return `INSERT INTO \`${table}\` (${cols.map(c => `\`${c}\``).join(", ")}) VALUES (${vals.join(", ")});`;
 }
 
 async function main() {
@@ -183,23 +209,22 @@ CREATE TABLE IF NOT EXISTS \`TenantSession\` (
 
   // ── Data ────────────────────────────────────────────────────────────────────
 
-  const tables = [
-    { name: "Room",            rows: await prisma.room.findMany() },
-    { name: "Tenant",          rows: await prisma.tenant.findMany() },
-    { name: "Payment",         rows: await prisma.payment.findMany() },
-    { name: "RecurringCharge", rows: await prisma.recurringCharge.findMany() },
-    { name: "OneTimeCharge",   rows: await prisma.oneTimeCharge.findMany() },
-    { name: "Expense",         rows: await prisma.expense.findMany() },
-    { name: "Setting",         rows: await prisma.setting.findMany() },
-    { name: "User",            rows: await prisma.user.findMany() },
-    { name: "Session",         rows: await prisma.session.findMany() },
-    { name: "TenantSession",   rows: await prisma.tenantSession.findMany() },
+  const TABLES = [
+    "Room", "Tenant", "Payment", "RecurringCharge",
+    "OneTimeCharge", "Expense", "Setting", "User", "Session", "TenantSession",
   ];
 
-  for (const { name, rows } of tables) {
+  for (const name of TABLES) {
+    let rows;
+    try {
+      rows = db.prepare(`SELECT * FROM "${name}"`).all();
+    } catch {
+      continue; // table doesn't exist in this DB — skip
+    }
     if (rows.length === 0) continue;
     lines.push(`-- ${name} (${rows.length} rows)`);
     for (const row of rows) {
+      // Convert SQLite integers (0/1) back to proper booleans for esc()
       lines.push(insertRow(name, row));
     }
     lines.push("");
@@ -208,8 +233,9 @@ CREATE TABLE IF NOT EXISTS \`TenantSession\` (
   lines.push("SET FOREIGN_KEY_CHECKS = 1;");
   lines.push("-- Export complete");
 
-  console.log(lines.join("\n"));
-  await prisma.$disconnect();
+  writeFileSync(outFile, lines.join("\n"), "utf8");
+  console.log(`✓ Exported ${TABLES.length} tables to: ${outFile}`);
+  db.close();
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
