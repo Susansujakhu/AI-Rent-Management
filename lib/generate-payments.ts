@@ -12,17 +12,30 @@ export async function generatePaymentsFromMoveIn(
   });
   if (!room) return 0;
 
-  const now         = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const now        = new Date();
+  const todayDay   = now.getDate();
+  const moveInDay  = moveInDate.getDate();
 
-  // Build list of months from moveIn to now
+  // Last month to generate: current calendar month only if billing date has arrived
+  // e.g. move-in day 23, today is Apr 22 → don't include April yet (Apr 23 hasn't come)
+  //      move-in day 23, today is Apr 23 → include April
+  let lastYear  = now.getFullYear();
+  let lastMonth = now.getMonth() + 1;
+  if (todayDay < moveInDay) {
+    // Billing date hasn't arrived this month — go back one month
+    lastMonth--;
+    if (lastMonth < 1) { lastMonth = 12; lastYear--; }
+  }
+  const lastMonthStr = `${lastYear}-${String(lastMonth).padStart(2, "0")}`;
+
+  // Build list of months from moveIn up to lastMonthStr
   let year  = moveInDate.getFullYear();
   let month = moveInDate.getMonth() + 1;
   const months: string[] = [];
   while (true) {
     const m = `${year}-${String(month).padStart(2, "0")}`;
+    if (m > lastMonthStr) break;
     months.push(m);
-    if (m >= currentMonth) break;
     month++;
     if (month > 12) { month = 1; year++; }
   }
@@ -52,7 +65,7 @@ export async function generatePaymentsFromMoveIn(
         roomId,
         month:     m,
         amountDue: room.monthlyRent + recurringTotal,
-        status:    m < currentMonth ? "OVERDUE" : "PENDING",
+        status:    m < lastMonthStr ? "OVERDUE" : "PENDING",
       },
     });
     created++;
