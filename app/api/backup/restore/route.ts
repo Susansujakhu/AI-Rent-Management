@@ -189,8 +189,7 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error("Restore failed:", e);
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: `Restore failed: ${msg}` }, { status: 500 });
+    return NextResponse.json({ error: "Restore failed — data may be partially restored. Check server logs." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, restored: { rooms: rooms.length, tenants: tenants.length, payments: payments.length } });
