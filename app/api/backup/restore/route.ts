@@ -113,22 +113,6 @@ export async function POST(req: Request) {
         }});
       }
 
-      // Restore charge transactions
-      for (const t of chargeTransactions) {
-        await tx.chargeTransaction.create({ data: {
-          userId,
-          id:          t.id          as string,
-          tenantId:    t.tenantId    as string,
-          chargeId:    t.chargeId    as string,
-          chargeTitle: t.chargeTitle as string,
-          amount:      Number(t.amount),
-          method:      t.method      as string,
-          paidAt:      new Date(t.paidAt as string),
-          note:        t.note        as string | null ?? null,
-          createdAt:   new Date(t.createdAt as string),
-        }});
-      }
-
       // Restore recurring charges
       for (const c of recurringCharges) {
         await tx.recurringCharge.create({ data: {
@@ -143,7 +127,7 @@ export async function POST(req: Request) {
         }});
       }
 
-      // Restore one-time charges
+      // Restore one-time charges (must be before chargeTransactions — FK dependency)
       for (const c of oneTimeCharges) {
         await tx.oneTimeCharge.create({ data: {
           userId,
@@ -157,6 +141,22 @@ export async function POST(req: Request) {
           notes:      c.notes     as string | null ?? null,
           createdAt:  new Date(c.createdAt as string),
           updatedAt:  new Date(c.updatedAt as string),
+        }});
+      }
+
+      // Restore charge transactions (after oneTimeCharges — chargeId FK)
+      for (const t of chargeTransactions) {
+        await tx.chargeTransaction.create({ data: {
+          userId,
+          id:          t.id          as string,
+          tenantId:    t.tenantId    as string,
+          chargeId:    t.chargeId    as string,
+          chargeTitle: t.chargeTitle as string,
+          amount:      Number(t.amount),
+          method:      t.method      as string,
+          paidAt:      new Date(t.paidAt as string),
+          note:        t.note        as string | null ?? null,
+          createdAt:   new Date(t.createdAt as string),
         }});
       }
 
