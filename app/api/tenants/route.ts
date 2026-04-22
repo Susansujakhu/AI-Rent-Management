@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 import { hasAccess, trialExpiredResponse } from "@/lib/plan";
+import { generatePaymentsFromMoveIn } from "@/lib/generate-payments";
 
 export async function GET() {
   const auth = await requireAuthAPI();
@@ -37,17 +38,25 @@ export async function POST(req: Request) {
 
   if (!hasAccess(auth)) return trialExpiredResponse();
 
+  const moveInDate = new Date(body.moveInDate);
   const tenant = await prisma.tenant.create({
     data: {
       userId,
-      name: body.name.trim(),
-      phone: body.phone.trim(),
-      email: body.email || null,
-      roomId: body.roomId || null,
-      moveInDate: new Date(body.moveInDate),
+      name:      body.name.trim(),
+      phone:     body.phone.trim(),
+      email:     body.email || null,
+      roomId:    body.roomId || null,
+      moveInDate,
       deposit,
-      notes: body.notes || null,
+      notes:     body.notes || null,
     },
   });
+
+  // Auto-generate all payments from move-in to today if room is assigned
+  if (tenant.roomId) {
+    generatePaymentsFromMoveIn(userId, tenant.id, tenant.roomId, moveInDate)
+      .catch(err => console.error("[tenant create] Payment generation failed:", err));
+  }
+
   return NextResponse.json(tenant, { status: 201 });
 }

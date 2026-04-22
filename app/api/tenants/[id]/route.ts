@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
+import { generatePaymentsFromMoveIn } from "@/lib/generate-payments";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAuthAPI();
@@ -121,7 +122,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
   }
 
+  const before = await prisma.tenant.findUnique({ where: { id, userId }, select: { roomId: true, moveInDate: true } });
   const tenant = await prisma.tenant.update({ where: { id, userId }, data });
+
+  // Regenerate payments if room was just assigned or moveInDate changed
+  const roomChanged     = "roomId" in data && data.roomId && data.roomId !== before?.roomId;
+  const moveInChanged   = "moveInDate" in data;
+  const effectiveRoomId = tenant.roomId;
+  if ((roomChanged || moveInChanged) && effectiveRoomId && tenant.moveInDate) {
+    generatePaymentsFromMoveIn(userId, id, effectiveRoomId, tenant.moveInDate)
+      .catch(err => console.error("[tenant update] Payment generation failed:", err));
+  }
+
   return NextResponse.json(tenant);
 }
 
