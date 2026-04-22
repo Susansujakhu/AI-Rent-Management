@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Receipt, MoreHorizontal, DoorOpen, BarChart3, Settings, X, LogOut, Crown } from "lucide-react";
+import { useState } from "react";
+import { LayoutDashboard, Users, CreditCard, Receipt, MoreHorizontal, DoorOpen, BarChart3, Settings, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const primary = [
@@ -18,30 +18,11 @@ const secondary = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-interface MeUser {
-  plan:               string;
-  createdAt:          string;
-  upgradeRequestedAt: string | null;
-}
-
 export function BottomNav() {
   const pathname = usePathname();
   const router   = useRouter();
   const [open, setOpen] = useState(false);
-  const [me, setMe] = useState<MeUser | null>(null);
 
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then(r => r.ok ? r.json() : null)
-      .then((u: MeUser | null) => { if (u) setMe(u); });
-  }, []);
-
-  const isPaid     = me?.plan === "pro" || me?.plan === "starter";
-  const trialDays  = me && !isPaid
-    ? Math.max(0, Math.ceil((new Date(me.createdAt).getTime() + 90 * 86_400_000 - Date.now()) / 86_400_000))
-    : 0;
-  const showUpgrade = !isPaid;
-  const pending     = showUpgrade && !!me?.upgradeRequestedAt;
 
   const handleLogout = async () => {
     setOpen(false);
@@ -50,7 +31,7 @@ export function BottomNav() {
     router.refresh();
   };
 
-  const isSecondaryActive = secondary.some(({ href }) => pathname.startsWith(href)) || (showUpgrade && pathname === "/upgrade");
+  const isSecondaryActive = secondary.some(({ href }) => pathname.startsWith(href));
 
   return (
     <>
@@ -94,25 +75,17 @@ export function BottomNav() {
                 );
               })}
 
-              {/* Upgrade — non-paid users only */}
-              {showUpgrade && (
-                <Link href="/upgrade" onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium transition-all duration-150",
-                    pathname === "/upgrade" ? "bg-amber-50 text-amber-700" : "text-amber-600 hover:bg-amber-50"
-                  )}>
-                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", pathname === "/upgrade" ? "bg-amber-100" : "bg-amber-50")}>
-                    <Crown size={16} className="text-amber-600" />
-                  </div>
-                  <span className="flex-1">Upgrade to Pro</span>
-                  {pending && (
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
-                    </span>
-                  )}
-                </Link>
-              )}
+              {/* Beta badge */}
+              <div className="flex items-center gap-3.5 px-3.5 py-3 rounded-xl bg-violet-50 border border-violet-100">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-violet-100">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-violet-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" />
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-violet-600 tracking-wide">BETA</span>
+                <span className="text-xs text-violet-400 ml-auto">Free access</span>
+              </div>
 
               {/* Sign out */}
               <button onClick={handleLogout}
@@ -194,13 +167,6 @@ export function BottomNav() {
               )}>
                 More
               </span>
-              {/* Pending dot on More button */}
-              {pending && !open && (
-                <span className="absolute top-1.5 right-3 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
-                </span>
-              )}
             </button>
 
           </div>
