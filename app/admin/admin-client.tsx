@@ -213,12 +213,12 @@ export default function AdminClient() {
     setWaConnectError("");
     setWaConnectingAt(Date.now());
     await fetch("/api/admin/whatsapp", { method: "POST" });
-    // Wait briefly so the server has time to attempt the browser launch
-    await new Promise(r => setTimeout(r, 2000));
+    // Wait briefly for the socket to initialize and QR to generate
+    await new Promise(r => setTimeout(r, 3000));
     await fetchWA();
     setWa(prev => {
       if (prev.status === "disconnected") {
-        setWaConnectError("Could not launch browser. WhatsApp requires Chromium/Puppeteer which is unavailable on shared cPanel hosting. Keep BYPASS_PHONE_OTP=true in your .env instead.");
+        setWaConnectError("Connection failed. Check that the server can reach WhatsApp's servers (wss on port 443).");
       }
       return prev;
     });
