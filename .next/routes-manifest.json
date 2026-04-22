@@ -403,6 +403,12 @@
       "namedRegex": "^/api/payments/bulk\\-pay(?:/)?$"
     },
     {
+      "page": "/api/payments/generate",
+      "regex": "^/api/payments/generate(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/payments/generate(?:/)?$"
+    },
+    {
       "page": "/api/portal/charges",
       "regex": "^/api/portal/charges(?:/)?$",
       "routeKeys": {},

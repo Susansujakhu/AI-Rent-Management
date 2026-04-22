@@ -5,6 +5,7 @@ import { currentMonth } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
 import { isPro } from "@/lib/plan";
 import { PaymentsView, type ReceivedSession, type OpenBill } from "@/components/payments-view";
+import { GeneratePaymentsButton } from "@/components/generate-payments-button";
 
 export default async function PaymentsPage() {
   const { requireAuth } = await import("@/lib/auth");
@@ -244,11 +245,12 @@ export default async function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Payments</h1>
           <p className="text-sm text-slate-500 mt-0.5">{sessions.length} payment record{sessions.length !== 1 ? "s" : ""}</p>
         </div>
+        <GeneratePaymentsButton />
       </div>
 
       <PaymentsView
