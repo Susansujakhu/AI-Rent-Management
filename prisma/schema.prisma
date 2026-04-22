@@ -274,6 +274,13 @@ model Setting {
 
 // ── Tenant Portal ────────────────────────────────────────────────────────────
 
+// ── Global App Config ─────────────────────────────────────────────────────────
+
+model GlobalSetting {
+  key   String @id
+  value String @db.Text
+}
+
 model TenantSession {
   id        String   @id @default(cuid())
   tenantId  String

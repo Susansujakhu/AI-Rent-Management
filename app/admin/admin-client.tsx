@@ -114,6 +114,12 @@ export default function AdminClient() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  // App settings (global)
+  const [betaMode,        setBetaMode]        = useState(true);
+  const [adminWhatsapp,   setAdminWhatsapp]   = useState("");
+  const [savingAppConfig, setSavingAppConfig] = useState(false);
+  const [waConnectingAt,  setWaConnectingAt]  = useState<number | null>(null);
+
   // Subscription panel
   const [expandedSub, setExpandedSub]   = useState<string | null>(null);
   const [subForm, setSubForm]           = useState<SubForm>({ plan: "", billingCycle: "", expiresAt: "" });
@@ -124,8 +130,35 @@ export default function AdminClient() {
   // ── Fetchers ──────────────────────────────────────────────────────────────
   const fetchWA = useCallback(async () => {
     const r = await fetch("/api/admin/whatsapp");
-    if (r.ok) setWa(await r.json() as WAState);
+    if (r.ok) {
+      const d = await r.json() as WAState;
+      setWa(prev => {
+        if (prev.status !== "connecting" && d.status === "connecting") setWaConnectingAt(Date.now());
+        if (d.status !== "connecting") setWaConnectingAt(null);
+        return d;
+      });
+    }
   }, []);
+
+  const fetchAppConfig = useCallback(async () => {
+    const r = await fetch("/api/admin/app-settings");
+    if (r.ok) {
+      const d = await r.json() as Record<string, string>;
+      setBetaMode(d["beta_mode"] !== "false");
+      setAdminWhatsapp(d["admin_whatsapp"] ?? "");
+    }
+  }, []);
+
+  const saveAppConfig = async () => {
+    setSavingAppConfig(true);
+    await fetch("/api/admin/app-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ beta_mode: betaMode ? "true" : "false", admin_whatsapp: adminWhatsapp }),
+    });
+    toast.success("App settings saved");
+    setSavingAppConfig(false);
+  };
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
@@ -141,7 +174,7 @@ export default function AdminClient() {
     setUsersLoading(false);
   }, []);
 
-  useEffect(() => { fetchWA(); fetchStats(); fetchUsers(); }, [fetchWA, fetchStats, fetchUsers]);
+  useEffect(() => { fetchWA(); fetchStats(); fetchUsers(); fetchAppConfig(); }, [fetchWA, fetchStats, fetchUsers, fetchAppConfig]);
 
   useEffect(() => {
     if (wa.status !== "connecting" && wa.status !== "qr") return;
@@ -176,6 +209,7 @@ export default function AdminClient() {
   // ── WA actions ────────────────────────────────────────────────────────────
   const connectWA = async () => {
     setWaLoading(true);
+    setWaConnectingAt(Date.now());
     await fetch("/api/admin/whatsapp", { method: "POST" });
     await fetchWA(); setWaLoading(false);
   };
@@ -456,6 +490,48 @@ export default function AdminClient() {
                     </div>
                   </div>
                 )}
+              {/* ── App Settings ── */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-violet-500" />
+                  <h3 className="font-semibold text-slate-800 text-sm">App Settings</h3>
+                </div>
+                <div className="px-5 py-5 space-y-5">
+
+                  {/* Beta Mode toggle */}
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">Beta Mode</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Shows a &ldquo;BETA – Free access&rdquo; badge instead of upgrade prompts. Turn off when paid plans go live.</p>
+                    </div>
+                    <button
+                      onClick={() => setBetaMode(v => !v)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${betaMode ? "bg-violet-600" : "bg-slate-200"}`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${betaMode ? "translate-x-5" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+
+                  {/* Admin WhatsApp number */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Admin WhatsApp Number</label>
+                    <input
+                      type="tel"
+                      value={adminWhatsapp}
+                      onChange={e => setAdminWhatsapp(e.target.value)}
+                      placeholder="+977 98XXXXXXXX"
+                      className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white"
+                    />
+                    <p className="text-xs text-slate-400">Shown in the app as a contact number for support or OTP assistance.</p>
+                  </div>
+
+                  <button onClick={saveAppConfig} disabled={savingAppConfig}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                    {savingAppConfig ? <><Loader2 className="w-4 h-4 animate-spin" />Saving…</> : <><CheckCircle className="w-4 h-4" />Save Settings</>}
+                  </button>
+                </div>
+              </div>
+
               </>
             )}
           </div>
@@ -795,12 +871,23 @@ export default function AdminClient() {
                     <img src={wa.qrImage} alt="WhatsApp QR" className="rounded-xl w-52 h-52" />
                   </div>
                 )}
-                {wa.status === "connecting" && (
-                  <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200">
-                    <Loader2 className="w-4 h-4 text-amber-600 animate-spin shrink-0" />
-                    <span className="text-sm text-amber-700">Launching browser… 10–20 seconds</span>
-                  </div>
-                )}
+                {wa.status === "connecting" && (() => {
+                  const timedOut = waConnectingAt && Date.now() - waConnectingAt > 45_000;
+                  return timedOut ? (
+                    <div className="flex items-start gap-2 p-3 bg-rose-50 rounded-xl border border-rose-200">
+                      <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-rose-700 font-medium">Browser could not launch</p>
+                        <p className="text-xs text-rose-500 mt-0.5">WhatsApp requires Chromium/Puppeteer which is not available on shared hosting. Use OTP bypass mode instead.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200">
+                      <Loader2 className="w-4 h-4 text-amber-600 animate-spin shrink-0" />
+                      <span className="text-sm text-amber-700">Launching browser… 10–20 seconds</span>
+                    </div>
+                  );
+                })()}
 
                 <div className="flex gap-3">
                   {wa.status === "disconnected" && (
@@ -816,9 +903,16 @@ export default function AdminClient() {
                     </button>
                   )}
                   {(wa.status === "connecting" || wa.status === "qr") && (
-                    <button onClick={fetchWA} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200">
-                      <RefreshCw className="w-4 h-4" /> Refresh
-                    </button>
+                    <>
+                      <button onClick={fetchWA} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200">
+                        <RefreshCw className="w-4 h-4" /> Refresh
+                      </button>
+                      {waConnectingAt && Date.now() - waConnectingAt > 45_000 && (
+                        <button onClick={disconnectWA} disabled={waLoading} className="flex items-center gap-2 px-4 py-2 bg-rose-100 text-rose-700 rounded-xl text-sm font-medium hover:bg-rose-200 disabled:opacity-50">
+                          <WifiOff className="w-4 h-4" /> Force Reset
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, DoorOpen, Users, CreditCard, Wrench, BarChart3, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, DoorOpen, Users, CreditCard, Wrench, BarChart3, Settings, LogOut, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -26,11 +26,15 @@ export function Sidebar() {
   const pathname = usePathname();
   const router   = useRouter();
   const [me, setMe] = useState<MeUser | null>(null);
+  const [betaMode, setBetaMode] = useState(true);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then(r => r.ok ? r.json() : null)
       .then((u: MeUser | null) => { if (u) setMe(u); });
+    fetch("/api/app-config")
+      .then(r => r.ok ? r.json() : null)
+      .then((c: { betaMode: boolean } | null) => { if (c) setBetaMode(c.betaMode); });
   }, []);
 
   const email    = me?.email ?? "";
@@ -89,17 +93,30 @@ export function Sidebar() {
           );
         })}
 
-        {/* Beta badge */}
-        <div className="px-3 py-2">
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20">
-            <span className="relative flex h-2 w-2 shrink-0">
-              <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-violet-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" />
-            </span>
-            <span className="text-xs font-bold text-violet-400 tracking-wide">BETA</span>
-            <span className="text-[10px] text-violet-400/50 ml-auto font-medium">Free access</span>
+        {/* Beta badge or upgrade link */}
+        {betaMode ? (
+          <div className="px-3 py-2">
+            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20">
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-violet-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" />
+              </span>
+              <span className="text-xs font-bold text-violet-400 tracking-wide">BETA</span>
+              <span className="text-[10px] text-violet-400/50 ml-auto font-medium">Free access</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <Link href="/upgrade"
+            className={cn(
+              "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+              pathname === "/upgrade"
+                ? "bg-amber-500 text-white shadow-md shadow-amber-900/30"
+                : "text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+            )}>
+            <Crown size={17} className={cn("shrink-0", pathname === "/upgrade" ? "text-amber-100" : "text-amber-500")} />
+            <span className="truncate">Upgrade Plan</span>
+          </Link>
+        )}
       </nav>
 
       <div className="mx-4 h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />

@@ -107,7 +107,15 @@ export async function initWhatsApp(key: string): Promise<void> {
   });
 
   s.client = client;
-  await client.initialize();
+  try {
+    await client.initialize();
+  } catch (err) {
+    console.error("[whatsapp] initialize() failed:", err);
+    s.status = "disconnected";
+    s.client = undefined;
+    g._waSessions.delete(key);
+    throw err;
+  }
 }
 
 export async function disconnectWhatsApp(key: string): Promise<void> {

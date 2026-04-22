@@ -250,6 +250,12 @@
       "namedRegex": "^/admin(?:/)?$"
     },
     {
+      "page": "/api/admin/app-settings",
+      "regex": "^/api/admin/app\\-settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/app\\-settings(?:/)?$"
+    },
+    {
       "page": "/api/admin/stats",
       "regex": "^/api/admin/stats(?:/)?$",
       "routeKeys": {},
@@ -266,6 +272,12 @@
       "regex": "^/api/admin/whatsapp(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/admin/whatsapp(?:/)?$"
+    },
+    {
+      "page": "/api/app-config",
+      "regex": "^/api/app\\-config(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/app\\-config(?:/)?$"
     },
     {
       "page": "/api/auth/change-password",
