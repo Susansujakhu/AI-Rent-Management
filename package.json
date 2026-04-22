@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "postinstall": "prisma generate",
+    "postinstall": "node -e \"try{require('child_process').execSync('prisma generate',{stdio:'inherit'})}catch(e){}\"",
     "setup": "node scripts/setup.mjs",
     "dev": "next dev",
     "dev:fresh": "bash dev.sh",
-    "build": "prisma generate && next build --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "prisma migrate deploy",
