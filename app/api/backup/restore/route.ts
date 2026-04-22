@@ -25,12 +25,14 @@ export async function POST(req: Request) {
   const recurringCharges    = backup.recurringCharges    as Record<string, unknown>[] ?? [];
   const oneTimeCharges      = backup.oneTimeCharges      as Record<string, unknown>[] ?? [];
   const paymentTransactions = backup.paymentTransactions as Record<string, unknown>[] ?? [];
+  const chargeTransactions  = backup.chargeTransactions  as Record<string, unknown>[] ?? [];
   const settings            = backup.settings            as Record<string, unknown>[] ?? [];
 
   try {
     await prisma.$transaction(async (tx) => {
       // Delete only the current user's data in FK-safe order
       await tx.tenantSession.deleteMany({ where: { tenant: { userId } } });
+      await tx.chargeTransaction.deleteMany({ where: { userId } });
       await tx.paymentTransaction.deleteMany({ where: { userId } });
       await tx.payment.deleteMany({ where: { userId } });
       await tx.oneTimeCharge.deleteMany({ where: { userId } });
@@ -108,6 +110,22 @@ export async function POST(req: Request) {
           paidAt:       new Date(t.paidAt as string),
           note:         t.note         as string | null ?? null,
           createdAt:    new Date(t.createdAt as string),
+        }});
+      }
+
+      // Restore charge transactions
+      for (const t of chargeTransactions) {
+        await tx.chargeTransaction.create({ data: {
+          userId,
+          id:          t.id          as string,
+          tenantId:    t.tenantId    as string,
+          chargeId:    t.chargeId    as string,
+          chargeTitle: t.chargeTitle as string,
+          amount:      Number(t.amount),
+          method:      t.method      as string,
+          paidAt:      new Date(t.paidAt as string),
+          note:        t.note        as string | null ?? null,
+          createdAt:   new Date(t.createdAt as string),
         }});
       }
 

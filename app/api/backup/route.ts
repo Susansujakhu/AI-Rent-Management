@@ -14,7 +14,7 @@ export async function GET(req: Request) {
       { status: 400 }
     );
   }
-  const [rooms, tenants, payments, expenses, charges, oneTimeCharges, settings, paymentTransactions] = await Promise.all([
+  const [rooms, tenants, payments, expenses, charges, oneTimeCharges, settings, paymentTransactions, chargeTransactions] = await Promise.all([
     prisma.room.findMany({ where: { userId } }),
     prisma.tenant.findMany({ where: { userId } }),
     prisma.payment.findMany({ where: { userId } }),
@@ -23,11 +23,12 @@ export async function GET(req: Request) {
     prisma.oneTimeCharge.findMany({ where: { userId } }),
     prisma.setting.findMany({ where: { userId } }),
     prisma.paymentTransaction.findMany({ where: { userId } }),
+    prisma.chargeTransaction.findMany({ where: { userId } }),
   ]);
 
   const backup = {
     exported_at: new Date().toISOString(),
-    version: 2,
+    version: 3,
     rooms,
     tenants,
     payments,
@@ -35,6 +36,7 @@ export async function GET(req: Request) {
     recurringCharges: charges,
     oneTimeCharges,
     paymentTransactions,
+    chargeTransactions,
     settings: settings.filter(s => !["auth_email", "auth_password_hash", "session_token"].includes(s.key)),
   };
 
