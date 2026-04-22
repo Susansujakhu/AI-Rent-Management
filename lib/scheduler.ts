@@ -39,7 +39,7 @@ async function runMonthlyPaymentGeneration(): Promise<void> {
   const tenants = await prisma.tenant.findMany({
     where: {
       roomId:     { not: null },
-      moveInDate: { not: null },
+      moveInDate: { not: undefined },
       OR: [{ moveOutDate: null }, { moveOutDate: { gte: monthStart } }],
     },
     include: { room: { include: { recurringCharges: true } } },
