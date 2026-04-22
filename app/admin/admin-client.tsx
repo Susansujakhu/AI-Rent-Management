@@ -213,12 +213,12 @@ export default function AdminClient() {
     setWaConnectError("");
     setWaConnectingAt(Date.now());
     await fetch("/api/admin/whatsapp", { method: "POST" });
-    // Wait briefly for the socket to initialize and QR to generate
-    await new Promise(r => setTimeout(r, 3000));
+    // Wait for socket init + possible logout-clear-reinit cycle (~6s)
+    await new Promise(r => setTimeout(r, 6000));
     await fetchWA();
     setWa(prev => {
       if (prev.status === "disconnected") {
-        setWaConnectError("Connection failed. Check that the server can reach WhatsApp's servers (wss on port 443).");
+        setWaConnectError("Still connecting… if this persists, the previous session may have been logged out. A QR code will appear shortly.");
       }
       return prev;
     });

@@ -4,11 +4,31 @@ import makeWASocket, {
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
 } from "@whiskeysockets/baileys";
-import type { WASocket } from "@whiskeysockets/baileys";
+import type { WASocket, WAVersion } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
 import pino from "pino";
+import path from "path";
+import fs from "fs";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const QRCode = require("qrcode") as { toDataURL: (text: string, opts?: object) => Promise<string> };
+
+// Absolute path so it resolves the same regardless of CWD (dev vs production)
+const AUTH_BASE = path.join(process.cwd(), ".wwebjs_auth");
+
+// Cache the WA web version so version mismatches don't force QR on every restart
+const FALLBACK_WA_VERSION: WAVersion = [2, 3000, 1023205847];
+let _cachedVersion: WAVersion | null = null;
+async function getVersion(): Promise<WAVersion> {
+  if (!_cachedVersion) {
+    try {
+      const { version } = await fetchLatestBaileysVersion();
+      _cachedVersion = version;
+    } catch {
+      _cachedVersion = FALLBACK_WA_VERSION;
+    }
+  }
+  return _cachedVersion;
+}
 
 // ── Key constants ─────────────────────────────────────────────────────────────
 export const SYSTEM_WA_KEY = "system";
@@ -61,8 +81,14 @@ export async function initWhatsApp(key: string): Promise<void> {
   s.qrImage = null;
 
   try {
-    const { state, saveCreds } = await useMultiFileAuthState(`.wwebjs_auth/${key}`);
-    const { version } = await fetchLatestBaileysVersion();
+    const { state, saveCreds } = await useMultiFileAuthState(path.join(AUTH_BASE, key));
+    const version = await getVersion();
+
+    // Flush creds on graceful shutdown so the session survives a server restart
+    const onExit = () => { saveCreds().catch(() => {}); };
+    process.once("SIGTERM", onExit);
+    process.once("SIGINT",  onExit);
+    process.once("exit",    onExit);
 
     const logger = pino({ level: "silent" });
 
@@ -108,11 +134,14 @@ export async function initWhatsApp(key: string): Promise<void> {
         s.socket  = undefined;
         g._waSessions.delete(key);
 
-        if (!loggedOut) {
+        if (loggedOut) {
+          // Phone removed the linked device — wipe stale credentials and show QR
+          console.log(`[whatsapp:${key}] Logged out — clearing credentials, will show QR`);
+          try { fs.rmSync(path.join(AUTH_BASE, key), { recursive: true, force: true }); } catch { /* ignore */ }
+          setTimeout(() => initWhatsApp(key).catch(console.error), 2000);
+        } else {
           console.log(`[whatsapp:${key}] Reconnecting in 5s (code ${code})…`);
           setTimeout(() => initWhatsApp(key).catch(console.error), 5000);
-        } else {
-          console.log(`[whatsapp:${key}] Logged out — not reconnecting`);
         }
       }
     });
@@ -124,7 +153,9 @@ export async function initWhatsApp(key: string): Promise<void> {
     s.status  = "disconnected";
     s.socket  = undefined;
     g._waSessions.delete(key);
-    throw err;
+    // Retry after 15s — handles transient failures (network down, WA unreachable at startup)
+    console.log(`[whatsapp:${key}] Retrying in 15s…`);
+    setTimeout(() => initWhatsApp(key).catch(console.error), 15_000);
   }
 }
 
