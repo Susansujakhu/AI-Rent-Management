@@ -15,9 +15,15 @@ app.prepare().then(async () => {
     process.env.NEXT_RUNTIME = process.env.NEXT_RUNTIME || 'nodejs'
     try {
       const { register } = require('./.next/server/instrumentation.js')
-      if (typeof register === 'function') await register()
+      if (typeof register === 'function') {
+        console.error('[server] Calling instrumentation register()...')
+        await register()
+        console.error('[server] Instrumentation register() completed')
+      } else {
+        console.error('[server] instrumentation.js has no register export')
+      }
     } catch (err) {
-      console.warn('[server] Instrumentation skipped:', err.message)
+      console.error('[server] Instrumentation failed:', err.message)
     }
   }
 
