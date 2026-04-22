@@ -9,7 +9,18 @@ const port = parseInt(process.env.PORT || '3000', 10)
 const app = next({ dev, hostname, port })
 const handle = app.getRequestHandler()
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
+  // Custom servers don't auto-run instrumentation.ts — call it manually
+  if (!dev) {
+    process.env.NEXT_RUNTIME = process.env.NEXT_RUNTIME || 'nodejs'
+    try {
+      const { register } = require('./.next/server/instrumentation.js')
+      if (typeof register === 'function') await register()
+    } catch (err) {
+      console.warn('[server] Instrumentation skipped:', err.message)
+    }
+  }
+
   createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true)
