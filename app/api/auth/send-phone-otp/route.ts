@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { sendWhatsAppMessage, getWAStatus, SYSTEM_WA_KEY } from "@/lib/whatsapp";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-const DEV_BYPASS = process.env.NODE_ENV !== "production" && process.env.BYPASS_PHONE_OTP === "true";
+const DEV_BYPASS = process.env.BYPASS_PHONE_OTP === "true";
 const DEV_OTP    = "000000"; // fixed code used in bypass mode
 
 function generateOTP(): string {
