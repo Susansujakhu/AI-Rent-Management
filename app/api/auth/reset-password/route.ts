@@ -4,16 +4,16 @@ import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
-  const { email, otp, newPassword } = body;
+  const { phone, otp, newPassword } = body;
 
-  if (typeof email !== "string" || typeof otp !== "string" || typeof newPassword !== "string") {
-    return NextResponse.json({ error: "Email, code, and new password are required" }, { status: 400 });
+  if (typeof phone !== "string" || typeof otp !== "string" || typeof newPassword !== "string") {
+    return NextResponse.json({ error: "Phone number, code, and new password are required" }, { status: 400 });
   }
   if (newPassword.length < 6) {
     return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { phone } });
   if (!user) {
     return NextResponse.json({ error: "Invalid code" }, { status: 400 });
   }

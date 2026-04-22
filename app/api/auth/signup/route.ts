@@ -21,8 +21,8 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const { email, password, name, phone, otp } = body;
 
-  if (typeof email !== "string" || typeof password !== "string" || !email || !password) {
-    return NextResponse.json({ error: "Email and password required" }, { status: 400 });
+  if (typeof password !== "string" || !password) {
+    return NextResponse.json({ error: "Password is required" }, { status: 400 });
   }
   if (password.length < 6) {
     return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
@@ -52,8 +52,9 @@ export async function POST(req: Request) {
   }
 
   // Check duplicates
+  const normalizedEmail = typeof email === "string" && email.trim() ? email.trim().toLowerCase() : null;
   const [emailTaken, phoneTaken] = await Promise.all([
-    prisma.user.findUnique({ where: { email } }),
+    normalizedEmail ? prisma.user.findUnique({ where: { email: normalizedEmail } }) : null,
     prisma.user.findUnique({ where: { phone: normalizedPhone } }),
   ]);
   if (emailTaken) return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
     prisma.phoneVerificationToken.update({ where: { id: token.id }, data: { used: true } }),
     prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         passwordHash,
         phone:         normalizedPhone,
         phoneVerified: true,

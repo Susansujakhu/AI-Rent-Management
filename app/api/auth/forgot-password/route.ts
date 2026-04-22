@@ -26,16 +26,15 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
-  const { email } = body;
+  const { phone } = body;
 
-  if (typeof email !== "string" || !email) {
-    return NextResponse.json({ error: "Email is required" }, { status: 400 });
+  if (typeof phone !== "string" || !phone) {
+    return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
   }
 
-  // Always return the same response to prevent email enumeration
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { phone } });
   if (!user) {
-    return NextResponse.json({ ok: true, sent: false, masked: null });
+    return NextResponse.json({ error: "No account found with that phone number." }, { status: 404 });
   }
 
   // ── Dev bypass ───────────────────────────────────────────────────────────

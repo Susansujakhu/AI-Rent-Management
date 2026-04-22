@@ -2,20 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Eye, EyeOff, ArrowLeft, Mail, KeyRound, MessageCircle } from "lucide-react";
+import { Building2, Eye, EyeOff, ArrowLeft, KeyRound, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { COUNTRY_CODES, DEFAULT_CC } from "@/lib/country-codes";
 
 type Step = "request" | "reset" | "done";
 
 export function ForgotPasswordForm() {
   const router   = useRouter();
   const [step,            setStep]            = useState<Step>("request");
-  // Step 1
-  const [email,           setEmail]           = useState("");
+  const [countryCode,     setCountryCode]     = useState(DEFAULT_CC);
+  const [localPhone,      setLocalPhone]      = useState("");
   const [requesting,      setRequesting]      = useState(false);
   const [requestError,    setRequestError]    = useState("");
   const [sentInfo,        setSentInfo]        = useState<{ sent: boolean; masked: string | null } | null>(null);
-  // Step 2
   const [otp,             setOtp]             = useState("");
   const [newPassword,     setNewPassword]     = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -24,17 +24,18 @@ export function ForgotPasswordForm() {
   const [resetError,      setResetError]      = useState("");
 
   const inputCls = "w-full bg-white/8 border border-white/15 rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-400/70 focus:border-violet-400/50 transition-all";
+  const fullPhone = `+${countryCode}${localPhone.replace(/\D/g, "")}`;
 
   const handleRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!localPhone.trim()) return;
     setRequesting(true);
     setRequestError("");
     try {
       const res  = await fetch("/api/auth/forgot-password", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ email }),
+        body:    JSON.stringify({ phone: fullPhone }),
       });
       const data = await res.json() as { ok?: boolean; sent?: boolean; masked?: string | null; error?: string };
       if (!res.ok) { setRequestError(data.error ?? "Something went wrong."); return; }
@@ -58,7 +59,7 @@ export function ForgotPasswordForm() {
       const res  = await fetch("/api/auth/reset-password", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ email, otp, newPassword }),
+        body:    JSON.stringify({ phone: fullPhone, otp, newPassword }),
       });
       const data = await res.json() as { ok?: boolean; error?: string };
       if (!res.ok) { setResetError(data.error ?? "Something went wrong."); return; }
@@ -82,7 +83,6 @@ export function ForgotPasswordForm() {
       <div className="animate-blob-3 pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] rounded-full bg-blue-500/15 blur-[90px]" />
 
       <div className="animate-scale-in relative z-10 w-full max-w-[420px]">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-400 to-indigo-700 flex items-center justify-center mx-auto mb-5 shadow-[0_0_40px_rgba(139,92,246,0.55),0_8px_32px_rgba(0,0,0,0.4)]">
             <Building2 size={34} className="text-white drop-shadow" />
@@ -99,14 +99,31 @@ export function ForgotPasswordForm() {
         {step === "request" && (
           <form onSubmit={handleRequest} className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/15 shadow-[0_32px_64px_rgba(0,0,0,0.5)] p-8 space-y-5">
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">Email address</label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"><Mail size={15} /></div>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com" autoFocus autoComplete="email"
-                  className={`${inputCls} pl-10`} />
+              <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">Phone Number</label>
+              <div className="flex rounded-xl overflow-hidden border border-white/15 focus-within:ring-2 focus-within:ring-violet-400/70 focus-within:border-violet-400/50 transition-all">
+                <select
+                  value={countryCode}
+                  onChange={e => setCountryCode(e.target.value)}
+                  className="bg-white/15 text-white text-sm px-3 py-3.5 border-r border-white/15 focus:outline-none cursor-pointer shrink-0"
+                  style={{ maxWidth: "90px" }}
+                >
+                  {COUNTRY_CODES.map(c => (
+                    <option key={c.code} value={c.code} style={{ background: "#1e1b4b" }}>
+                      +{c.code}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={localPhone}
+                  onChange={e => setLocalPhone(e.target.value.replace(/\D/g, ""))}
+                  placeholder="9866XXXXXX"
+                  autoFocus
+                  autoComplete="tel-national"
+                  className="flex-1 bg-transparent px-4 py-3.5 text-sm text-white placeholder:text-white/30 focus:outline-none"
+                />
               </div>
-              <p className="text-white/30 text-xs">We&apos;ll send a 6-digit code to your registered phone via WhatsApp.</p>
+              <p className="text-white/30 text-xs">We&apos;ll send a 6-digit code to this number via WhatsApp.</p>
             </div>
 
             {requestError && (
@@ -115,7 +132,7 @@ export function ForgotPasswordForm() {
               </div>
             )}
 
-            <button type="submit" disabled={requesting || !email}
+            <button type="submit" disabled={requesting || !localPhone.trim()}
               className="w-full bg-gradient-to-r from-violet-500 via-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-sm font-semibold hover:from-violet-400 hover:via-indigo-500 hover:to-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-[0_4px_20px_rgba(139,92,246,0.45)] active:scale-[0.98]">
               {requesting ? (
                 <span className="flex items-center justify-center gap-2">
@@ -140,7 +157,6 @@ export function ForgotPasswordForm() {
         {step === "reset" && (
           <form onSubmit={handleReset} className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/15 shadow-[0_32px_64px_rgba(0,0,0,0.5)] p-8 space-y-4">
 
-            {/* Delivery status */}
             {sentInfo?.sent && (
               <div className="flex items-start gap-3 rounded-xl px-4 py-3 text-xs bg-emerald-500/15 border border-emerald-400/25">
                 <MessageCircle size={14} className="text-emerald-400 shrink-0 mt-0.5" />
@@ -148,7 +164,6 @@ export function ForgotPasswordForm() {
               </div>
             )}
 
-            {/* OTP */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">6-digit Reset Code</label>
               <div className="relative">
@@ -159,7 +174,6 @@ export function ForgotPasswordForm() {
               </div>
             </div>
 
-            {/* New password */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">New Password</label>
               <div className="relative">
@@ -185,7 +199,6 @@ export function ForgotPasswordForm() {
               )}
             </div>
 
-            {/* Confirm */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">Confirm Password</label>
               <input type={showPass ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
@@ -218,7 +231,7 @@ export function ForgotPasswordForm() {
 
             <button type="button" onClick={() => { setStep("request"); setOtp(""); setNewPassword(""); setConfirmPassword(""); }}
               className="w-full text-center text-white/35 text-xs flex items-center justify-center gap-1 hover:text-white/60 transition-colors">
-              <ArrowLeft size={12} /> Try a different email
+              <ArrowLeft size={12} /> Try a different number
             </button>
           </form>
         )}

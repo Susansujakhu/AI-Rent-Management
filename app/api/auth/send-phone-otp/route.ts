@@ -25,10 +25,19 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
-  const { phone } = body;
+  const { phone, email } = body;
 
   if (typeof phone !== "string" || !phone.trim()) {
     return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
+  }
+
+  // Validate and check email uniqueness before sending OTP
+  if (email !== undefined && email !== null && email !== "") {
+    if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
+      return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
+    }
+    const emailTaken = await prisma.user.findUnique({ where: { email: String(email).trim().toLowerCase() } });
+    if (emailTaken) return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
   }
 
   const normalized = normalizePhone(phone.trim());

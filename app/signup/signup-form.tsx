@@ -2,64 +2,54 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Eye, EyeOff, Phone, MessageCircle, ArrowLeft } from "lucide-react";
+import { Building2, Eye, EyeOff, MessageCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { COUNTRY_CODES, DEFAULT_CC } from "@/lib/country-codes";
 
 type Step = "form" | "verify";
 
 export function SignupForm() {
   const router = useRouter();
 
-  // Form fields
   const [name,            setName]            = useState("");
   const [email,           setEmail]           = useState("");
-  const [phone,           setPhone]           = useState("");
+  const [countryCode,     setCountryCode]     = useState(DEFAULT_CC);
+  const [localPhone,      setLocalPhone]      = useState("");
   const [password,        setPassword]        = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPass,        setShowPass]        = useState(false);
 
-  // Flow state
   const [step,       setStep]       = useState<Step>("form");
   const [masked,     setMasked]     = useState("");
   const [otp,        setOtp]        = useState("");
 
-  // Loading / errors
   const [sending,    setSending]    = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error,      setError]      = useState("");
 
   const inputCls = "w-full bg-white/8 border border-white/15 rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-400/70 focus:border-violet-400/50 transition-all";
+  const fullPhone = `+${countryCode}${localPhone.replace(/\D/g, "")}`;
 
-  function validatePhone(val: string) {
-    const digits = val.replace(/\D/g, "");
-    if (!val.trim()) return "Contact number is required";
-    if (digits.length < 7 || digits.length > 15) return "Enter a valid number (7–15 digits)";
-    return null;
-  }
-
-  // Step 1 → send OTP
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!email.trim())    { setError("Email is required"); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("Enter a valid email address"); return; }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("Enter a valid email address"); return; }
     if (!password) { setError("Password is required"); return; }
     if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
     if (password !== confirmPassword) { setError("Passwords do not match"); return; }
-    const phoneErr = validatePhone(phone);
-    if (phoneErr) { setError(phoneErr); return; }
+    if (!localPhone.trim()) { setError("Phone number is required"); return; }
 
     setSending(true);
     try {
       const res  = await fetch("/api/auth/send-phone-otp", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ phone }),
+        body:    JSON.stringify({ phone: fullPhone, email: email.trim() || undefined }),
       });
       const data = await res.json() as { ok?: boolean; masked?: string; error?: string };
       if (!res.ok) { setError(data.error ?? "Failed to send code"); return; }
-      setMasked(data.masked ?? phone);
+      setMasked(data.masked ?? fullPhone);
       setStep("verify");
     } catch {
       setError("Something went wrong. Try again.");
@@ -68,7 +58,6 @@ export function SignupForm() {
     }
   };
 
-  // Step 2 → verify OTP + create account
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -79,7 +68,7 @@ export function SignupForm() {
       const res  = await fetch("/api/auth/signup", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ name: name.trim() || undefined, email, phone, password, otp }),
+        body:    JSON.stringify({ name: name.trim() || undefined, email, phone: fullPhone, password, otp }),
       });
       const data = await res.json() as { ok?: boolean; error?: string };
       if (!res.ok) { setError(data.error ?? "Something went wrong"); return; }
@@ -98,13 +87,11 @@ export function SignupForm() {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-[#0f0f1a]">
-      {/* Ambient blobs */}
       <div className="animate-blob-1 pointer-events-none absolute -top-32 -left-32 w-[520px] h-[520px] rounded-full bg-violet-600/30 blur-[110px]" />
       <div className="animate-blob-2 pointer-events-none absolute -bottom-40 -right-20 w-[480px] h-[480px] rounded-full bg-indigo-600/25 blur-[120px]" />
       <div className="animate-blob-3 pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] rounded-full bg-blue-500/15 blur-[90px]" />
 
       <div className="animate-scale-in relative z-10 w-full max-w-[420px]">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-400 to-indigo-700 flex items-center justify-center mx-auto mb-5 shadow-[0_0_40px_rgba(139,92,246,0.55),0_8px_32px_rgba(0,0,0,0.4)]">
             <Building2 size={34} className="text-white drop-shadow" />
@@ -119,7 +106,6 @@ export function SignupForm() {
         {step === "form" && (
           <form onSubmit={handleSendCode} className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/15 shadow-[0_32px_64px_rgba(0,0,0,0.5)] p-8 space-y-4">
 
-            {/* Name */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">
                 Name <span className="normal-case font-normal text-white/35">(optional)</span>
@@ -128,30 +114,44 @@ export function SignupForm() {
                 placeholder="Your name" autoFocus autoComplete="name" className={inputCls} />
             </div>
 
-            {/* Email */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">
-                Email <span className="text-rose-400 normal-case font-normal">*</span>
+                Email <span className="normal-case font-normal text-white/35">(optional)</span>
               </label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com" autoComplete="email" className={inputCls} />
             </div>
 
-            {/* Phone */}
+            {/* Phone with country code */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">
-                Contact Number <span className="text-rose-400 normal-case font-normal">*</span>
+                Phone Number <span className="text-rose-400 normal-case font-normal">*</span>
               </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"><Phone size={15} /></div>
-                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                  placeholder="+977 98XXXXXXXX" autoComplete="tel"
-                  className={`${inputCls} pl-10`} />
+              <div className="flex rounded-xl overflow-hidden border border-white/15 focus-within:ring-2 focus-within:ring-violet-400/70 focus-within:border-violet-400/50 transition-all">
+                <select
+                  value={countryCode}
+                  onChange={e => setCountryCode(e.target.value)}
+                  className="bg-white/15 text-white text-sm px-3 py-3.5 border-r border-white/15 focus:outline-none cursor-pointer shrink-0"
+                  style={{ maxWidth: "90px" }}
+                >
+                  {COUNTRY_CODES.map(c => (
+                    <option key={c.code} value={c.code} style={{ background: "#1e1b4b" }}>
+                      +{c.code}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={localPhone}
+                  onChange={e => setLocalPhone(e.target.value.replace(/\D/g, ""))}
+                  placeholder="9866XXXXXX"
+                  autoComplete="tel-national"
+                  className="flex-1 bg-transparent px-4 py-3.5 text-sm text-white placeholder:text-white/30 focus:outline-none"
+                />
               </div>
               <p className="text-white/30 text-xs">A WhatsApp verification code will be sent to this number.</p>
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">Password</label>
               <div className="relative">
@@ -177,7 +177,6 @@ export function SignupForm() {
               )}
             </div>
 
-            {/* Confirm */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">Confirm Password</label>
               <input type={showPass ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
@@ -195,7 +194,7 @@ export function SignupForm() {
             )}
 
             <button type="submit"
-              disabled={sending || !email || !phone || !password || !confirmPassword || password !== confirmPassword}
+              disabled={sending || !localPhone || !password || !confirmPassword || password !== confirmPassword}
               className="w-full bg-gradient-to-r from-violet-500 via-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-sm font-semibold hover:from-violet-400 hover:via-indigo-500 hover:to-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-[0_4px_20px_rgba(139,92,246,0.45)] active:scale-[0.98] mt-1">
               {sending ? (
                 <span className="flex items-center justify-center gap-2">
@@ -222,8 +221,6 @@ export function SignupForm() {
         {/* ── Step 2: Enter OTP ── */}
         {step === "verify" && (
           <form onSubmit={handleVerify} className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/15 shadow-[0_32px_64px_rgba(0,0,0,0.5)] p-8 space-y-5">
-
-            {/* Sent info */}
             <div className="flex items-start gap-3 bg-emerald-500/15 border border-emerald-400/25 rounded-xl px-4 py-3.5">
               <MessageCircle size={16} className="text-emerald-400 shrink-0 mt-0.5" />
               <div>
@@ -234,7 +231,6 @@ export function SignupForm() {
               </div>
             </div>
 
-            {/* OTP input */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">6-Digit Code</label>
               <input
@@ -269,7 +265,6 @@ export function SignupForm() {
               ) : "Verify & Create Account"}
             </button>
 
-            {/* Resend + back */}
             <div className="flex items-center justify-between pt-1">
               <button type="button"
                 onClick={() => { setStep("form"); setOtp(""); setError(""); }}
