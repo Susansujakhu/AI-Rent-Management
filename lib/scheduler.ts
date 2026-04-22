@@ -2,9 +2,10 @@
  * Scheduler: runs inside the Next.js Node.js server process (instrumentation.ts).
  * Persists across hot-reloads via globalThis.
  *
- * Handles two jobs:
- *  1. Overdue rent reminders   — per-user, at user-configured hour, via user's WA session
- *  2. Subscription maintenance — system-wide, once per day:
+ * Handles three jobs:
+ *  1. Monthly payment generation — per-user, on 1st of month (catches up if server was down)
+ *  2. Overdue rent reminders     — per-user, at user-configured hour, via user's WA session
+ *  3. Subscription maintenance   — system-wide, once per day:
  *       a. Auto-downgrade expired paid plans to free
  *       b. Send 7-day and 1-day renewal reminder to users via System WA
  */
@@ -23,7 +24,75 @@ interface SchedulerGlobal {
 
 const g = globalThis as typeof globalThis & SchedulerGlobal;
 
-// ── 1. Overdue rent reminders (per-user) ─────────────────────────────────────
+// ── 1. Monthly payment generation (per-user) ─────────────────────────────────
+
+async function runMonthlyPaymentGeneration(): Promise<void> {
+  const now        = new Date();
+  const todayDay   = now.getDate();
+  const month      = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Find tenants whose billing day is today.
+  // Edge case: if move-in day > days in this month (e.g. moved in on 31st, Feb has 28),
+  // generate on the last day of the month.
+  const tenants = await prisma.tenant.findMany({
+    where: {
+      roomId:     { not: null },
+      moveInDate: { not: null },
+      OR: [{ moveOutDate: null }, { moveOutDate: { gte: monthStart } }],
+    },
+    include: { room: { include: { recurringCharges: true } } },
+  });
+
+  // Filter to tenants whose billing day falls today
+  const due = tenants.filter(t => {
+    const moveInDay = new Date(t.moveInDate!).getDate();
+    if (moveInDay === todayDay) return true;
+    // Last day of month covers tenants whose moveInDay doesn't exist this month
+    if (todayDay === daysInMonth && moveInDay > daysInMonth) return true;
+    return false;
+  });
+
+  if (due.length === 0) return;
+
+  // Check which already have a payment this month
+  const existing = await prisma.payment.findMany({
+    where: { tenantId: { in: due.map(t => t.id) }, month },
+    select: { tenantId: true },
+  });
+  const existingSet = new Set(existing.map(p => p.tenantId));
+
+  let created = 0;
+  for (const tenant of due) {
+    if (!tenant.roomId || !tenant.room || existingSet.has(tenant.id)) continue;
+
+    const recurringTotal = (tenant.room.recurringCharges ?? [])
+      .filter(c => {
+        if (c.tenantId && c.tenantId !== tenant.id) return false;
+        return !c.effectiveFrom || c.effectiveFrom <= month;
+      })
+      .reduce((sum, c) => sum + c.amount, 0);
+
+    await prisma.payment.create({
+      data: {
+        userId:    tenant.userId,
+        tenantId:  tenant.id,
+        roomId:    tenant.roomId,
+        month,
+        amountDue: tenant.room.monthlyRent + recurringTotal,
+        status:    "PENDING",
+      },
+    });
+    created++;
+  }
+
+  if (created > 0) {
+    console.log(`[scheduler] Auto-generated ${created} payment(s) for ${month} (billing day ${todayDay}).`);
+  }
+}
+
+// ── 2. Overdue rent reminders (per-user) ─────────────────────────────────────
 
 async function runRemindersForUser(userId: string): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
@@ -181,8 +250,11 @@ export function initScheduler(): void {
       const currentHour   = now.getHours();
       const currentMinute = now.getMinutes();
 
-      // ── Subscription maintenance: run once per day at any hour's first tick ─
+      // ── Monthly payment generation + subscription maintenance: once per day ──
       if (currentMinute < 5) {
+        runMonthlyPaymentGeneration().catch(err =>
+          console.error("[scheduler] Payment generation error:", err)
+        );
         runSubscriptionMaintenance().catch(err =>
           console.error("[scheduler] Subscription maintenance error:", err)
         );
@@ -222,5 +294,5 @@ export function initScheduler(): void {
     }
   }, 60 * 1000);
 
-  console.log("[scheduler] Scheduler started (overdue reminders + subscription maintenance).");
+  console.log("[scheduler] Scheduler started (payment generation + overdue reminders + subscription maintenance).");
 }
