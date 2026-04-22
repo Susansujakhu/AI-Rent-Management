@@ -18,18 +18,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid backup file — missing required fields" }, { status: 400 });
   }
 
-  const rooms         = backup.rooms         as Record<string, unknown>[];
-  const tenants       = backup.tenants       as Record<string, unknown>[];
-  const payments      = backup.payments      as Record<string, unknown>[];
-  const expenses      = backup.expenses      as Record<string, unknown>[] ?? [];
-  const recurringCharges = backup.recurringCharges as Record<string, unknown>[] ?? [];
-  const oneTimeCharges   = backup.oneTimeCharges   as Record<string, unknown>[] ?? [];
-  const settings      = backup.settings      as Record<string, unknown>[] ?? [];
+  const rooms               = backup.rooms               as Record<string, unknown>[];
+  const tenants             = backup.tenants             as Record<string, unknown>[];
+  const payments            = backup.payments            as Record<string, unknown>[];
+  const expenses            = backup.expenses            as Record<string, unknown>[] ?? [];
+  const recurringCharges    = backup.recurringCharges    as Record<string, unknown>[] ?? [];
+  const oneTimeCharges      = backup.oneTimeCharges      as Record<string, unknown>[] ?? [];
+  const paymentTransactions = backup.paymentTransactions as Record<string, unknown>[] ?? [];
+  const settings            = backup.settings            as Record<string, unknown>[] ?? [];
 
   try {
     await prisma.$transaction(async (tx) => {
       // Delete only the current user's data in FK-safe order
       await tx.tenantSession.deleteMany({ where: { tenant: { userId } } });
+      await tx.paymentTransaction.deleteMany({ where: { userId } });
       await tx.payment.deleteMany({ where: { userId } });
       await tx.oneTimeCharge.deleteMany({ where: { userId } });
       await tx.recurringCharge.deleteMany({ where: { userId } });
@@ -90,6 +92,22 @@ export async function POST(req: Request) {
           notes:      p.notes     as string | null ?? null,
           createdAt:  new Date(p.createdAt as string),
           updatedAt:  new Date(p.updatedAt as string),
+        }});
+      }
+
+      // Restore payment transactions
+      for (const t of paymentTransactions) {
+        await tx.paymentTransaction.create({ data: {
+          userId,
+          id:           t.id           as string,
+          paymentId:    t.paymentId    as string,
+          amount:       Number(t.amount),
+          creditAmount: Number(t.creditAmount ?? 0),
+          totalEntered: Number(t.totalEntered ?? t.amount),
+          method:       t.method       as string,
+          paidAt:       new Date(t.paidAt as string),
+          note:         t.note         as string | null ?? null,
+          createdAt:    new Date(t.createdAt as string),
         }});
       }
 
