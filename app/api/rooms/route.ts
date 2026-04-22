@@ -25,8 +25,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
   }
   const monthlyRent = Number(body.monthlyRent);
-  if (!Number.isFinite(monthlyRent) || monthlyRent < 0) {
-    return NextResponse.json({ error: "monthlyRent must be a non-negative number" }, { status: 400 });
+  if (!Number.isFinite(monthlyRent) || monthlyRent < 0 || monthlyRent > 10_000_000) {
+    return NextResponse.json({ error: "monthlyRent must be between 0 and 10,000,000" }, { status: 400 });
   }
 
   if (!hasAccess(auth)) return trialExpiredResponse();
