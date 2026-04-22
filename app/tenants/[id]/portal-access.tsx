@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, Link2, RefreshCw, Trash2, MessageCircle, Copy, Check, Loader2 } from "lucide-react";
+import { Globe, Link2, RefreshCw, Trash2, MessageCircle, Copy, Check, Loader2, Lock, Crown } from "lucide-react";
 import { toast } from "sonner";
+import { UpgradeModal } from "@/components/upgrade-modal";
 
 interface Props {
   tenantId:      string;
@@ -10,11 +11,13 @@ interface Props {
   tenantPhone:   string;
   portalEnabled: boolean;
   portalToken:   string | null;
+  isPro:         boolean;
 }
 
-export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnabled, portalToken }: Props) {
+export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnabled, portalToken, isPro }: Props) {
   const [enabled, setEnabled]   = useState(portalEnabled);
   const [token,   setToken]     = useState(portalToken);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [loading, setLoading]   = useState<string | null>(null);
   const [copied,  setCopied]    = useState(false);
 
@@ -26,10 +29,14 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
     setLoading("enable");
     try {
       const res  = await fetch(`/api/tenants/${tenantId}/portal`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed");
+      const data = await res.json() as { error?: string; upgrade?: boolean; portalToken?: string };
+      if (!res.ok) {
+        if (data.upgrade) toast.error(`Pro required — ${data.error}`);
+        else toast.error(data.error ?? "Failed");
+        return;
+      }
       setEnabled(true);
-      setToken(data.portalToken);
+      setToken(data.portalToken ?? null);
       toast.success("Portal access enabled");
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Error enabling portal");
@@ -78,13 +85,22 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const sendWhatsApp = () => {
-    if (!portalLink) return;
-    const phone = tenantPhone.replace(/\D/g, "");
-    const msg   = encodeURIComponent(
-      `Hi ${tenantName}, here's your tenant portal link to view your rent and payments:\n\n${portalLink}\n\nBookmark this page for future access.`
-    );
-    window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+  const sendWhatsApp = async () => {
+    setLoading("send");
+    try {
+      const res  = await fetch(`/api/tenants/${tenantId}/portal/send-link`, { method: "POST" });
+      const data = await res.json() as { error?: string; upgrade?: boolean };
+      if (!res.ok) {
+        if (data.upgrade) toast.error(`Pro required — ${data.error}`);
+        else toast.error(data.error ?? "Failed to send");
+        return;
+      }
+      toast.success("Portal link sent via WhatsApp");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Error sending message");
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
@@ -107,7 +123,28 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
       </div>
 
       <div className="px-5 py-4">
-        {!enabled ? (
+        {/* Pro gate */}
+        {!isPro ? (
+          <>
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center">
+                <Lock size={20} className="text-amber-500" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Pro feature</p>
+                <p className="text-xs text-slate-400 mt-0.5">Tenant portal requires a Pro plan</p>
+              </div>
+              <button
+                onClick={() => setUpgradeOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                <Crown size={14} />
+                Upgrade to Pro
+              </button>
+            </div>
+            <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} feature="Tenant portal" />
+          </>
+        ) : !enabled ? (
           <div className="flex flex-col items-center gap-3 py-2">
             <p className="text-sm text-slate-500 text-center">
               Portal access is disabled. Enable it to generate a personal link for this tenant.
@@ -142,9 +179,10 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={sendWhatsApp}
-                className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                disabled={loading === "send"}
+                className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
               >
-                <MessageCircle size={12} />
+                {loading === "send" ? <Loader2 size={12} className="animate-spin" /> : <MessageCircle size={12} />}
                 Send via WhatsApp
               </button>
               <button

@@ -3,10 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { id } = await params;
   const tenant = await prisma.tenant.findUnique({
-    where: { id },
+    where: { id, userId },
     include: { room: true, payments: { orderBy: { month: "desc" } } },
   });
   if (!tenant) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -24,7 +26,9 @@ function resolveStatus(paid: number, due: number, wasOverdue: boolean): string {
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { id } = await params;
   const body = await req.json();
 
@@ -56,7 +60,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     data.moveOutDate  = moveOutDate;
 
     const tenant = await prisma.tenant.findUnique({
-      where: { id },
+      where: { id, userId },
       include: { room: { include: { recurringCharges: true } } },
     });
 
@@ -72,7 +76,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       // 1. Pro-rate the move-out month (only if not already paid)
       const proRated = Math.round((daysOccupied / daysInMonth) * baseAmount);
       await prisma.payment.updateMany({
-        where: { tenantId: id, month: moMonthStr, amountPaid: 0 },
+        where: { tenantId: id, userId, month: moMonthStr, amountPaid: 0 },
         data:  { amountDue: proRated },
       });
 
@@ -80,6 +84,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       await prisma.payment.deleteMany({
         where: {
           tenantId: id,
+          userId,
           month:    { gt: moMonthStr },
           status:   "PENDING",
           amountPaid: 0,
@@ -89,7 +94,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       // 3. Apply deposit to outstanding balance (oldest-first)
       if (tenant.deposit > 0) {
         const outstanding = await prisma.payment.findMany({
-          where:   { tenantId: id, status: { not: "PAID" } },
+          where:   { tenantId: id, userId, status: { not: "PAID" } },
           orderBy: { month: "asc" },
         });
 
@@ -116,13 +121,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
   }
 
-  const tenant = await prisma.tenant.update({ where: { id }, data });
+  const tenant = await prisma.tenant.update({ where: { id, userId }, data });
   return NextResponse.json(tenant);
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { id } = await params;
-  await prisma.tenant.delete({ where: { id } });
+  await prisma.tenant.delete({ where: { id, userId } });
   return NextResponse.json({ success: true });
 }

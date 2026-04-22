@@ -1,10 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
-import { Plus, DoorOpen, Users, Building2 } from "lucide-react";
+import Link from "next/link";
+import { DoorOpen, Users, Building2, Plus } from "lucide-react";
+import { canAddRoom } from "@/lib/plan";
+import { AddButton } from "@/components/locked-feature";
 
 // Deterministic accent color per room name
 const ROOM_ACCENTS = [
@@ -23,9 +25,13 @@ function roomAccent(name: string) {
 }
 
 export default async function RoomsPage() {
-  const settings = await getSettings();
+  const { requireAuth } = await import("@/lib/auth");
+  const user = await requireAuth();
+
+  const settings = await getSettings(user.id);
   const fmt = (n: number) => formatCurrency(n, settings.currencySymbol);
   const rooms = await prisma.room.findMany({
+    where: { userId: user.id },
     include: {
       tenants: {
         where: { moveOutDate: null },
@@ -35,6 +41,7 @@ export default async function RoomsPage() {
     orderBy: { name: "asc" },
   });
 
+  const atLimit = !canAddRoom(user, rooms.length);
   const occupied = rooms.filter((r) => r.tenants.length > 0).length;
   const vacant = rooms.length - occupied;
   const occupancyPct = rooms.length > 0 ? Math.round((occupied / rooms.length) * 100) : 0;
@@ -64,13 +71,13 @@ export default async function RoomsPage() {
             </div>
           )}
         </div>
-        <Link
+        <AddButton
           href="/rooms/new"
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-violet-700 transition-all shadow-md shadow-indigo-200 shrink-0"
-        >
-          <Plus size={15} />
-          Add Room
-        </Link>
+          label="Add Room"
+          locked={atLimit}
+          feature="Unlimited rooms"
+          icon={<DoorOpen size={15} />}
+        />
       </div>
 
       {rooms.length === 0 ? (

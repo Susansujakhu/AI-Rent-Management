@@ -10,10 +10,10 @@ import { Phone, Mail, Home, Calendar, Shield } from "lucide-react";
 export default async function PortalProfilePage() {
   const session  = await requireTenantPage();
   const tenant   = session.tenant;
-  const settings = await getSettings();
+  const settings = await getSettings(tenant.userId);
   const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
 
-  const propertyName = (await prisma.setting.findUnique({ where: { key: "propertyName" } }))?.value ?? "Property";
+  const propertyName = (await prisma.setting.findUnique({ where: { userId_key: { userId: tenant.userId, key: "propertyName" } } }))?.value ?? "Property";
 
   return (
     <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null}>

@@ -30,11 +30,15 @@ function NewTenantForm() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const res = await fetch("/api/tenants", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      if (!res.ok) throw new Error();
+      const res  = await fetch("/api/tenants", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      const body = await res.json().catch(() => ({})) as { error?: string; upgrade?: boolean };
+      if (!res.ok) {
+        if (body.upgrade) { toast.error(`Pro required — ${body.error}`); return; }
+        throw new Error(body.error ?? "Failed to add tenant");
+      }
       toast.success("Tenant added successfully");
       router.push("/tenants");
-    } catch { toast.error("Failed to add tenant"); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Failed to add tenant"); }
   };
 
   return (
@@ -58,12 +62,18 @@ function NewTenantForm() {
           </div>
           <div>
             <label className={label}>Phone <span className="text-rose-500 normal-case">*</span></label>
-            <input {...register("phone", { required: "Phone is required" })} className={field} placeholder="98XXXXXXXX" />
+            <input {...register("phone", {
+              required: "Phone is required",
+              pattern: { value: /^\+?\d{7,15}$/, message: "Enter a valid phone number (7–15 digits, digits only)" },
+            })} className={field} placeholder="98XXXXXXXX" />
             {errors.phone && <p className={err}>{errors.phone.message}</p>}
           </div>
           <div>
             <label className={label}>Email</label>
-            <input type="email" {...register("email")} className={field} placeholder="optional@email.com" />
+            <input type="email" {...register("email", {
+              pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email address" },
+            })} className={field} placeholder="optional@email.com" />
+            {errors.email && <p className={err}>{errors.email.message}</p>}
           </div>
         </div>
 

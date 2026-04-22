@@ -2,9 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { requireAuthAPI } from "@/lib/auth";
+import { isPro, planLimitResponse } from "@/lib/plan";
 
 export async function GET(req: Request) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
+
+  if (!isPro(auth)) return planLimitResponse("Report export requires a Pro plan.");
+
   const { searchParams } = new URL(req.url);
   const yearParam = searchParams.get("year");
   const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
@@ -12,13 +18,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "year must be a valid 4-digit year" }, { status: 400 });
   }
 
-  const settings = await getSettings();
+  const settings = await getSettings(userId);
   const sym = settings.currencySymbol;
 
   const [payments, expenses, oneTimeCharges] = await Promise.all([
-    prisma.payment.findMany({ where: { month: { gte: `${year}-01`, lte: `${year}-12` } } }),
-    prisma.expense.findMany({ where: { date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
-    prisma.oneTimeCharge.findMany({ where: { date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
+    prisma.payment.findMany({ where: { userId, month: { gte: `${year}-01`, lte: `${year}-12` } } }),
+    prisma.expense.findMany({ where: { userId, date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
+    prisma.oneTimeCharge.findMany({ where: { userId, date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
   ]);
 
   const months: string[] = [];
@@ -44,10 +50,8 @@ export async function GET(req: Request) {
 
   const label = (m: string) => new Date(parseInt(m.slice(0, 4)), parseInt(m.slice(5)) - 1).toLocaleDateString("en", { month: "long", year: "numeric" });
 
-  /** Escape a CSV cell: wrap in quotes and escape inner quotes. */
   function csvCell(value: string | number): string {
     const s = String(value);
-    // Prefix formula-injection characters so spreadsheets don't execute them
     const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
     return `"${safe.replace(/"/g, '""')}"`;
   }

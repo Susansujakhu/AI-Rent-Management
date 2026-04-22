@@ -18,7 +18,7 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; dot: string; ic
 export default async function PortalDashboard() {
   const session  = await requireTenantPage();
   const tenant   = session.tenant;
-  const settings = await getSettings();
+  const settings = await getSettings(tenant.userId);
   const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
 
   const allPayments = await prisma.payment.findMany({

@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { searchParams } = new URL(req.url);
   const month    = searchParams.get("month");
   const tenantId = searchParams.get("tenantId");
@@ -12,6 +14,7 @@ export async function GET(req: Request) {
 
   const payments = await prisma.payment.findMany({
     where: {
+      userId,
       ...(month    ? { month }    : {}),
       ...(tenantId ? { tenantId } : {}),
       ...(after    ? { month: { gt: after } } : {}),

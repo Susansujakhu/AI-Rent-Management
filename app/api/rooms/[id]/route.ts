@@ -3,10 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { id } = await params;
   const room = await prisma.room.findUnique({
-    where: { id },
+    where: { id, userId },
     include: { tenants: { where: { moveOutDate: null } }, payments: true, expenses: true },
   });
   if (!room) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -14,7 +16,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { id } = await params;
   const body = await req.json();
 
@@ -27,7 +31,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 
   const room = await prisma.room.update({
-    where: { id },
+    where: { id, userId },
     data: {
       name:        body.name,
       floor:       body.floor        || null,
@@ -39,7 +43,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   const newAmountDue = newRent + room.recurringCharges.reduce((s, c) => s + c.amount, 0);
   await prisma.payment.updateMany({
-    where: { roomId: id, status: "PENDING", amountPaid: 0 },
+    where: { roomId: id, userId, status: "PENDING", amountPaid: 0 },
     data:  { amountDue: newAmountDue },
   });
 
@@ -47,10 +51,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { id } = await params;
   const activeTenant = await prisma.tenant.findFirst({
-    where: { roomId: id, moveOutDate: null },
+    where: { roomId: id, userId, moveOutDate: null },
   });
   if (activeTenant) {
     return NextResponse.json(
@@ -58,6 +64,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       { status: 400 }
     );
   }
-  await prisma.room.delete({ where: { id } });
+  await prisma.room.delete({ where: { id, userId } });
   return NextResponse.json({ success: true });
 }

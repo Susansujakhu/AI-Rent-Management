@@ -4,9 +4,10 @@ import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, Download, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, Download, ArrowUpRight, ArrowDownRight, Lock } from "lucide-react";
 import { ReportsChart } from "@/components/reports-chart";
 import { YearPicker } from "@/components/year-picker";
+import { isPro } from "@/lib/plan";
 
 function formatMonthLabel(month: string): string {
   const [year, m] = month.split("-");
@@ -19,15 +20,19 @@ function shortMonth(month: string): string {
 }
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
-  const settings = await getSettings();
+  const { requireAuth } = await import("@/lib/auth");
+  const user = await requireAuth();
+
+  const pro      = isPro(user);
+  const settings = await getSettings(user.id);
   const fmt = (n: number) => formatCurrency(n, settings.currencySymbol);
   const now     = new Date();
   const maxYear = now.getFullYear();
 
   // Find earliest year with any data to set minYear
   const [earliestPayment, earliestExpense] = await Promise.all([
-    prisma.payment.findFirst({ orderBy: { month: "asc" }, select: { month: true } }),
-    prisma.expense.findFirst({ orderBy: { date:  "asc" }, select: { date:  true } }),
+    prisma.payment.findFirst({ where: { userId: user.id }, orderBy: { month: "asc" }, select: { month: true } }),
+    prisma.expense.findFirst({ where: { userId: user.id }, orderBy: { date:  "asc" }, select: { date:  true } }),
   ]);
   const payYear = earliestPayment ? parseInt(earliestPayment.month.slice(0, 4)) : maxYear;
   const expYear = earliestExpense ? earliestExpense.date.getFullYear() : maxYear;
@@ -41,13 +46,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   const prevYear = year - 1;
   const [payments, expenses, oneTimeCharges, prevPayments, prevExpenses, prevOneTime, rooms] = await Promise.all([
-    prisma.payment.findMany({ where: { month: { gte: `${year}-01`, lte: `${year}-12` } } }),
-    prisma.expense.findMany({ where: { date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
-    prisma.oneTimeCharge.findMany({ where: { date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
-    prisma.payment.findMany({ where: { month: { gte: `${prevYear}-01`, lte: `${prevYear}-12` } } }),
-    prisma.expense.findMany({ where: { date: { gte: new Date(`${prevYear}-01-01`), lte: new Date(`${prevYear}-12-31`) } }, select: { amount: true } }),
-    prisma.oneTimeCharge.findMany({ where: { date: { gte: new Date(`${prevYear}-01-01`), lte: new Date(`${prevYear}-12-31`) } }, select: { amountPaid: true } }),
+    prisma.payment.findMany({ where: { userId: user.id, month: { gte: `${year}-01`, lte: `${year}-12` } } }),
+    prisma.expense.findMany({ where: { userId: user.id, date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
+    prisma.oneTimeCharge.findMany({ where: { userId: user.id, date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
+    prisma.payment.findMany({ where: { userId: user.id, month: { gte: `${prevYear}-01`, lte: `${prevYear}-12` } } }),
+    prisma.expense.findMany({ where: { userId: user.id, date: { gte: new Date(`${prevYear}-01-01`), lte: new Date(`${prevYear}-12-31`) } }, select: { amount: true } }),
+    prisma.oneTimeCharge.findMany({ where: { userId: user.id, date: { gte: new Date(`${prevYear}-01-01`), lte: new Date(`${prevYear}-12-31`) } }, select: { amountPaid: true } }),
     prisma.room.findMany({
+      where: { userId: user.id },
       include: {
         payments: { where: { month: { gte: `${year}-01`, lte: `${year}-12` } }, select: { amountDue: true, amountPaid: true } },
         expenses: { where: { date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } }, select: { amount: true } },
@@ -124,14 +130,25 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <p className="text-sm text-slate-500 mt-0.5">Financial summary for {year}</p>
         </div>
         <div className="flex items-center gap-3">
-          <a
-            href={`/api/reports/export?year=${year}`}
-            download
-            className="inline-flex items-center gap-1.5 border border-slate-200 text-slate-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
-          >
-            <Download size={14} />
-            Export CSV
-          </a>
+          {pro ? (
+            <a
+              href={`/api/reports/export?year=${year}`}
+              download
+              className="inline-flex items-center gap-1.5 border border-slate-200 text-slate-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+            >
+              <Download size={14} />
+              Export CSV
+            </a>
+          ) : (
+            <span
+              title="Upgrade to Pro to export reports"
+              className="inline-flex items-center gap-1.5 border border-slate-200 text-slate-400 px-3 py-2 rounded-xl text-sm font-semibold cursor-not-allowed select-none"
+            >
+              <Lock size={14} />
+              Export CSV
+              <span className="ml-1 text-[10px] font-bold bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">PRO</span>
+            </span>
+          )}
           <Suspense>
             <YearPicker year={year} minYear={minYear} maxYear={maxYear} />
           </Suspense>
@@ -140,7 +157,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
       {/* Year-over-Year comparison */}
       {(yoyCollected !== null || yoyExpenses !== null) && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {yoyCollected !== null && (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center justify-between">
               <div>

@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAuthAPI } from "@/lib/auth";
-import { getWAStatus, getWAQRImage, getWAPhone } from "@/lib/whatsapp";
+import { getWASession } from "@/lib/whatsapp";
 
 export async function GET() {
-  const unauth = await requireAuthAPI();
-  if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
 
-  return NextResponse.json({
-    status:  getWAStatus(),
-    qrImage: getWAQRImage(),
-    phone:   getWAPhone(),
-  });
+  return NextResponse.json(getWASession(auth.id));
 }

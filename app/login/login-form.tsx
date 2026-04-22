@@ -13,11 +13,19 @@ function Form() {
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
+  const [emailErr, setEmailErr] = useState("");
+  const [passwordErr, setPasswordErr] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    setEmailErr("");
+    setPasswordErr("");
+    let valid = true;
+    if (!email.trim()) { setEmailErr("Email is required"); valid = false; }
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setEmailErr("Enter a valid email address"); valid = false; }
+    if (!password) { setPasswordErr("Password is required"); valid = false; }
+    if (!valid) return;
     setLoading(true);
     setError("");
     try {
@@ -87,14 +95,15 @@ function Form() {
             <input
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr(""); }}
               placeholder="you@example.com"
               autoFocus
               autoComplete="email"
-              className="w-full bg-white/8 border border-white/15 rounded-xl px-4 py-3.5 text-sm text-white
-                         placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-400/70
-                         focus:border-indigo-400/50 transition-all"
+              className={`w-full bg-white/8 border rounded-xl px-4 py-3.5 text-sm text-white
+                         placeholder:text-white/30 focus:outline-none focus:ring-2 transition-all
+                         ${emailErr ? "border-rose-400/60 focus:ring-rose-400/50" : "border-white/15 focus:ring-indigo-400/70 focus:border-indigo-400/50"}`}
             />
+            {emailErr && <p className="text-rose-400 text-xs">{emailErr}</p>}
           </div>
 
           {/* Password */}
@@ -106,12 +115,12 @@ function Form() {
               <input
                 type={show ? "text" : "password"}
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => { setPassword(e.target.value); if (passwordErr) setPasswordErr(""); }}
                 placeholder="Enter your password"
                 autoComplete="current-password"
-                className="w-full bg-white/8 border border-white/15 rounded-xl px-4 py-3.5 text-sm text-white
-                           placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-400/70
-                           focus:border-indigo-400/50 transition-all pr-12"
+                className={`w-full bg-white/8 border rounded-xl px-4 py-3.5 text-sm text-white
+                           placeholder:text-white/30 focus:outline-none focus:ring-2 transition-all pr-12
+                           ${passwordErr ? "border-rose-400/60 focus:ring-rose-400/50" : "border-white/15 focus:ring-indigo-400/70 focus:border-indigo-400/50"}`}
               />
               <button
                 type="button"
@@ -121,6 +130,7 @@ function Form() {
                 {show ? <EyeOff size={17} /> : <Eye size={17} />}
               </button>
             </div>
+            {passwordErr && <p className="text-rose-400 text-xs">{passwordErr}</p>}
           </div>
 
           {/* Error message */}
@@ -134,7 +144,7 @@ function Form() {
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading || !email || !password}
+            disabled={loading}
             className="btn-shimmer w-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700
                        text-white py-3.5 rounded-xl text-sm font-semibold
                        hover:from-indigo-400 hover:via-indigo-500 hover:to-indigo-600
@@ -158,13 +168,16 @@ function Form() {
           </button>
         </form>
 
-        {/* Footer note */}
-        <p className="text-center text-white/30 text-xs mt-6">
-          Don&apos;t have an account?{" "}
-          <a href="/signup" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
-            Sign up
+        {/* Footer links */}
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <a href="/forgot-password" className="text-white/30 hover:text-white/60 text-xs transition-colors">
+            Forgot password?
           </a>
-        </p>
+          <span className="text-white/15 text-xs">·</span>
+          <a href="/signup" className="text-indigo-400 hover:text-indigo-300 font-semibold text-xs transition-colors">
+            Create account
+          </a>
+        </div>
       </div>
     </div>
   );

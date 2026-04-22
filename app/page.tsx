@@ -6,6 +6,7 @@ import { currentMonth, formatCurrency, formatMonth } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
 import { Building2, Users, TrendingUp, TrendingDown, AlertTriangle, DoorOpen, CreditCard, Receipt, ChevronRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { CollectionChart } from "@/components/collection-chart";
+import { MonthPicker } from "@/components/month-picker";
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -46,87 +47,136 @@ function shortMonth(month: string) {
   return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("en", { month: "short" });
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
   const { requireAuth } = await import("@/lib/auth");
-  await requireAuth();
+  const user = await requireAuth();
 
-  const month    = currentMonth();
-  const settings = await getSettings();
+  const cur      = currentMonth();
+  const { month: rawMonth } = await searchParams;
+  // Validate: must be YYYY-MM format and not in the future
+  const month = rawMonth && /^\d{4}-\d{2}$/.test(rawMonth) && rawMonth <= cur ? rawMonth : cur;
+
+  const settings = await getSettings(user.id);
   const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
   const now      = new Date();
 
-  // Bill generation & overdue marking
-  await prisma.payment.deleteMany({ where: { status: "PENDING", month: { gt: month } } });
-  await prisma.payment.updateMany({ where: { status: "PENDING", month: { lt: month } }, data: { status: "OVERDUE" } });
+  // ── Bill backfill — throttled to once per day per user ───────────────────
+  // Avoids N×M DB queries on every dashboard load in production.
+  const today           = now.toISOString().slice(0, 10); // YYYY-MM-DD
+  const lastGenSetting  = await prisma.setting.findUnique({
+    where: { userId_key: { userId: user.id, key: "last_bill_gen" } },
+  });
+  const shouldBackfill  = lastGenSetting?.value !== today;
 
-  // Backfill
+  // Always needed for anniversary section
   const activeTenants = await prisma.tenant.findMany({
-    where: { moveOutDate: null, roomId: { not: null } },
+    where: { userId: user.id, moveOutDate: null, roomId: { not: null } },
     include: { room: { include: { recurringCharges: true } } },
   });
-  const lookbackDate = new Date();
-  lookbackDate.setMonth(lookbackDate.getMonth() - 11);
-  const lookbackMonth = toMonthStr(lookbackDate.getFullYear(), lookbackDate.getMonth() + 1);
 
-  for (const tenant of activeTenants) {
-    if (!tenant.roomId || !tenant.room) continue;
-    const moveInMonth = toMonthStr(tenant.moveInDate.getFullYear(), tenant.moveInDate.getMonth() + 1);
-    const startMonth  = moveInMonth > lookbackMonth ? moveInMonth : lookbackMonth;
-    const allMonths: string[] = [];
-    const [sy, sm] = startMonth.split("-").map(Number);
-    const [ey, em] = month.split("-").map(Number);
-    let y = sy, mo = sm;
-    while (y < ey || (y === ey && mo <= em)) {
-      allMonths.push(toMonthStr(y, mo));
-      mo++; if (mo > 12) { mo = 1; y++; }
-    }
-    for (const m2 of allMonths) {
-      const isPast    = m2 < month;
-      const amountDue = tenant.room.monthlyRent + tenant.room.recurringCharges
-        .filter((c) => (c.tenantId === null || c.tenantId === tenant.id) && (!c.effectiveFrom || c.effectiveFrom <= m2))
-        .reduce((s, c) => s + c.amount, 0);
-      const existing = await prisma.payment.findUnique({
-        where: { tenantId_month: { tenantId: tenant.id, month: m2 } },
-        select: { id: true, status: true },
-      });
-      if (!existing) {
-        await prisma.payment.create({
-          data: { tenantId: tenant.id, roomId: tenant.roomId, month: m2, amountDue, amountPaid: 0, status: isPast ? "OVERDUE" : "PENDING" },
+  if (shouldBackfill) {
+    // Overdue marking
+    await prisma.payment.deleteMany({ where: { userId: user.id, status: "PENDING", month: { gt: cur } } });
+    await prisma.payment.updateMany({ where: { userId: user.id, status: "PENDING", month: { lt: cur } }, data: { status: "OVERDUE" } });
+
+    const lookbackDate = new Date();
+    lookbackDate.setMonth(lookbackDate.getMonth() - 11);
+    const lookbackMonth = toMonthStr(lookbackDate.getFullYear(), lookbackDate.getMonth() + 1);
+
+    for (const tenant of activeTenants) {
+      if (!tenant.roomId || !tenant.room) continue;
+      const moveInMonth = toMonthStr(tenant.moveInDate.getFullYear(), tenant.moveInDate.getMonth() + 1);
+      const startMonth  = moveInMonth > lookbackMonth ? moveInMonth : lookbackMonth;
+      const allMonths: string[] = [];
+      const [sy, sm] = startMonth.split("-").map(Number);
+      const [ey, em] = cur.split("-").map(Number);
+      let y = sy, mo = sm;
+      while (y < ey || (y === ey && mo <= em)) {
+        allMonths.push(toMonthStr(y, mo));
+        mo++; if (mo > 12) { mo = 1; y++; }
+      }
+      for (const m2 of allMonths) {
+        const isPast    = m2 < cur;
+        const amountDue = tenant.room.monthlyRent + tenant.room.recurringCharges
+          .filter((c) => (c.tenantId === null || c.tenantId === tenant.id) && (!c.effectiveFrom || c.effectiveFrom <= m2))
+          .reduce((s, c) => s + c.amount, 0);
+        const existing = await prisma.payment.findUnique({
+          where: { tenantId_month: { tenantId: tenant.id, month: m2 } },
+          select: { id: true, status: true },
         });
-      } else if (existing.status !== "PAID") {
-        await prisma.payment.update({ where: { id: existing.id }, data: { amountDue } });
+        if (!existing) {
+          await prisma.payment.create({
+            data: { userId: user.id, tenantId: tenant.id, roomId: tenant.roomId, month: m2, amountDue, amountPaid: 0, status: isPast ? "OVERDUE" : "PENDING" },
+          });
+        } else if (existing.status !== "PAID") {
+          await prisma.payment.update({ where: { id: existing.id }, data: { amountDue } });
+        }
       }
     }
+
+    // Mark today so we skip the backfill for the rest of the day
+    await prisma.setting.upsert({
+      where:  { userId_key: { userId: user.id, key: "last_bill_gen" } },
+      create: { userId: user.id, key: "last_bill_gen", value: today },
+      update: { value: today },
+    });
   }
 
-  // Stats
+  // ── Month range for picker ─────────────────────────────────────────────────
+  const [earliestPayment, earliestTenant] = await Promise.all([
+    prisma.payment.findFirst({ where: { userId: user.id }, orderBy: { month: "asc" }, select: { month: true } }),
+    prisma.tenant.findFirst({ where: { userId: user.id }, orderBy: { moveInDate: "asc" }, select: { moveInDate: true } }),
+  ]);
+  const fromPayment = earliestPayment?.month ?? cur;
+  const fromTenant  = earliestTenant
+    ? toMonthStr(earliestTenant.moveInDate.getFullYear(), earliestTenant.moveInDate.getMonth() + 1)
+    : cur;
+  const startMonth = [fromPayment, fromTenant].sort()[0];
+  const availableMonths: string[] = [];
+  {
+    const [sy, sm] = startMonth.split("-").map(Number);
+    const [ey, em] = cur.split("-").map(Number);
+    let y = sy, mo = sm;
+    while (y < ey || (y === ey && mo <= em)) {
+      availableMonths.push(toMonthStr(y, mo));
+      mo++; if (mo > 12) { mo = 1; y++; }
+    }
+  }
+  availableMonths.reverse(); // newest first
+
+  // ── Selected-month stats ───────────────────────────────────────────────────
   const [mo, yr] = [Number(month.split("-")[1]), Number(month.split("-")[0])];
-  const [totalRooms, activeTenantCount, currentMonthPayments, overdueCount, currentMonthOneTime] = await Promise.all([
-    prisma.room.count(),
-    prisma.tenant.count({ where: { moveOutDate: null } }),
-    prisma.payment.findMany({ where: { month }, include: { tenant: true, room: true }, orderBy: { createdAt: "desc" } }),
-    prisma.payment.count({ where: { status: "OVERDUE" } }),
-    prisma.oneTimeCharge.findMany({ where: { date: { gte: new Date(yr, mo - 1, 1), lt: new Date(yr, mo, 1) } } }),
+  const [totalRooms, activeTenantCount, selectedMonthPayments, overdueCount, selectedMonthOneTime] = await Promise.all([
+    prisma.room.count({ where: { userId: user.id } }),
+    prisma.tenant.count({ where: { userId: user.id, moveOutDate: null } }),
+    prisma.payment.findMany({ where: { userId: user.id, month }, include: { tenant: true, room: true }, orderBy: { createdAt: "desc" } }),
+    prisma.payment.count({ where: { userId: user.id, status: "OVERDUE" } }),
+    prisma.oneTimeCharge.findMany({ where: { userId: user.id, date: { gte: new Date(yr, mo - 1, 1), lt: new Date(yr, mo, 1) } } }),
   ]);
 
-  const collectedThisMonth = currentMonthPayments.reduce((s, p) => s + p.amountPaid, 0)
-    + currentMonthOneTime.reduce((s, c) => s + c.amountPaid, 0);
+  const collectedThisMonth = selectedMonthPayments.reduce((s, p) => s + p.amountPaid, 0)
+    + selectedMonthOneTime.reduce((s, c) => s + c.amountPaid, 0);
 
   const overduePayments = await prisma.payment.findMany({
-    where: { status: "OVERDUE" },
+    where: { userId: user.id, status: "OVERDUE" },
     include: { tenant: true, room: true },
     take: 5,
     orderBy: { month: "desc" },
   });
 
-  // 6-month chart + sparkline data
+  // ── 6-month chart ending at selected month ────────────────────────────────
   const last6: string[] = [];
+  const [selY, selM] = month.split("-").map(Number);
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const d = new Date(selY, selM - 1 - i, 1);
     last6.push(toMonthStr(d.getFullYear(), d.getMonth() + 1));
   }
   const chartPayments = await prisma.payment.findMany({
-    where: { month: { gte: last6[0], lte: last6[5] } },
+    where: { userId: user.id, month: { gte: last6[0], lte: last6[5] } },
   });
   const monthlyCollected = last6.map((m) =>
     chartPayments.filter((p) => p.month === m).reduce((s, p) => s + p.amountPaid, 0)
@@ -137,29 +187,44 @@ export default async function DashboardPage() {
     collected: monthlyCollected[i],
   }));
 
-  // Trend: current vs previous month
+  // Trend: selected month vs the one before it
   const prevMonthCollected = monthlyCollected[4] ?? 0;
   const trend = prevMonthCollected > 0
     ? Math.round(((collectedThisMonth - prevMonthCollected) / prevMonthCollected) * 100)
     : 0;
   const trendUp = trend >= 0;
 
-  const occupiedRooms = await prisma.room.count({ where: { tenants: { some: { moveOutDate: null } } } });
+  const occupiedRooms = await prisma.room.count({ where: { userId: user.id, tenants: { some: { moveOutDate: null } } } });
   const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
-  // Anniversary — active tenants whose move-in month matches current month
+  // Anniversary — tenants whose move-in month matches the selected month
   const anniversaryTenants = activeTenants.filter(t => {
-    const m = t.moveInDate.getMonth() + 1;
-    return m === Number(month.split("-")[1]);
+    return (t.moveInDate.getMonth() + 1) === mo;
   });
+
+  const isPastMonth = month < cur;
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{formatMonth(month)}</p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
+          {isPastMonth && (
+            <p className="text-xs text-amber-600 font-medium mt-0.5">Historical view</p>
+          )}
+        </div>
+        <MonthPicker months={availableMonths} selected={month} currentMonth={cur} />
       </div>
+
+      {/* Past-month notice */}
+      {isPastMonth && (
+        <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium px-4 py-2.5 rounded-xl">
+          <span className="text-amber-500">◷</span>
+          Viewing historical data for <strong>{formatMonth(month)}</strong>.
+          <Link href="/" className="underline ml-auto shrink-0">Back to current month</Link>
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -203,13 +268,13 @@ export default async function DashboardPage() {
           <div className="flex items-end justify-between">
             <div>
               <p className="text-2xl font-bold text-emerald-600">{fmt(collectedThisMonth)}</p>
-              <p className="text-xs text-slate-400 mt-1 font-medium">Collected this month</p>
+              <p className="text-xs text-slate-400 mt-1 font-medium">Collected {isPastMonth ? "that month" : "this month"}</p>
             </div>
             <Sparkline values={monthlyCollected} color="#10b981" />
           </div>
         </div>
 
-        {/* Overdue */}
+        {/* Overdue — always global */}
         <div className="animate-fade-up stagger-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-rose-600 flex items-center justify-center shadow-sm shadow-rose-200">
@@ -233,7 +298,7 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="font-semibold text-slate-900">Collection Trend</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Rent due vs collected — last 6 months</p>
+              <p className="text-xs text-slate-400 mt-0.5">Rent due vs collected — 6 months to {formatMonth(month)}</p>
             </div>
             <Link href="/reports" className="text-xs text-indigo-600 font-medium hover:underline flex items-center gap-1">
               Full report <ChevronRight size={12} />
@@ -277,27 +342,29 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Current Month Collection */}
+      {/* Selected Month Collection */}
       <div className="animate-fade-up stagger-3 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
           <div>
             <h2 className="font-semibold text-slate-900">{formatMonth(month)} — Rent Collection</h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              {currentMonthPayments.filter((p) => p.status === "PAID").length} / {currentMonthPayments.length} paid
+              {selectedMonthPayments.filter((p) => p.status === "PAID").length} / {selectedMonthPayments.length} paid
             </p>
           </div>
           <Link href="/payments" className="text-xs text-indigo-600 font-medium hover:underline flex items-center gap-1">
             View all <ChevronRight size={13} />
           </Link>
         </div>
-        {currentMonthPayments.length === 0 ? (
+        {selectedMonthPayments.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-slate-400 text-sm">No bills for this month.</p>
-            <Link href="/payments" className="text-indigo-600 text-sm underline mt-1 inline-block">Generate bills</Link>
+            {!isPastMonth && (
+              <Link href="/payments" className="text-indigo-600 text-sm underline mt-1 inline-block">Generate bills</Link>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-slate-50">
-            {currentMonthPayments.map((p) => (
+            {selectedMonthPayments.map((p) => (
               <div key={p.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-xs font-bold">

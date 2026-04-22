@@ -3,13 +3,13 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { MoveOutButton } from "./move-out-button";
 import { WhatsAppToggle } from "./whatsapp-toggle";
-import { VoidPaymentButton } from "./void-payment-button";
-import { SendReminderButton } from "./send-reminder-button";
 import { TenantRecurringChargesPanel } from "./tenant-recurring-charges";
 import { PortalAccessCard } from "./portal-access";
+import { PaymentLedger } from "./payment-ledger";
+import { OneTimeChargesPanel } from "./one-time-charges-panel";
 import { getSettings } from "@/lib/settings";
 import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, Sparkles, MessageCircle } from "lucide-react";
 
@@ -58,9 +58,13 @@ const AVATAR_COLORS = [
 
 export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const { requireAuth } = await import("@/lib/auth");
+  const { isPro } = await import("@/lib/plan");
+  const user = await requireAuth();
+  const pro  = isPro(user);
 
   const tenantBase = await prisma.tenant.findUnique({
-    where: { id },
+    where: { id, userId: user.id },
     include: { room: { include: { recurringCharges: true } }, oneTimeCharges: { orderBy: { date: "desc" } } },
   });
 
@@ -77,12 +81,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         .reduce((s, c) => s + c.amount, 0);
       const baseAmount = tenantBase.room.monthlyRent + chargesForMonth;
 
-      let amountDue = baseAmount;
-      if (m === moveInMonth && moveInDate.getDate() > 1) {
-        const daysInMonth  = new Date(moveInDate.getFullYear(), moveInDate.getMonth() + 1, 0).getDate();
-        const daysOccupied = daysInMonth - moveInDate.getDate() + 1;
-        amountDue = Math.round((daysOccupied / daysInMonth) * baseAmount);
-      }
+      const amountDue = baseAmount;
 
       const existing = await prisma.payment.findUnique({
         where: { tenantId_month: { tenantId: tenantBase.id, month: m } },
@@ -91,7 +90,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
       if (!existing) {
         await prisma.payment.create({
-          data: { tenantId: tenantBase.id, roomId: tenantBase.roomId, month: m, amountDue, amountPaid: 0, status: m < currentMonth ? "OVERDUE" : "PENDING" },
+          data: { userId: user.id, tenantId: tenantBase.id, roomId: tenantBase.roomId, month: m, amountDue, amountPaid: 0, status: m < currentMonth ? "OVERDUE" : "PENDING" },
         });
       } else if (existing.status !== "PAID") {
         await prisma.payment.update({ where: { id: existing.id }, data: { amountDue } });
@@ -101,7 +100,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
   if (tenantBase.creditBalance > 0) {
     const unpaid = await prisma.payment.findMany({
-      where:   { tenantId: tenantBase.id, status: { not: "PAID" } },
+      where:   { userId: user.id, tenantId: tenantBase.id, status: { not: "PAID" } },
       orderBy: { month: "asc" },
     });
     let credit = tenantBase.creditBalance;
@@ -123,7 +122,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   }
 
   const tenant = await prisma.tenant.findUnique({
-    where: { id },
+    where: { id, userId: user.id },
     include: {
       room: { include: { recurringCharges: { orderBy: { createdAt: "asc" } } } },
       payments: { orderBy: { month: "desc" }, include: { room: true } },
@@ -133,7 +132,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
   if (!tenant) notFound();
 
-  const settings = await getSettings();
+  const settings = await getSettings(user.id);
   const fmt = (n: number) => formatCurrency(n, settings.currencySymbol);
 
   const isActive         = !tenant.moveOutDate;
@@ -273,6 +272,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
           tenantPhone={tenant.phone}
           portalEnabled={tenant.portalEnabled}
           portalToken={tenant.portalToken ?? null}
+          isPro={pro}
         />
       )}
 
@@ -317,167 +317,44 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
       {/* Payment Ledger */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-bold text-slate-900 text-sm">Payment Ledger</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{tenant.payments.length} months recorded</p>
-          </div>
+        <div className="px-5 py-4 border-b border-slate-100">
+          <h2 className="font-bold text-slate-900 text-sm">Payment Ledger</h2>
+          <p className="text-xs text-slate-400 mt-0.5">{tenant.payments.length} months recorded</p>
         </div>
-        {tenant.payments.length === 0 ? (
-          <div className="p-10 text-center text-slate-400 text-sm">No payment records yet.</div>
-        ) : (
-          <>
-            {/* Mobile view */}
-            <div className="divide-y divide-slate-50 sm:hidden">
-              {tenant.payments.map(p => (
-                <div key={p.id} className="p-4 hover:bg-slate-50/60 transition-colors">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-semibold text-slate-800 text-sm">{formatMonth(p.month)}</span>
-                    <StatusBadge status={p.status} />
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>{fmt(p.amountPaid)} / {fmt(p.amountDue)}</span>
-                    <div className="flex items-center gap-2">
-                      {p.status !== "PAID" && (
-                        <>
-                          <Link href={`/payments/${p.id}/pay`}
-                            className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
-                            Pay
-                          </Link>
-                          <SendReminderButton
-                            paymentId={p.id}
-                            paymentStatus={p.status}
-                            hasPhone={!!tenant.phone}
-                            whatsappNotify={tenant.whatsappNotify}
-                          />
-                        </>
-                      )}
-                      {p.amountPaid > 0 && (
-                        <Link href={`/payments/${p.id}/receipt`}
-                          className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">
-                          Receipt
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop table */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-slate-50/40">
-                    <th className="text-left px-5 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Month</th>
-                    <th className="text-right px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Due</th>
-                    <th className="text-right px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Paid</th>
-                    <th className="text-center px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                    <th className="text-left px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Paid On</th>
-                    <th className="text-left px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Method</th>
-                    <th className="px-4 py-3.5"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {tenant.payments.map(p => (
-                    <tr key={p.id} className="hover:bg-slate-50/60 transition-colors group">
-                      <td className="px-5 py-3.5 font-semibold text-slate-800">{formatMonth(p.month)}</td>
-                      <td className="px-4 py-3.5 text-right text-slate-500">{fmt(p.amountDue)}</td>
-                      <td className="px-4 py-3.5 text-right font-bold text-slate-900">{fmt(p.amountPaid)}</td>
-                      <td className="px-4 py-3.5 text-center"><StatusBadge status={p.status} /></td>
-                      <td className="px-4 py-3.5 text-slate-400 text-xs tabular-nums">{p.paidDate ? formatDate(p.paidDate) : "—"}</td>
-                      <td className="px-4 py-3.5 text-slate-400 text-xs">{p.method ?? "—"}</td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {p.status !== "PAID" && (
-                            <>
-                              <Link href={`/payments/${p.id}/pay`}
-                                className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
-                                Pay
-                              </Link>
-                              <SendReminderButton
-                                paymentId={p.id}
-                                paymentStatus={p.status}
-                                hasPhone={!!tenant.phone}
-                                whatsappNotify={tenant.whatsappNotify}
-                              />
-                            </>
-                          )}
-                          {p.amountPaid > 0 && (
-                            <>
-                              <Link href={`/payments/${p.id}/receipt`}
-                                className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">
-                                Receipt
-                              </Link>
-                              <VoidPaymentButton paymentId={p.id} />
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+        <PaymentLedger
+          payments={tenant.payments.map(p => ({
+            id:        p.id,
+            month:     p.month,
+            amountDue: p.amountDue,
+            amountPaid: p.amountPaid,
+            paidDate:  p.paidDate?.toISOString() ?? null,
+            method:    p.method,
+            status:    p.status,
+            notes:     p.notes,
+          }))}
+          currencySymbol={settings.currencySymbol}
+          isPro={pro}
+          tenantPhone={tenant.phone}
+          whatsappNotify={tenant.whatsappNotify}
+          moveInDay={tenant.moveInDate.getDate()}
+        />
       </div>
 
       {/* One-time Charges */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-bold text-slate-900 text-sm">One-time Charges</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{tenant.oneTimeCharges.length} charge{tenant.oneTimeCharges.length !== 1 ? "s" : ""}</p>
-          </div>
-          {isActive && (
-            <Link href={`/tenants/${id}/one-time-charge/new`}
-              className="text-xs bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-700 transition-colors font-semibold">
-              + Add Charge
-            </Link>
-          )}
-        </div>
-        {tenant.oneTimeCharges.length === 0 ? (
-          <div className="p-10 text-center text-slate-400 text-sm">No one-time charges.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-slate-50/40">
-                  <th className="text-left px-5 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Description</th>
-                  <th className="text-left px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Date</th>
-                  <th className="text-right px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Amount</th>
-                  <th className="text-right px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Paid</th>
-                  <th className="text-center px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3.5"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {tenant.oneTimeCharges.map(c => (
-                  <tr key={c.id} className="hover:bg-slate-50/60 transition-colors group">
-                    <td className="px-5 py-3.5">
-                      <span className="font-semibold text-slate-800">{c.title}</span>
-                      {c.notes && <p className="text-xs text-slate-400 mt-0.5">{c.notes}</p>}
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-400 text-xs tabular-nums">{formatDate(c.date)}</td>
-                    <td className="px-4 py-3.5 text-right text-slate-500">{fmt(c.amount)}</td>
-                    <td className="px-4 py-3.5 text-right font-bold text-slate-900">{fmt(c.amountPaid)}</td>
-                    <td className="px-4 py-3.5 text-center"><StatusBadge status={c.status} /></td>
-                    <td className="px-4 py-3.5">
-                      {c.status !== "PAID" && (
-                        <Link href={`/tenants/${id}/one-time-charge/${c.id}/pay`}
-                          className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium opacity-0 group-hover:opacity-100">
-                          Pay
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <OneTimeChargesPanel
+        tenantId={id}
+        charges={tenant.oneTimeCharges.map(c => ({
+          id:        c.id,
+          title:     c.title,
+          amount:    c.amount,
+          amountPaid: c.amountPaid,
+          date:      c.date.toISOString(),
+          status:    c.status,
+          notes:     c.notes,
+        }))}
+        currencySymbol={settings.currencySymbol}
+        isActive={isActive}
+      />
     </div>
   );
 }

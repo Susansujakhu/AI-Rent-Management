@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Receipt, MoreHorizontal, DoorOpen, BarChart3, Settings, X, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LayoutDashboard, Users, CreditCard, Receipt, MoreHorizontal, DoorOpen, BarChart3, Settings, X, LogOut, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const primary = [
@@ -18,10 +18,30 @@ const secondary = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+interface MeUser {
+  plan:               string;
+  createdAt:          string;
+  upgradeRequestedAt: string | null;
+}
+
 export function BottomNav() {
   const pathname = usePathname();
   const router   = useRouter();
   const [open, setOpen] = useState(false);
+  const [me, setMe] = useState<MeUser | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then(r => r.ok ? r.json() : null)
+      .then((u: MeUser | null) => { if (u) setMe(u); });
+  }, []);
+
+  const isPaid     = me?.plan === "pro" || me?.plan === "starter";
+  const trialDays  = me && !isPaid
+    ? Math.max(0, Math.ceil((new Date(me.createdAt).getTime() + 90 * 86_400_000 - Date.now()) / 86_400_000))
+    : 0;
+  const showUpgrade = !isPaid;
+  const pending     = showUpgrade && !!me?.upgradeRequestedAt;
 
   const handleLogout = async () => {
     setOpen(false);
@@ -30,7 +50,7 @@ export function BottomNav() {
     router.refresh();
   };
 
-  const isSecondaryActive = secondary.some(({ href }) => pathname.startsWith(href));
+  const isSecondaryActive = secondary.some(({ href }) => pathname.startsWith(href)) || (showUpgrade && pathname === "/upgrade");
 
   return (
     <>
@@ -73,6 +93,26 @@ export function BottomNav() {
                   </Link>
                 );
               })}
+
+              {/* Upgrade — non-paid users only */}
+              {showUpgrade && (
+                <Link href="/upgrade" onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium transition-all duration-150",
+                    pathname === "/upgrade" ? "bg-amber-50 text-amber-700" : "text-amber-600 hover:bg-amber-50"
+                  )}>
+                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", pathname === "/upgrade" ? "bg-amber-100" : "bg-amber-50")}>
+                    <Crown size={16} className="text-amber-600" />
+                  </div>
+                  <span className="flex-1">Upgrade to Pro</span>
+                  {pending && (
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                    </span>
+                  )}
+                </Link>
+              )}
 
               {/* Sign out */}
               <button onClick={handleLogout}
@@ -132,7 +172,7 @@ export function BottomNav() {
             {/* More button */}
             <button
               onClick={() => setOpen(!open)}
-              className="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all duration-200"
+              className="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all duration-200 relative"
             >
               <div className={cn(
                 "flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200",
@@ -154,6 +194,13 @@ export function BottomNav() {
               )}>
                 More
               </span>
+              {/* Pending dot on More button */}
+              {pending && !open && (
+                <span className="absolute top-1.5 right-3 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                </span>
+              )}
             </button>
 
           </div>

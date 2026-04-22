@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { requireTenantPage } from "@/lib/tenant-auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
+import { formatCurrency, formatDate, formatRentalPeriod } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
 import { PortalShell } from "../../../_components/portal-shell";
 import Link from "next/link";
@@ -17,7 +17,7 @@ export default async function PortalReceiptPage({
   const { id }   = await params;
   const session  = await requireTenantPage();
   const tenant   = session.tenant;
-  const settings = await getSettings();
+  const settings = await getSettings(tenant.userId);
   const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
 
   // Enforce: payment must belong to this tenant — NEVER trust the URL id alone
@@ -30,9 +30,10 @@ export default async function PortalReceiptPage({
     notFound();
   }
 
-  const propertyName = (await prisma.setting.findUnique({ where: { key: "propertyName" } }))?.value ?? "Property";
-  const ownerName    = (await prisma.setting.findUnique({ where: { key: "ownerName" } }))?.value ?? "Landlord";
-  const ownerPhone   = (await prisma.setting.findUnique({ where: { key: "ownerPhone" } }))?.value;
+  const uid = tenant.userId;
+  const propertyName = (await prisma.setting.findUnique({ where: { userId_key: { userId: uid, key: "propertyName" } } }))?.value ?? "Property";
+  const ownerName    = (await prisma.setting.findUnique({ where: { userId_key: { userId: uid, key: "ownerName" } } }))?.value ?? "Landlord";
+  const ownerPhone   = (await prisma.setting.findUnique({ where: { userId_key: { userId: uid, key: "ownerPhone" } } }))?.value;
 
   return (
     <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null}>
@@ -51,7 +52,7 @@ export default async function PortalReceiptPage({
               <span className="text-xs font-bold text-teal-200 uppercase tracking-wider">Payment Receipt</span>
             </div>
             <p className="text-2xl font-black">{fmt(payment.amountPaid)}</p>
-            <p className="text-teal-200 text-sm mt-0.5">{formatMonth(payment.month)}</p>
+            <p className="text-teal-200 text-sm mt-0.5">{formatRentalPeriod(payment.month, tenant.moveInDate.getDate())}</p>
           </div>
 
           {/* Body */}
@@ -88,7 +89,7 @@ export default async function PortalReceiptPage({
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Period</span>
-                <span className="font-medium text-slate-800">{formatMonth(payment.month)}</span>
+                <span className="font-medium text-slate-800">{formatRentalPeriod(payment.month, tenant.moveInDate.getDate())}</span>
               </div>
             </div>
 

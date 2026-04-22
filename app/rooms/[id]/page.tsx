@@ -30,17 +30,20 @@ function StatusBadge({ status }: { status: string }) {
 
 export default async function RoomDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const settings = await getSettings();
+  const { requireAuth } = await import("@/lib/auth");
+  const user = await requireAuth();
+
+  const settings = await getSettings(user.id);
   const fmt = (n: number) => formatCurrency(n, settings.currencySymbol);
 
   const unassignedTenants = await prisma.tenant.findMany({
-    where: { OR: [{ roomId: null }, { moveOutDate: { not: null } }] },
+    where: { userId: user.id, OR: [{ roomId: null }, { moveOutDate: { not: null } }] },
     select: { id: true, name: true, phone: true },
     orderBy: { name: "asc" },
   });
 
   const room = await prisma.room.findUnique({
-    where: { id },
+    where: { id, userId: user.id },
     include: {
       tenants:          { where: { moveOutDate: null }, take: 1 },
       payments:         { include: { tenant: true }, orderBy: { month: "desc" }, take: 12 },

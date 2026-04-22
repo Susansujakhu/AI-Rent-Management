@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { id: tenantId } = await params;
   const { title, amount, effectiveFrom } = await req.json();
 
@@ -18,13 +20,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "effectiveFrom must be in YYYY-MM format" }, { status: 400 });
   }
 
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { roomId: true } });
-  if (!tenant?.roomId) {
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId, userId }, select: { roomId: true } });
+  if (!tenant) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!tenant.roomId) {
     return NextResponse.json({ error: "Tenant has no room assigned" }, { status: 400 });
   }
 
   const charge = await prisma.recurringCharge.create({
     data: {
+      userId,
       roomId: tenant.roomId,
       tenantId,
       title: title.trim(),

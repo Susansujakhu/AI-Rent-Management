@@ -1,11 +1,13 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
-import { Plus, Users, ChevronRight, Phone, Calendar } from "lucide-react";
+import Link from "next/link";
+import { Users, ChevronRight, Phone, Calendar, Plus } from "lucide-react";
 import { SearchInput } from "@/components/search-input";
 import { Suspense } from "react";
+import { hasAccess } from "@/lib/plan";
+import { AddButton } from "@/components/locked-feature";
 
 const AVATAR_COLORS = [
   "from-indigo-500 to-violet-500",
@@ -30,15 +32,21 @@ const STATUS_STYLES: Record<string, { pill: string; dot: string; label: string }
 };
 
 export default async function TenantsPage({ searchParams }: { searchParams: Promise<{ search?: string }> }) {
+  const { requireAuth } = await import("@/lib/auth");
+  const user = await requireAuth();
+
   const { search } = await searchParams;
   const allTenants = await prisma.tenant.findMany({
-    where: search ? {
-      OR: [
-        { name: { contains: search } },
-        { phone: { contains: search } },
-        { room: { name: { contains: search } } },
-      ],
-    } : undefined,
+    where: {
+      userId: user.id,
+      ...(search ? {
+        OR: [
+          { name: { contains: search } },
+          { phone: { contains: search } },
+          { room: { name: { contains: search } } },
+        ],
+      } : {}),
+    },
     include: {
       room: true,
       payments: { orderBy: { month: "desc" }, take: 1 },
@@ -46,6 +54,7 @@ export default async function TenantsPage({ searchParams }: { searchParams: Prom
     orderBy: { name: "asc" },
   });
 
+  const atLimit = !hasAccess(user);
   const activeTenants = allTenants.filter((t) => !t.moveOutDate);
   const pastTenants   = allTenants.filter((t) => !!t.moveOutDate);
 
@@ -61,13 +70,13 @@ export default async function TenantsPage({ searchParams }: { searchParams: Prom
             <span className="text-slate-400">{pastTenants.length} past</span>
           </p>
         </div>
-        <Link
+        <AddButton
           href="/tenants/new"
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-violet-700 transition-all shadow-md shadow-indigo-200 shrink-0"
-        >
-          <Plus size={15} />
-          Add Tenant
-        </Link>
+          label="Add Tenant"
+          locked={atLimit}
+          feature="Unlimited tenants"
+          icon={<Users size={15} />}
+        />
       </div>
 
       {/* Search */}

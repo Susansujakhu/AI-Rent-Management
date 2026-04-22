@@ -4,7 +4,9 @@ import { requireAuthAPI } from "@/lib/auth";
 import { PAYMENT_METHODS } from "@/lib/utils";
 
 export async function POST(req: Request) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { paymentIds, method = "CASH" } = await req.json() as { paymentIds: string[]; method?: string };
   if (!paymentIds?.length) return NextResponse.json({ error: "No payments selected" }, { status: 400 });
   if (!PAYMENT_METHODS.includes(method as typeof PAYMENT_METHODS[number])) {
@@ -14,14 +16,14 @@ export async function POST(req: Request) {
   const today = new Date();
 
   const unpaid = await prisma.payment.findMany({
-    where: { id: { in: paymentIds }, status: { not: "PAID" } },
+    where: { id: { in: paymentIds }, userId, status: { not: "PAID" } },
     select: { id: true, amountDue: true },
   });
 
   await Promise.all(
     unpaid.map(p =>
       prisma.payment.update({
-        where: { id: p.id },
+        where: { id: p.id, userId },
         data: { amountPaid: p.amountDue, status: "PAID", method, paidDate: today },
       })
     )

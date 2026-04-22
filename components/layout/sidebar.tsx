@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, DoorOpen, Users, CreditCard, Wrench, BarChart3, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, DoorOpen, Users, CreditCard, Wrench, BarChart3, Settings, LogOut, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -15,24 +15,40 @@ const links = [
   { href: "/settings", label: "Settings",  icon: Settings },
 ];
 
+interface MeUser {
+  email:              string;
+  plan:               string;
+  createdAt:          string;
+  upgradeRequestedAt: string | null;
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router   = useRouter();
-  const [email, setEmail] = useState<string>("");
+  const [me, setMe] = useState<MeUser | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then(r => r.ok ? r.json() : null)
-      .then((u: { email: string } | null) => { if (u) setEmail(u.email); });
+      .then((u: MeUser | null) => { if (u) setMe(u); });
   }, []);
+
+  const email      = me?.email ?? "";
+  const isPaid     = me?.plan === "pro" || me?.plan === "starter";
+  const trialDays  = me && !isPaid
+    ? Math.max(0, Math.ceil((new Date(me.createdAt).getTime() + 90 * 86_400_000 - Date.now()) / 86_400_000))
+    : 0;
+  const onTrial    = !isPaid && trialDays > 0;
+  const isExpired  = !isPaid && trialDays === 0 && !!me;
+  const showUpgrade = !isPaid;
+  const pending    = showUpgrade && !!me?.upgradeRequestedAt;
+  const initials = email ? email.slice(0, 2).toUpperCase() : "RM";
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
   };
-
-  const initials = email ? email.slice(0, 2).toUpperCase() : "RM";
 
   return (
     <aside className="w-60 shrink-0 flex flex-col h-screen bg-slate-950 border-r border-slate-800/50">
@@ -80,6 +96,35 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Upgrade — only for non-paid users */}
+        {showUpgrade && (
+          <Link href="/upgrade"
+            className={cn(
+              "group relative flex flex-col gap-1 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+              pathname === "/upgrade"
+                ? "bg-amber-500 text-white shadow-md shadow-amber-900/30"
+                : isExpired
+                  ? "text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+                  : "text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+            )}>
+            <div className="flex items-center gap-3">
+              <Crown size={17} className={cn("shrink-0", pathname === "/upgrade" ? "text-amber-100" : isExpired ? "text-rose-500" : "text-amber-500")} />
+              <span className="truncate">{isExpired ? "Trial Expired" : "Upgrade Plan"}</span>
+              {pending && (
+                <span className="ml-auto flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                </span>
+              )}
+            </div>
+            {onTrial && pathname !== "/upgrade" && (
+              <p className={cn("text-[10px] pl-8 font-medium", trialDays <= 7 ? "text-rose-400" : "text-amber-500/70")}>
+                {trialDays}d left in trial
+              </p>
+            )}
+          </Link>
+        )}
       </nav>
 
       <div className="mx-4 h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />

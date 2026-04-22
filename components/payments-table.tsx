@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/utils";
-import { CheckSquare, Square, CreditCard, Search, X, MessageCircle } from "lucide-react";
+import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
+import {
+  CheckSquare, Square, CreditCard, Search, X,
+  MessageCircle, Receipt, ExternalLink, History, Loader2,
+} from "lucide-react";
+import { createPortal } from "react-dom";
 
 type Payment = {
   id: string;
@@ -16,8 +20,17 @@ type Payment = {
   status: string;
   method: string | null;
   paidDate: string | null;
-  tenant: { id: string; name: string };
+  tenant: { id: string; name: string; phone: string | null; whatsappNotify: boolean };
   room: { id: string; name: string };
+};
+
+type Transaction = {
+  id: string;
+  amount: number;
+  creditAmount: number;
+  method: string | null;
+  paidAt: string;
+  note: string | null;
 };
 
 const STATUS_STYLES: Record<string, string> = {
@@ -66,21 +79,29 @@ function fmtDate(d: string | null) {
   return new Date(d).toLocaleDateString("en", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// ── Send Reminder button (for unpaid payments on the list) ────────────────────
+
 function ReminderButton({ paymentId, status }: { paymentId: string; status: string }) {
   const [sending, setSending] = useState(false);
 
   const handleSend = async () => {
     setSending(true);
     try {
-      await sendReminder(paymentId, status === "OVERDUE" ? "overdue" : "due");
-      toast.success("Reminder sent via WhatsApp ✅");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to send";
-      if (msg.includes("not connected")) {
-        toast.error("WhatsApp not connected — go to Settings to connect");
+      const res  = await fetch("/api/whatsapp/send-reminder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentId, type: status === "OVERDUE" ? "overdue" : "due" }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) {
+        const msg = data.error ?? "Failed to send";
+        if (msg.includes("not connected")) toast.error("WhatsApp not connected — go to Settings to connect");
+        else toast.error(msg);
       } else {
-        toast.error(msg);
+        toast.success("Reminder sent via WhatsApp ✅");
       }
+    } catch {
+      toast.error("Failed to send");
     } finally {
       setSending(false);
     }
@@ -99,20 +120,208 @@ function ReminderButton({ paymentId, status }: { paymentId: string; status: stri
   );
 }
 
-async function sendReminder(paymentId: string, type: "overdue" | "due") {
-  const res = await fetch("/api/whatsapp/send-reminder", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ paymentId, type }),
-  });
-  const data = await res.json() as { error?: string };
-  if (!res.ok) throw new Error(data.error ?? "Failed to send");
+// ── Payment detail drawer ─────────────────────────────────────────────────────
+
+function PaymentDetailDrawer({
+  payment,
+  fmt,
+  isPro,
+  onClose,
+}: {
+  payment: Payment;
+  fmt: (n: number) => string;
+  isPro: boolean;
+  onClose: () => void;
+}) {
+  const [txns,    setTxns]    = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/payments/${payment.id}/transactions`)
+      .then(r => r.ok ? r.json() as Promise<Transaction[]> : [])
+      .then(data => setTxns(data))
+      .catch(() => setTxns([]))
+      .finally(() => setLoading(false));
+  }, [payment.id]);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const canSendReceipt = isPro && !!payment.tenant.phone && payment.tenant.whatsappNotify && payment.amountPaid > 0;
+
+  const sendReceipt = async () => {
+    setSending(true);
+    try {
+      const res  = await fetch(`/api/payments/${payment.id}/notify`, { method: "POST" });
+      const data = await res.json().catch(() => ({})) as { error?: string };
+      if (!res.ok) toast.error(data.error ?? "Failed to send");
+      else toast.success("Payment receipt sent via WhatsApp ✅");
+    } catch {
+      toast.error("Failed to send");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const balance = Math.max(0, payment.amountDue - payment.amountPaid);
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex">
+      {/* Backdrop */}
+      <div
+        className="flex-1 bg-black/30 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      {/* Panel */}
+      <div className="w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-3">
+          <TenantAvatar name={payment.tenant.name} />
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-slate-900 truncate">{payment.tenant.name}</p>
+            <p className="text-xs text-slate-400">{payment.room.name}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Status + month */}
+          <div className="px-5 py-4 border-b border-slate-50">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold text-slate-700">{formatMonth(payment.month)}</p>
+              <StatusBadge status={payment.status} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Due</p>
+                <p className="text-sm font-bold text-slate-700">{fmt(payment.amountDue)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Paid</p>
+                <p className="text-sm font-bold text-slate-900">{fmt(payment.amountPaid)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Balance</p>
+                <p className={`text-sm font-bold ${balance > 0 ? (payment.status === "OVERDUE" ? "text-rose-600" : "text-amber-600") : "text-emerald-500"}`}>
+                  {balance > 0 ? fmt(balance) : "—"}
+                </p>
+              </div>
+            </div>
+            {payment.paidDate && (
+              <p className="mt-2 text-xs text-slate-400 text-center">
+                Paid {formatDate(payment.paidDate)}{payment.method ? ` · ${payment.method}` : ""}
+              </p>
+            )}
+          </div>
+
+          {/* Transaction history */}
+          <div className="px-5 py-4 border-b border-slate-50">
+            <div className="flex items-center gap-2 mb-3">
+              <History size={13} className="text-slate-400" />
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment History</p>
+            </div>
+            {loading ? (
+              <div className="flex items-center gap-2 py-3 text-xs text-slate-400">
+                <Loader2 size={12} className="animate-spin" /> Loading…
+              </div>
+            ) : txns.length === 0 ? (
+              <p className="text-xs text-slate-400 italic py-2">No transactions yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {txns.map(t => (
+                  <div key={t.id} className="bg-slate-50 rounded-xl px-3 py-2.5">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-xs font-semibold text-slate-800">{fmt(t.amount)}</span>
+                      <span className="text-[11px] text-slate-400 tabular-nums">{formatDate(t.paidAt)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                      {t.method && <span className="font-medium text-slate-500">{t.method}</span>}
+                      {t.creditAmount > 0 && (
+                        <span className="text-emerald-600 font-semibold">+{fmt(t.creditAmount)} credit</span>
+                      )}
+                    </div>
+                    {t.note && <p className="text-[11px] text-slate-400 mt-0.5 truncate" title={t.note}>{t.note}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer actions */}
+        <div className="px-5 py-4 border-t border-slate-100 space-y-2">
+          {/* WA receipt button */}
+          {canSendReceipt && (
+            <button
+              onClick={sendReceipt}
+              disabled={sending}
+              className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors"
+            >
+              <MessageCircle size={14} className={sending ? "animate-pulse" : ""} />
+              {sending ? "Sending…" : "Send Payment Receipt via WhatsApp"}
+            </button>
+          )}
+          {/* Link to pay */}
+          {payment.status !== "PAID" && (
+            <Link
+              href={`/payments/${payment.id}/pay`}
+              className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors"
+            >
+              <CreditCard size={14} />
+              Record Payment
+            </Link>
+          )}
+          <div className="flex gap-2">
+            {payment.amountPaid > 0 && (
+              <Link
+                href={`/payments/${payment.id}/receipt`}
+                className="flex-1 flex items-center justify-center gap-1.5 border border-slate-200 text-slate-600 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-colors"
+              >
+                <Receipt size={12} />
+                Receipt
+              </Link>
+            )}
+            <Link
+              href={`/tenants/${payment.tenantId}`}
+              className="flex-1 flex items-center justify-center gap-1.5 border border-slate-200 text-slate-600 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-colors"
+            >
+              <ExternalLink size={12} />
+              Tenant Page
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
 }
 
-export function PaymentsTable({ payments, currencySymbol }: { payments: Payment[]; currencySymbol: string }) {
+// ── Main table ────────────────────────────────────────────────────────────────
+
+export function PaymentsTable({
+  payments,
+  currencySymbol,
+  isPro,
+}: {
+  payments: Payment[];
+  currencySymbol: string;
+  isPro: boolean;
+}) {
   const fmt = (n: number) => formatCurrency(n, currencySymbol);
-  const [search, setSearch] = useState("");
+  const [search,   setSearch]   = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [detailPayment, setDetailPayment] = useState<Payment | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const unpaidIds = payments.filter(p => p.status !== "PAID").map(p => p.id);
@@ -163,10 +372,7 @@ export function PaymentsTable({ payments, currencySymbol }: { payments: Payment[
         <div className="sticky top-0 z-20 mx-0 bg-indigo-600 text-white px-5 py-3 flex items-center justify-between shadow-lg shadow-indigo-200/60">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold">{selected.size} payment{selected.size !== 1 ? "s" : ""} selected</span>
-            <button
-              onClick={() => setSelected(new Set())}
-              className="text-indigo-200 hover:text-white transition-colors"
-            >
+            <button onClick={() => setSelected(new Set())} className="text-indigo-200 hover:text-white transition-colors">
               <X size={14} />
             </button>
           </div>
@@ -228,9 +434,12 @@ export function PaymentsTable({ payments, currencySymbol }: { payments: Payment[
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <Link href={`/tenants/${p.tenantId}`} className="font-bold text-slate-900 hover:text-indigo-600 transition-colors truncate">
+                    <button
+                      onClick={() => setDetailPayment(p)}
+                      className="font-bold text-slate-900 hover:text-indigo-600 transition-colors truncate text-left"
+                    >
                       {p.tenant.name}
-                    </Link>
+                    </button>
                     <StatusBadge status={p.status} />
                   </div>
 
@@ -307,13 +516,14 @@ export function PaymentsTable({ payments, currencySymbol }: { payments: Payment[
             {filtered.map(p => (
               <tr
                 key={p.id}
-                className={`group transition-colors ${
+                onClick={() => setDetailPayment(p)}
+                className={`group transition-colors cursor-pointer ${
                   selected.has(p.id)
                     ? "bg-indigo-50/60 hover:bg-indigo-50/80"
                     : "hover:bg-slate-50/70"
                 }`}
               >
-                <td className="px-4 py-4 w-10">
+                <td className="px-4 py-4 w-10" onClick={e => e.stopPropagation()}>
                   {p.status !== "PAID" && (
                     <button onClick={() => toggle(p.id)} className="text-slate-300 hover:text-indigo-600 transition-colors">
                       {selected.has(p.id) ? <CheckSquare size={15} className="text-indigo-600" /> : <Square size={15} />}
@@ -323,21 +533,17 @@ export function PaymentsTable({ payments, currencySymbol }: { payments: Payment[
                 <td className="px-3 py-4">
                   <div className="flex items-center gap-2.5">
                     <TenantAvatar name={p.tenant.name} />
-                    <Link href={`/tenants/${p.tenantId}`} className="font-semibold text-slate-900 hover:text-indigo-600 transition-colors">
+                    <span className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
                       {p.tenant.name}
-                    </Link>
+                    </span>
                   </div>
                 </td>
-                <td className="px-4 py-4">
-                  <Link href={`/rooms/${p.roomId}`} className="text-slate-500 hover:text-indigo-600 transition-colors text-sm">
-                    {p.room.name}
-                  </Link>
-                </td>
+                <td className="px-4 py-4 text-slate-500 text-sm">{p.room.name}</td>
                 <td className="px-4 py-4 text-right font-medium text-slate-500">{fmt(p.amountDue)}</td>
                 <td className="px-4 py-4 text-right font-bold text-slate-900">{fmt(p.amountPaid)}</td>
                 <td className="px-4 py-4 text-right text-xs text-slate-400 tabular-nums">{fmtDate(p.paidDate)}</td>
                 <td className="px-4 py-4 text-center"><StatusBadge status={p.status} /></td>
-                <td className="px-4 py-4 text-right">
+                <td className="px-4 py-4 text-right" onClick={e => e.stopPropagation()}>
                   {p.status !== "PAID" && (
                     <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <ReminderButton paymentId={p.id} status={p.status} />
@@ -359,6 +565,17 @@ export function PaymentsTable({ payments, currencySymbol }: { payments: Payment[
           <div className="p-10 text-center text-slate-400 text-sm">No payments match your search.</div>
         )}
       </div>
+
+      {/* Payment detail drawer */}
+      {detailPayment && (
+        <PaymentDetailDrawer
+          key={detailPayment.id}
+          payment={detailPayment}
+          fmt={fmt}
+          isPro={isPro}
+          onClose={() => setDetailPayment(null)}
+        />
+      )}
     </div>
   );
 }

@@ -3,15 +3,17 @@
 import { useState, useRef, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { toast } from "sonner";
+import { LockedFeature } from "@/components/locked-feature";
 
 interface Props {
   paymentId:      string;
   paymentStatus:  string;
   hasPhone:       boolean;
   whatsappNotify: boolean;
+  isPro:          boolean;
 }
 
-export function SendReminderButton({ paymentId, paymentStatus, hasPhone, whatsappNotify }: Props) {
+export function SendReminderButton({ paymentId, paymentStatus, hasPhone, whatsappNotify, isPro }: Props) {
   const [open,   setOpen]   = useState(false);
   const [busy,   setBusy]   = useState<"due" | "overdue" | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -35,9 +37,10 @@ export function SendReminderButton({ paymentId, paymentStatus, hasPhone, whatsap
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ paymentId, type }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json().catch(() => ({})) as { error?: string; upgrade?: boolean };
       if (!res.ok) {
-        toast.error(data.error ?? "Failed to send notification");
+        if (data.upgrade) toast.error(`Pro required — ${data.error}`);
+        else toast.error(data.error ?? "Failed to send notification");
       } else {
         toast.success("Notification sent via WhatsApp");
       }
@@ -48,8 +51,20 @@ export function SendReminderButton({ paymentId, paymentStatus, hasPhone, whatsap
     }
   };
 
-  // Only show for non-paid payments; WhatsApp must be enabled and tenant must have a phone
+  // Only show for non-paid payments with a phone number
   if (!hasPhone || !whatsappNotify) return null;
+
+  // Locked state for free users
+  if (!isPro) {
+    return (
+      <LockedFeature feature="WhatsApp notifications">
+        <button className="flex items-center gap-1 text-xs text-green-600 px-2 py-1 rounded-lg font-medium">
+          <Bell size={12} />
+          Notify
+        </button>
+      </LockedFeature>
+    );
+  }
 
   const defaultType = paymentStatus === "OVERDUE" ? "overdue" : "due";
   const isBusy = busy !== null;

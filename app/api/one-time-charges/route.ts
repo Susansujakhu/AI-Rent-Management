@@ -3,13 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { searchParams } = new URL(req.url);
   const tenantId = searchParams.get("tenantId");
   const status   = searchParams.get("status");
 
   const charges = await prisma.oneTimeCharge.findMany({
     where: {
+      userId,
       ...(tenantId ? { tenantId } : {}),
       ...(status === "unpaid" ? { status: { not: "PAID" } } : {}),
     },
@@ -18,7 +21,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const body = await req.json();
 
   if (!body.tenantId || typeof body.tenantId !== "string") {
@@ -37,6 +42,7 @@ export async function POST(req: Request) {
 
   const charge = await prisma.oneTimeCharge.create({
     data: {
+      userId,
       tenantId: body.tenantId,
       title:    body.title.trim(),
       amount,

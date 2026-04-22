@@ -3,10 +3,11 @@ import { requireAuthAPI } from "@/lib/auth";
 import { initWhatsApp, disconnectWhatsApp, getWAStatus } from "@/lib/whatsapp";
 
 export async function POST() {
-  const unauth = await requireAuthAPI();
-  if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const key = auth.id; // per-user WhatsApp session
 
-  const status = getWAStatus();
+  const status = getWAStatus(key);
   if (status === "ready") {
     return NextResponse.json({ ok: true, message: "Already connected" });
   }
@@ -15,15 +16,15 @@ export async function POST() {
   }
 
   // Fire-and-forget — client.initialize() is slow (launches Chromium)
-  initWhatsApp().catch(console.error);
+  initWhatsApp(key).catch(err => console.error("[whatsapp] Failed to initialize session:", err));
 
   return NextResponse.json({ ok: true, message: "Connecting…" });
 }
 
 export async function DELETE() {
-  const unauth = await requireAuthAPI();
-  if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
 
-  await disconnectWhatsApp();
+  await disconnectWhatsApp(auth.id);
   return NextResponse.json({ ok: true });
 }

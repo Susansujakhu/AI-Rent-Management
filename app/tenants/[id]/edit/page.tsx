@@ -72,12 +72,18 @@ export default function EditTenantPage() {
           </div>
           <div>
             <label className={label}>Phone <span className="text-rose-500 normal-case">*</span></label>
-            <input {...register("phone", { required: "Phone is required" })} className={field} placeholder="98XXXXXXXX" />
+            <input {...register("phone", {
+              required: "Phone is required",
+              pattern: { value: /^\+?\d{7,15}$/, message: "Enter a valid phone number (7–15 digits, digits only)" },
+            })} className={field} placeholder="98XXXXXXXX" />
             {errors.phone && <p className={err}>{errors.phone.message}</p>}
           </div>
           <div>
             <label className={label}>Email</label>
-            <input type="email" {...register("email")} className={field} placeholder="optional@email.com" />
+            <input type="email" {...register("email", {
+              pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email address" },
+            })} className={field} placeholder="optional@email.com" />
+            {errors.email && <p className={err}>{errors.email.message}</p>}
           </div>
         </div>
 

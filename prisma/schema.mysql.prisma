@@ -15,8 +15,64 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  phone         String?   @unique
+  phoneVerified Boolean   @default(false)
+  role               String    @default("user") // "user" | "admin"
+  plan               String    @default("free") // "free" | "pro"
+  planExpiresAt      DateTime?
+  upgradeRequestedAt DateTime?
+  passwordHash  String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions         Session[]
+  rooms            Room[]
+  tenants          Tenant[]
+  payments         Payment[]
+  expenses         Expense[]
+  recurringCharges RecurringCharge[]
+  oneTimeCharges   OneTimeCharge[]
+  settings         Setting[]
+  passwordResets   PasswordResetToken[]
+}
+
+model PhoneVerificationToken {
+  id        String   @id @default(cuid())
+  phone     String
+  otp       String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  otp       String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model Room {
   id          String   @id @default(cuid())
+  userId      String
   name        String
   floor       String?
   monthlyRent Float
@@ -24,6 +80,7 @@ model Room {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenants          Tenant[]
   payments         Payment[]
   expenses         Expense[]
@@ -31,23 +88,25 @@ model Room {
 }
 
 model Tenant {
-  id            String    @id @default(cuid())
-  name          String
-  phone         String
-  email         String?
-  roomId        String?
-  moveInDate    DateTime
-  moveOutDate   DateTime?
-  deposit       Float     @default(0)
-  creditBalance Float     @default(0)
-  notes         String?   @db.Text
-  whatsappNotify  Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  userId         String
+  name           String
+  phone          String
+  email          String?
+  roomId         String?
+  moveInDate     DateTime
+  moveOutDate    DateTime?
+  deposit        Float     @default(0)
+  creditBalance  Float     @default(0)
+  notes          String?   @db.Text
+  whatsappNotify Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  portalEnabled  Boolean   @default(false)
-  portalToken    String?   @unique
+  portalEnabled Boolean  @default(false)
+  portalToken   String?  @unique
 
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   room             Room?             @relation(fields: [roomId], references: [id])
   payments         Payment[]
   oneTimeCharges   OneTimeCharge[]
@@ -57,6 +116,7 @@ model Tenant {
 
 model Payment {
   id         String    @id @default(cuid())
+  userId     String
   tenantId   String
   roomId     String
   month      String
@@ -69,6 +129,7 @@ model Payment {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
@@ -77,6 +138,7 @@ model Payment {
 
 model RecurringCharge {
   id            String   @id @default(cuid())
+  userId        String
   roomId        String
   tenantId      String?
   title         String
@@ -84,12 +146,14 @@ model RecurringCharge {
   effectiveFrom String?
   createdAt     DateTime @default(now())
 
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   room   Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
   tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model OneTimeCharge {
   id         String   @id @default(cuid())
+  userId     String
   tenantId   String
   title      String
   amount     Float
@@ -100,11 +164,13 @@ model OneTimeCharge {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model Expense {
   id          String   @id @default(cuid())
+  userId      String
   title       String
   amount      Float
   date        DateTime
@@ -114,32 +180,21 @@ model Expense {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   room Room? @relation(fields: [roomId], references: [id], onDelete: SetNull)
 }
 
 model Setting {
-  key   String @id
-  value String @db.Text
-}
-
-model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  createdAt    DateTime  @default(now())
-
-  sessions Session[]
-}
-
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  userId String
+  key    String
+  value  String @db.Text
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, key])
 }
+
+// ── Tenant Portal ────────────────────────────────────────────────────────────
 
 model TenantSession {
   id        String   @id @default(cuid())

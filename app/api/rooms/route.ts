@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
+import { canAddRoom, hasAccess, planLimitResponse, trialExpiredResponse, roomLimit } from "@/lib/plan";
 
 export async function GET() {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const rooms = await prisma.room.findMany({
+    where: { userId },
     include: { tenants: { where: { moveOutDate: null } } },
     orderBy: { name: "asc" },
   });
@@ -12,7 +16,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const body = await req.json();
 
   if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
@@ -23,8 +29,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "monthlyRent must be a non-negative number" }, { status: 400 });
   }
 
+  if (!hasAccess(auth)) return trialExpiredResponse();
+
+  const count = await prisma.room.count({ where: { userId } });
+  if (!canAddRoom(auth, count)) {
+    const limit = roomLimit(auth);
+    return planLimitResponse(`Your plan allows up to ${limit} rooms. Upgrade to add more.`);
+  }
+
   const room = await prisma.room.create({
     data: {
+      userId,
       name: body.name.trim(),
       floor: body.floor || null,
       monthlyRent,

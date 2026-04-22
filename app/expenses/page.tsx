@@ -65,12 +65,16 @@ export default async function ExpensesPage({
 }: {
   searchParams: Promise<{ category?: string; search?: string }>;
 }) {
+  const { requireAuth } = await import("@/lib/auth");
+  const user = await requireAuth();
+
   const { category, search } = await searchParams;
-  const settings = await getSettings();
+  const settings = await getSettings(user.id);
   const fmt = (n: number) => formatCurrency(n, settings.currencySymbol);
 
   const expenses = await prisma.expense.findMany({
     where: {
+      userId: user.id,
       ...(category ? { category } : {}),
       ...(search ? {
         OR: [

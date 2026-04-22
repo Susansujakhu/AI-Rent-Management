@@ -33,7 +33,11 @@ export async function GET(req: Request, { params }: Params) {
     data: { tenantId: tenant.id, token: sessionToken, expiresAt },
   });
 
-  const res = NextResponse.redirect(new URL("/portal/dashboard", req.url));
+  // Support ?redirect= for deep-linking (e.g. directly to a receipt)
+  const redirectParam = new URL(req.url).searchParams.get("redirect");
+  const safePath = redirectParam?.startsWith("/portal/") ? redirectParam : "/portal/dashboard";
+
+  const res = NextResponse.redirect(new URL(safePath, req.url));
   setTenantSessionCookie(res, sessionToken);
   return res;
 }

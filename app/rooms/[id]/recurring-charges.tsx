@@ -23,12 +23,19 @@ export function RecurringChargesPanel({
   const [amount, setAmount] = useState("");
   const [effectiveFrom, setEffectiveFrom] = useState(currentMonth());
   const [saving, setSaving] = useState(false);
+  const [titleErr, setTitleErr] = useState("");
+  const [amountErr, setAmountErr] = useState("");
 
   const fmt = (n: number) => `${currencySymbol}${n.toLocaleString()}`;
   const total = charges.reduce((s, c) => s + c.amount, 0);
 
   const handleAdd = async () => {
-    if (!title.trim() || !amount) return;
+    setTitleErr("");
+    setAmountErr("");
+    let valid = true;
+    if (!title.trim()) { setTitleErr("Title is required"); valid = false; }
+    if (!amount || Number(amount) <= 0) { setAmountErr("Enter a valid amount greater than 0"); valid = false; }
+    if (!valid) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/rooms/${roomId}/charges`, {
@@ -40,6 +47,8 @@ export function RecurringChargesPanel({
       setTitle("");
       setAmount("");
       setEffectiveFrom(currentMonth());
+      setTitleErr("");
+      setAmountErr("");
       toast.success("Charge added");
       router.refresh();
     } catch {
@@ -100,19 +109,25 @@ export function RecurringChargesPanel({
       <div className="pt-2 border-t border-gray-100 mt-2 space-y-2">
         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Add room charge</p>
         <div className="flex gap-2">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Water supply"
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder={`Amount ${currencySymbol}`}
-            className="w-28 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="flex-1">
+            <input
+              value={title}
+              onChange={(e) => { setTitle(e.target.value); if (e.target.value.trim()) setTitleErr(""); }}
+              placeholder="e.g. Water supply"
+              className={`w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${titleErr ? "border-rose-400" : "border-gray-300"}`}
+            />
+            {titleErr && <p className="text-rose-500 text-xs mt-1">{titleErr}</p>}
+          </div>
+          <div>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => { setAmount(e.target.value); if (Number(e.target.value) > 0) setAmountErr(""); }}
+              placeholder={`Amount ${currencySymbol}`}
+              className={`w-28 border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${amountErr ? "border-rose-400" : "border-gray-300"}`}
+            />
+            {amountErr && <p className="text-rose-500 text-xs mt-1">{amountErr}</p>}
+          </div>
         </div>
         <div className="flex gap-2 items-center">
           <div className="flex items-center gap-2 flex-1">
@@ -126,7 +141,7 @@ export function RecurringChargesPanel({
           </div>
           <button
             onClick={handleAdd}
-            disabled={saving || !title.trim() || !amount}
+            disabled={saving}
             className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             Add

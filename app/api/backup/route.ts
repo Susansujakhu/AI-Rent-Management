@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
 
   const { searchParams } = new URL(req.url);
   if (searchParams.get("confirm") !== "1") {
@@ -13,13 +15,13 @@ export async function GET(req: Request) {
     );
   }
   const [rooms, tenants, payments, expenses, charges, oneTimeCharges, settings] = await Promise.all([
-    prisma.room.findMany(),
-    prisma.tenant.findMany(),
-    prisma.payment.findMany(),
-    prisma.expense.findMany(),
-    prisma.recurringCharge.findMany(),
-    prisma.oneTimeCharge.findMany(),
-    prisma.setting.findMany(),
+    prisma.room.findMany({ where: { userId } }),
+    prisma.tenant.findMany({ where: { userId } }),
+    prisma.payment.findMany({ where: { userId } }),
+    prisma.expense.findMany({ where: { userId } }),
+    prisma.recurringCharge.findMany({ where: { userId } }),
+    prisma.oneTimeCharge.findMany({ where: { userId } }),
+    prisma.setting.findMany({ where: { userId } }),
   ]);
 
   const backup = {

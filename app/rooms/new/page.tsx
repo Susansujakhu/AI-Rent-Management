@@ -18,11 +18,15 @@ export default function NewRoomPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const res = await fetch("/api/rooms", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      if (!res.ok) throw new Error();
+      const res  = await fetch("/api/rooms", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      const body = await res.json().catch(() => ({})) as { error?: string; upgrade?: boolean };
+      if (!res.ok) {
+        if (body.upgrade) { toast.error(`Pro required — ${body.error}`); return; }
+        throw new Error(body.error ?? "Failed to create room");
+      }
       toast.success("Room created successfully");
       router.push("/rooms");
-    } catch { toast.error("Failed to create room"); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Failed to create room"); }
   };
 
   return (

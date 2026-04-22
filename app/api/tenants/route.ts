@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
+import { hasAccess, trialExpiredResponse } from "@/lib/plan";
 
 export async function GET() {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const tenants = await prisma.tenant.findMany({
+    where: { userId },
     include: { room: true },
     orderBy: { name: "asc" },
   });
@@ -12,7 +16,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const body = await req.json();
 
   if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
@@ -29,8 +35,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "deposit must be a non-negative number" }, { status: 400 });
   }
 
+  if (!hasAccess(auth)) return trialExpiredResponse();
+
   const tenant = await prisma.tenant.create({
     data: {
+      userId,
       name: body.name.trim(),
       phone: body.phone.trim(),
       email: body.email || null,

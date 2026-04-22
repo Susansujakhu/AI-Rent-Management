@@ -7,10 +7,11 @@ export async function GET() {
   const token = cookieStore.get("rms_session")?.value;
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const session = await prisma.session.findUnique({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const session = await (prisma.session.findUnique as any)({
     where: { token },
-    include: { user: { select: { id: true, email: true, createdAt: true } } },
-  });
+    include: { user: { select: { id: true, email: true, name: true, plan: true, role: true, upgradeRequestedAt: true, createdAt: true } } },
+  }) as { expiresAt: Date; user: Record<string, unknown> } | null;
 
   if (!session || session.expiresAt < new Date()) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

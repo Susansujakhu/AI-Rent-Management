@@ -3,10 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { id } = await params;
   const expense = await prisma.expense.findUnique({
-    where: { id },
+    where: { id, userId },
     include: { room: true },
   });
   if (!expense) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -14,7 +16,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { id } = await params;
   const body = await req.json();
 
@@ -30,7 +34,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 
   const expense = await prisma.expense.update({
-    where: { id },
+    where: { id, userId },
     data: {
       title: body.title.trim(),
       amount,
@@ -44,8 +48,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { id } = await params;
-  await prisma.expense.delete({ where: { id } });
+  await prisma.expense.delete({ where: { id, userId } });
   return NextResponse.json({ success: true });
 }

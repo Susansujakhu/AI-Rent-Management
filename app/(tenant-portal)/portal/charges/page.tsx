@@ -15,7 +15,7 @@ const STATUS_STYLES: Record<string, string> = {
 export default async function PortalChargesPage() {
   const session  = await requireTenantPage();
   const tenant   = session.tenant;
-  const settings = await getSettings();
+  const settings = await getSettings(tenant.userId);
   const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
 
   const charges = await prisma.oneTimeCharge.findMany({

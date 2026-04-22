@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { requireTenantPage } from "@/lib/tenant-auth";
 import { prisma } from "@/lib/prisma";
-import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
+import { formatCurrency, formatDate, formatRentalPeriod } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
 import { PortalShell } from "../_components/portal-shell";
 import Link from "next/link";
@@ -18,14 +18,24 @@ const STATUS_STYLES: Record<string, string> = {
 export default async function PortalPaymentsPage() {
   const session  = await requireTenantPage();
   const tenant   = session.tenant;
-  const settings = await getSettings();
+  const settings = await getSettings(tenant.userId);
   const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
 
-  const payments = await prisma.payment.findMany({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const paymentsRaw = await (prisma as any).payment.findMany({
     where:   { tenantId: tenant.id },
     orderBy: { month: "desc" },
-    include: { room: { select: { name: true } } },
-  });
+    include: {
+      room: { select: { name: true } },
+      transactions: { select: { amount: true, creditAmount: true } },
+    },
+  }) as any[];
+
+  const payments = paymentsRaw.map((p: any) => ({
+    ...p,
+    totalReceived:  p.transactions.reduce((s: number, t: any) => s + t.amount + (t.creditAmount ?? 0), 0),
+    creditGenerated: p.transactions.reduce((s: number, t: any) => s + (t.creditAmount ?? 0), 0),
+  }));
 
   const totalDue     = payments.reduce((s, p) => s + p.amountDue, 0);
   const totalPaid    = payments.reduce((s, p) => s + p.amountPaid, 0);
@@ -70,7 +80,7 @@ export default async function PortalPaymentsPage() {
                 <div key={p.id} className="px-4 py-4">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <p className="font-semibold text-slate-800 text-sm">{formatMonth(p.month)}</p>
+                      <p className="font-semibold text-slate-800 text-sm">{formatRentalPeriod(p.month, tenant.moveInDate.getDate())}</p>
                       <p className="text-xs text-slate-400 mt-0.5">{p.room.name}</p>
                     </div>
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${STATUS_STYLES[p.status] ?? "bg-slate-100 text-slate-600"}`}>
@@ -80,7 +90,22 @@ export default async function PortalPaymentsPage() {
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-slate-500 space-y-0.5">
                       <p>Due: <span className="font-medium text-slate-700">{fmt(p.amountDue)}</span></p>
-                      <p>Paid: <span className="font-medium text-slate-700">{fmt(p.amountPaid)}</span></p>
+                      {p.totalReceived > 0 ? (
+                        <p>
+                          Paid:{" "}
+                          <span className="font-medium text-slate-700">{fmt(p.totalReceived)}</span>
+                          {p.creditGenerated > 0 && (
+                            <span className="ml-1.5 text-emerald-600 font-medium">
+                              (+{fmt(p.creditGenerated)} credit)
+                            </span>
+                          )}
+                        </p>
+                      ) : (
+                        <p>Paid: <span className="font-medium text-slate-700">{fmt(p.amountPaid)}</span></p>
+                      )}
+                      {p.status === "PARTIAL" && (
+                        <p className="text-amber-600">Applied: {fmt(p.amountPaid)} of {fmt(p.amountDue)}</p>
+                      )}
                       {p.paidDate && <p>On: {formatDate(p.paidDate)}</p>}
                       {p.method && <p className="uppercase">{p.method}</p>}
                     </div>

@@ -3,12 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 
 export async function GET(req: Request) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category");
 
   const expenses = await prisma.expense.findMany({
-    where: category ? { category } : undefined,
+    where: { userId, ...(category ? { category } : {}) },
     include: { room: true },
     orderBy: { date: "desc" },
   });
@@ -16,7 +18,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const body = await req.json();
 
   if (!body.title || typeof body.title !== "string" || !body.title.trim()) {
@@ -32,6 +36,7 @@ export async function POST(req: Request) {
 
   const expense = await prisma.expense.create({
     data: {
+      userId,
       title: body.title.trim(),
       amount,
       date: new Date(body.date),

@@ -6,8 +6,10 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string; chargeId: string }> }
 ) {
-  const unauth = await requireAuthAPI(); if (unauth) return unauth;
+  const auth = await requireAuthAPI();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.id;
   const { chargeId } = await params;
-  await prisma.recurringCharge.delete({ where: { id: chargeId } });
+  await prisma.recurringCharge.delete({ where: { id: chargeId, userId } });
   return NextResponse.json({ success: true });
 }
