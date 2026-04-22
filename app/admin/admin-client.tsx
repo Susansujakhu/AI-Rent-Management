@@ -213,15 +213,8 @@ export default function AdminClient() {
     setWaConnectError("");
     setWaConnectingAt(Date.now());
     await fetch("/api/admin/whatsapp", { method: "POST" });
-    // Wait for socket init + possible logout-clear-reinit cycle (~6s)
-    await new Promise(r => setTimeout(r, 6000));
-    await fetchWA();
-    setWa(prev => {
-      if (prev.status === "disconnected") {
-        setWaConnectError("Still connecting… if this persists, the previous session may have been logged out. A QR code will appear shortly.");
-      }
-      return prev;
-    });
+    // Optimistically mark as connecting so the polling effect starts immediately
+    setWa(prev => prev.status === "disconnected" ? { ...prev, status: "connecting" } : prev);
     setWaLoading(false);
   };
   const disconnectWA = async () => {
