@@ -103,7 +103,7 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
         setCustomSymbol(symbol);
         setCustomCode(code);
       }
-      if (me) setUserEmail(me.email);
+      if (me) { setUserEmail(me.email); setNewEmail(me.email); }
       if (settings["auto_reminders_enabled"] === "true") setAutoReminders(true);
       if (settings["reminder_hour"]) setReminderHour(parseInt(settings["reminder_hour"]));
       if (settings["reminder_last_run"]) setReminderLastRun(settings["reminder_last_run"]);
@@ -224,23 +224,22 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
     setNewPasswordErr("");
     let valid = true;
     if (!currentPassword) { setCurrentPassErr("Current password is required"); valid = false; }
-    if (newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { setNewEmailErr("Enter a valid email address"); valid = false; }
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { setNewEmailErr("Enter a valid email address"); valid = false; }
     if (newPassword && newPassword.length < 6) { setNewPasswordErr("Password must be at least 6 characters"); valid = false; }
     if (newPassword && newPassword !== confirmPassword) { setNewPasswordErr("Passwords do not match"); valid = false; }
-    if (valid && !newPassword && !newEmail) { toast.error("Enter a new password or email to update"); return; }
     if (!valid) return;
     setSavingAccount(true);
     try {
       const res = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword: newPassword || undefined, newEmail: newEmail || undefined }),
+        body: JSON.stringify({ currentPassword, newPassword: newPassword || undefined, newEmail }),
       });
       const data = await res.json() as { error?: string };
       if (!res.ok) { toast.error(data.error ?? "Failed to update account"); return; }
       toast.success("Account updated successfully");
-      if (newEmail) setUserEmail(newEmail);
-      setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); setNewEmail("");
+      setUserEmail(newEmail);
+      setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
     } catch {
       toast.error("Failed to update account");
     } finally {
@@ -373,10 +372,10 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
                   {currentPassErr && <p className="text-rose-500 text-xs mt-1.5">{currentPassErr}</p>}
                 </div>
                 <div>
-                  <label className={labelCls}>New Email <span className="text-slate-300 normal-case font-normal">optional</span></label>
+                  <label className={labelCls}>Email <span className="text-rose-400 normal-case font-normal">*</span></label>
                   <input type="email" value={newEmail}
                     onChange={e => { setNewEmail(e.target.value); if (newEmailErr) setNewEmailErr(""); }}
-                    placeholder={userEmail} autoComplete="email"
+                    placeholder="you@example.com" autoComplete="email"
                     className={`${fieldCls} ${newEmailErr ? "border-rose-300 focus:ring-rose-400" : ""}`} />
                   {newEmailErr && <p className="text-rose-500 text-xs mt-1.5">{newEmailErr}</p>}
                 </div>

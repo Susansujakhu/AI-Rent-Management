@@ -130,7 +130,9 @@ export function SignupForm() {
 
             {/* Email */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">Email</label>
+              <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">
+                Email <span className="text-rose-400 normal-case font-normal">*</span>
+              </label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com" autoComplete="email" className={inputCls} />
             </div>
