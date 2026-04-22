@@ -296,7 +296,11 @@ self.__SERVER_FILES_MANIFEST={
       "whatsapp-web.js",
       "puppeteer",
       "puppeteer-core",
-      "qrcode"
+      "qrcode",
+      "@whiskeysockets/baileys",
+      "jimp",
+      "sharp",
+      "pino"
     ],
     "turbopack": {
       "root": "D:\\Projects\\Rent Calculator\\rent-manager"

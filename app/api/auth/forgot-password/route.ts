@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   if (DEV_BYPASS) {
     await prisma.passwordResetToken.updateMany({ where: { userId: user.id, used: false }, data: { used: true } });
     await prisma.passwordResetToken.create({ data: { userId: user.id, otp: DEV_OTP, expiresAt: new Date(Date.now() + 15 * 60 * 1000) } });
-    console.log(`[DEV] Password reset bypass — code is ${DEV_OTP} for ${email}`);
+    console.log(`[DEV] Password reset bypass — code is ${DEV_OTP} for ${phone}`);
     return NextResponse.json({ ok: true, sent: true, masked: user.phone ? maskPhone(user.phone) : "bypass" });
   }
   // ─────────────────────────────────────────────────────────────────────────
