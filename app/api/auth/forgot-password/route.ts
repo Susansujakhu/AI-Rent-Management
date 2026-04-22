@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { sendWhatsAppMessage, getWAStatus, SYSTEM_WA_KEY } from "@/lib/whatsapp";
 import { checkRateLimit } from "@/lib/rate-limit";
 
+const DEV_BYPASS = process.env.BYPASS_PHONE_OTP === "true";
+const DEV_OTP    = "000000";
+
 function generateOTP(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
@@ -35,39 +38,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, sent: false, masked: null });
   }
 
+  // ── Dev bypass ───────────────────────────────────────────────────────────
+  if (DEV_BYPASS) {
+    await prisma.passwordResetToken.updateMany({ where: { userId: user.id, used: false }, data: { used: true } });
+    await prisma.passwordResetToken.create({ data: { userId: user.id, otp: DEV_OTP, expiresAt: new Date(Date.now() + 15 * 60 * 1000) } });
+    console.log(`[DEV] Password reset bypass — code is ${DEV_OTP} for ${email}`);
+    return NextResponse.json({ ok: true, sent: true, masked: user.phone ? maskPhone(user.phone) : "bypass" });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   if (getWAStatus(SYSTEM_WA_KEY) !== "ready" || !user.phone) {
     return NextResponse.json(
-      { error: "Password reset is unavailable — WhatsApp is not connected or no phone number is on file. Contact the admin." },
+      { error: "Password reset requires WhatsApp to be connected. Contact the admin." },
       { status: 503 }
     );
   }
 
   const otp       = generateOTP();
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-  // Invalidate any existing unused tokens for this user
-  await prisma.passwordResetToken.updateMany({
-    where: { userId: user.id, used: false },
-    data:  { used: true },
-  });
-
-  await prisma.passwordResetToken.create({
-    data: { userId: user.id, otp, expiresAt },
-  });
+  await prisma.passwordResetToken.updateMany({ where: { userId: user.id, used: false }, data: { used: true } });
+  await prisma.passwordResetToken.create({ data: { userId: user.id, otp, expiresAt } });
 
   const msg  = `Your Rent Manager password reset code is:\n\n*${otp}*\n\nThis code expires in 15 minutes. If you didn't request this, ignore this message.`;
   const sent = await sendWhatsAppMessage(SYSTEM_WA_KEY, user.phone, msg);
 
   if (!sent) {
-    return NextResponse.json(
-      { error: "Failed to send WhatsApp message. Please try again." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to send WhatsApp message. Please try again." }, { status: 500 });
   }
 
-  return NextResponse.json({
-    ok:     true,
-    sent:   true,
-    masked: maskPhone(user.phone),
-  });
+  return NextResponse.json({ ok: true, sent: true, masked: maskPhone(user.phone) });
 }

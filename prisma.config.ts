@@ -3,8 +3,10 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+const isSQLite = (process.env["DB_PROVIDER"] ?? "sqlite") === "sqlite";
+
 export default defineConfig({
-  schema: "prisma/schema.prisma",
+  schema: isSQLite ? "prisma/schema.dev.prisma" : "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
   },

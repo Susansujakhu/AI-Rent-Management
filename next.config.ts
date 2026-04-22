@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
     "puppeteer",
     "puppeteer-core",
     "qrcode",
+    "@whiskeysockets/baileys",
+    "jimp",
+    "sharp",
+    "pino",
   ],
 };
 
