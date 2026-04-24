@@ -8,6 +8,7 @@ import { SearchInput } from "@/components/search-input";
 import { Suspense } from "react";
 import { hasAccess } from "@/lib/plan";
 import { AddButton } from "@/components/locked-feature";
+import { DeletePastTenantButton } from "./delete-past-tenant-button";
 
 const AVATAR_COLORS = [
   "from-indigo-500 to-violet-500",
@@ -50,6 +51,7 @@ export default async function TenantsPage({ searchParams }: { searchParams: Prom
     include: {
       room: true,
       payments: { orderBy: { month: "desc" }, take: 1 },
+      _count: { select: { payments: true } },
     },
     orderBy: { name: "asc" },
   });
@@ -187,26 +189,34 @@ export default async function TenantsPage({ searchParams }: { searchParams: Prom
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="divide-y divide-slate-50">
               {pastTenants.map((tenant) => (
-                <Link
-                  key={tenant.id}
-                  href={`/tenants/${tenant.id}`}
-                  className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/60 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs">
-                      {tenant.name.charAt(0).toUpperCase()}
+                <div key={tenant.id} className="flex items-center hover:bg-slate-50/60 transition-colors">
+                  <Link
+                    href={`/tenants/${tenant.id}`}
+                    className="flex items-center justify-between flex-1 px-5 py-3.5 min-w-0"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs shrink-0">
+                        {tenant.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-600 truncate">{tenant.name}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {tenant.room?.name ?? "—"}
+                          <span className="mx-1.5 text-slate-300">·</span>
+                          Moved out: {tenant.moveOutDate ? formatDate(tenant.moveOutDate) : "—"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-600">{tenant.name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {tenant.room?.name ?? "—"}
-                        <span className="mx-1.5 text-slate-300">·</span>
-                        Moved out: {tenant.moveOutDate ? formatDate(tenant.moveOutDate) : "—"}
-                      </p>
-                    </div>
+                    <ChevronRight size={15} className="text-slate-300 shrink-0 ml-3" />
+                  </Link>
+                  <div className="pr-3">
+                    <DeletePastTenantButton
+                      tenantId={tenant.id}
+                      tenantName={tenant.name}
+                      paymentCount={tenant._count.payments}
+                    />
                   </div>
-                  <ChevronRight size={15} className="text-slate-300 shrink-0" />
-                </Link>
+                </div>
               ))}
             </div>
           </div>
