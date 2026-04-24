@@ -5,7 +5,7 @@ export async function GET() {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gs = (prisma as any).globalSetting;
-    if (!gs) return NextResponse.json({ betaMode: false, adminWhatsapp: "" });
+    if (!gs) return NextResponse.json({ betaMode: true, adminWhatsapp: "" });
     const rows = await gs.findMany({
       where: { key: { in: ["beta_mode", "admin_whatsapp"] } },
     });
