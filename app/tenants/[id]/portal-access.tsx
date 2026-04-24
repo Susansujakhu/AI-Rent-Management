@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Globe, Link2, RefreshCw, Trash2, MessageCircle, Copy, Check, Loader2, Lock, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { UpgradeModal } from "@/components/upgrade-modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Props {
   tenantId:      string;
@@ -17,7 +18,9 @@ interface Props {
 export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnabled, portalToken, isPro }: Props) {
   const [enabled, setEnabled]   = useState(portalEnabled);
   const [token,   setToken]     = useState(portalToken);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeOpen,  setUpgradeOpen]  = useState(false);
+  const [regenOpen,    setRegenOpen]    = useState(false);
+  const [disableOpen,  setDisableOpen]  = useState(false);
   const [loading, setLoading]   = useState<string | null>(null);
   const [copied,  setCopied]    = useState(false);
 
@@ -46,7 +49,7 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
   };
 
   const regenerate = async () => {
-    if (!confirm("This will invalidate the current link. Continue?")) return;
+    setRegenOpen(false);
     setLoading("regen");
     try {
       const res  = await fetch(`/api/tenants/${tenantId}/portal`, { method: "POST" });
@@ -62,7 +65,7 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
   };
 
   const disable = async () => {
-    if (!confirm(`Disable portal access for ${tenantName}? All active sessions will be revoked.`)) return;
+    setDisableOpen(false);
     setLoading("disable");
     try {
       const res = await fetch(`/api/tenants/${tenantId}/portal`, { method: "DELETE" });
@@ -143,6 +146,24 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
               </button>
             </div>
             <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} feature="Tenant portal" />
+      <ConfirmDialog
+        open={regenOpen}
+        onOpenChange={setRegenOpen}
+        title="Regenerate Portal Link"
+        description="This will invalidate the current link. Anyone using the old link will lose access immediately."
+        confirmLabel="Regenerate"
+        variant="warning"
+        onConfirm={regenerate}
+      />
+      <ConfirmDialog
+        open={disableOpen}
+        onOpenChange={setDisableOpen}
+        title="Revoke Portal Access"
+        description={`Disable portal access for ${tenantName}? All active sessions will be revoked immediately.`}
+        confirmLabel="Revoke Access"
+        variant="destructive"
+        onConfirm={disable}
+      />
           </>
         ) : !enabled ? (
           <div className="flex flex-col items-center gap-3 py-2">
@@ -193,7 +214,7 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
                 Copy Link
               </button>
               <button
-                onClick={regenerate}
+                onClick={() => setRegenOpen(true)}
                 disabled={loading === "regen"}
                 className="flex items-center gap-1.5 text-xs font-semibold border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
                 title="Generate a new link (invalidates current)"
@@ -202,7 +223,7 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
                 Regenerate
               </button>
               <button
-                onClick={disable}
+                onClick={() => setDisableOpen(true)}
                 disabled={loading === "disable"}
                 className="flex items-center gap-1.5 text-xs font-semibold border border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
               >

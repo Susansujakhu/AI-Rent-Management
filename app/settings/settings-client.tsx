@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Check, Settings, Eye, EyeOff, Coins, ShieldCheck, DatabaseBackup, Download, Upload, UserCog, MessageCircle, Wifi, WifiOff, RefreshCw, Smartphone, Bell, Clock, AlertTriangle, Crown, Lock } from "lucide-react";
 import { UpgradeModal } from "@/components/upgrade-modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 function WhatsAppProGate() {
   const [open, setOpen] = useState(false);
@@ -616,13 +617,14 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
 }
 
 function RestoreBackup() {
-  const [file,      setFile]      = useState<File | null>(null);
-  const [loading,   setLoading]   = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
+  const [file,        setFile]        = useState<File | null>(null);
+  const [loading,     setLoading]     = useState(false);
+  const [confirmed,   setConfirmed]   = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleRestore = async () => {
     if (!file || !confirmed) return;
-    if (!confirm("This will REPLACE ALL current data with the backup. This cannot be undone. Continue?")) return;
+    setConfirmOpen(false);
     setLoading(true);
     try {
       const json = JSON.parse(await file.text());
@@ -665,13 +667,23 @@ function RestoreBackup() {
             </div>
           </div>
           <button
-            onClick={handleRestore}
+            onClick={() => setConfirmOpen(true)}
             disabled={!confirmed || loading}
             className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm shadow-rose-200"
           >
             {loading ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
             {loading ? "Restoring…" : "Restore Backup"}
           </button>
+          <ConfirmDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            title="Restore Backup"
+            description="This will permanently replace ALL current data with the backup. This cannot be undone."
+            confirmLabel="Yes, Restore"
+            variant="destructive"
+            loading={loading}
+            onConfirm={handleRestore}
+          />
         </>
       )}
     </div>
