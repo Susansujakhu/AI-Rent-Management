@@ -9,7 +9,9 @@ export async function GET() {
   if (auth instanceof NextResponse) return auth;
   if (auth.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const rows = await prisma.globalSetting.findMany();
+  const rows = await prisma.$queryRaw<{ key: string; value: string }[]>`
+    SELECT \`key\`, \`value\` FROM \`GlobalSetting\`
+  `;
   const result: Record<string, string> = {};
   for (const row of rows) result[row.key] = row.value;
   return NextResponse.json(result);
@@ -26,7 +28,10 @@ export async function PUT(req: Request) {
 
   await Promise.all(
     entries.map(([key, value]) =>
-      prisma.globalSetting.upsert({ where: { key }, create: { key, value }, update: { value } })
+      prisma.$executeRaw`
+        INSERT INTO \`GlobalSetting\` (\`key\`, \`value\`) VALUES (${key}, ${value})
+        ON DUPLICATE KEY UPDATE \`value\` = ${value}
+      `
     )
   );
   return NextResponse.json({ ok: true });
