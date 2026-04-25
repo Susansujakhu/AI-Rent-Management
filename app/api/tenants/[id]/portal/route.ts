@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 import { randomBytes } from "crypto";
 import { isPro, planLimitResponse } from "@/lib/plan";
+import { sendWhatsAppMessage, getWAStatus } from "@/lib/whatsapp";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -36,7 +37,7 @@ export async function DELETE(req: Request, { params }: Params) {
   const { id } = await params;
 
   // Verify ownership before modifying
-  const tenant = await prisma.tenant.findUnique({ where: { id, userId }, select: { id: true } });
+  const tenant = await prisma.tenant.findUnique({ where: { id, userId }, select: { id: true, name: true, phone: true } });
   if (!tenant) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.tenantSession.deleteMany({ where: { tenantId: id } });
@@ -44,6 +45,15 @@ export async function DELETE(req: Request, { params }: Params) {
     where: { id, userId },
     data:  { portalEnabled: false, portalToken: null },
   });
+
+  // Notify tenant via WhatsApp (non-blocking — don't fail revocation if WA is down)
+  if (tenant.phone && getWAStatus(userId) === "ready") {
+    sendWhatsAppMessage(
+      userId,
+      tenant.phone,
+      `Hi ${tenant.name}, your tenant portal access has been disabled. Please contact your property owner if you need access restored.`
+    ).catch(() => null);
+  }
 
   return NextResponse.json({ ok: true });
 }

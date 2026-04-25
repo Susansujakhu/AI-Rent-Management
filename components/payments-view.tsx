@@ -24,25 +24,25 @@ function Paginator({ page, total, pageSize, onChange }: {
   const pages: number[] = [];
   for (let i = Math.max(1, page - 2); i <= Math.min(totalPages, page + 2); i++) pages.push(i);
   return (
-    <div className="flex items-center justify-between px-5 py-2.5 border-t border-slate-100 bg-slate-50/60">
+    <div className="flex items-center justify-between px-5 py-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/60">
       <span className="text-xs text-slate-400">{start}–{end} of {total}</span>
       <div className="flex items-center gap-0.5">
         <button onClick={() => onChange(page - 1)} disabled={page === 1}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
           <ChevronLeft size={14} />
         </button>
         {pages[0] > 1 && <span className="px-1 text-slate-300 text-xs">…</span>}
         {pages.map(p => (
           <button key={p} onClick={() => onChange(p)}
             className={`w-7 h-7 text-xs font-semibold rounded-lg transition-colors ${
-              p === page ? "bg-indigo-600 text-white" : "text-slate-500 hover:bg-slate-200"
+              p === page ? "bg-indigo-600 text-white" : "text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
             }`}>
             {p}
           </button>
         ))}
         {pages[pages.length - 1] < totalPages && <span className="px-1 text-slate-300 text-xs">…</span>}
         <button onClick={() => onChange(page + 1)} disabled={page === totalPages}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
           <ChevronRight size={14} />
         </button>
       </div>
@@ -94,9 +94,12 @@ export type OpenBill = {
 function TenantAvatar({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
   const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const colors = [
-    "bg-violet-100 text-violet-700", "bg-blue-100 text-blue-700",
-    "bg-emerald-100 text-emerald-700", "bg-orange-100 text-orange-700",
-    "bg-rose-100 text-rose-700", "bg-indigo-100 text-indigo-700",
+    "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400",
+    "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400",
+    "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400",
+    "bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400",
+    "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400",
+    "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400",
   ];
   const cls = size === "sm" ? "w-6 h-6 text-[10px]" : "w-8 h-8 text-xs";
   return (
@@ -107,9 +110,9 @@ function TenantAvatar({ name, size = "md" }: { name: string; size?: "sm" | "md" 
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  OVERDUE: "text-rose-600 bg-rose-50 border-rose-200",
-  PARTIAL: "text-blue-600 bg-blue-50 border-blue-200",
-  PENDING: "text-amber-600 bg-amber-50 border-amber-200",
+  OVERDUE: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/15 border-rose-200 dark:border-rose-500/20",
+  PARTIAL: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/15 border-blue-200 dark:border-blue-500/20",
+  PENDING: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15 border-amber-200 dark:border-amber-500/20",
 };
 const STATUS_DOT: Record<string, string> = {
   OVERDUE: "bg-rose-500", PARTIAL: "bg-blue-500", PENDING: "bg-amber-400",
@@ -144,10 +147,10 @@ function TenantDropdown({ names, value, onChange }: {
         onClick={() => setOpen(v => !v)}
         className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all duration-150 select-none
           ${active
-            ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
-            : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:border-slate-300"
+            ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30 hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
+            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 hover:border-slate-300"
           }
-          ${open ? (active ? "bg-indigo-100 shadow-sm" : "bg-slate-200 shadow-sm") : ""}
+          ${open ? (active ? "bg-indigo-100 shadow-sm" : "bg-slate-200 dark:bg-slate-700 shadow-sm") : ""}
         `}
       >
         <Users size={13} className={active ? "text-indigo-500" : "text-slate-400"} />
@@ -157,21 +160,21 @@ function TenantDropdown({ names, value, onChange }: {
 
       {open && (
         <div ref={panelRef}
-          className="absolute top-full left-0 mt-1.5 z-50 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden py-1"
+          className="absolute top-full left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden py-1"
           style={{ minWidth: 180 }}>
           <button
             onClick={() => { onChange(""); setOpen(false); }}
             className={`w-full text-left px-4 py-2.5 text-sm transition-colors
-              ${!value ? "bg-indigo-50 text-indigo-700 font-bold" : "text-slate-600 hover:bg-slate-50 font-medium"}`}
+              ${!value ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 font-bold" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium"}`}
           >
             All Tenants
           </button>
-          {names.length > 0 && <div className="border-t border-slate-100 my-1" />}
+          {names.length > 0 && <div className="border-t border-slate-100 dark:border-slate-800 my-1" />}
           {names.map(n => (
             <button key={n}
               onClick={() => { onChange(n); setOpen(false); }}
               className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-2.5
-                ${value === n ? "bg-indigo-50 text-indigo-700 font-bold" : "text-slate-700 hover:bg-slate-50"}`}
+                ${value === n ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 font-bold" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"}`}
             >
               <TenantAvatar name={n} size="sm" />
               <span className="truncate">{n}</span>
@@ -221,10 +224,10 @@ function DateRangeChip({ dateFrom, dateTo, onDateFrom, onDateTo }: {
         onClick={() => setOpen(v => !v)}
         className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all duration-150 select-none
           ${active
-            ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
-            : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:border-slate-300"
+            ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30 hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
+            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 hover:border-slate-300"
           }
-          ${open ? (active ? "bg-indigo-100 shadow-sm" : "bg-slate-200 shadow-sm") : ""}
+          ${open ? (active ? "bg-indigo-100 shadow-sm" : "bg-slate-200 dark:bg-slate-700 shadow-sm") : ""}
         `}
       >
         <Calendar size={13} className={active ? "text-indigo-500" : "text-slate-400"} />
@@ -234,7 +237,7 @@ function DateRangeChip({ dateFrom, dateTo, onDateFrom, onDateTo }: {
 
       {open && (
         <div ref={panelRef}
-          className="absolute top-full left-0 mt-1.5 z-50 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden"
+          className="absolute top-full left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden"
           style={{ minWidth: 256 }}
         >
           {/* Header */}
@@ -248,12 +251,12 @@ function DateRangeChip({ dateFrom, dateTo, onDateFrom, onDateTo }: {
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">From</label>
                 <input type="date" value={dateFrom} onChange={e => onDateFrom(e.target.value)}
-                  className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
               </div>
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">To</label>
                 <input type="date" value={dateTo} onChange={e => onDateTo(e.target.value)}
-                  className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
               </div>
             </div>
 
@@ -275,7 +278,7 @@ function DateRangeChip({ dateFrom, dateTo, onDateFrom, onDateTo }: {
 
             {active && (
               <button onClick={() => { onDateFrom(""); onDateTo(""); setOpen(false); }}
-                className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                 <X size={11} />Clear dates
               </button>
             )}
@@ -341,23 +344,23 @@ function SessionDrawer({ session, fmt, isPro, canVoid, onClose, onVoided }: {
   return createPortal(
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="w-full max-w-sm bg-white shadow-2xl flex flex-col">
+      <div className="w-full max-w-sm bg-white dark:bg-slate-900 shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-3">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
           <TenantAvatar name={session.tenantName} />
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-slate-900">{session.tenantName}</p>
+            <p className="font-bold text-slate-900 dark:text-white">{session.tenantName}</p>
             <p className="text-xs text-slate-400">{formatDate(session.paidAt)}{session.method ? ` · ${session.method}` : ""}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
             <X size={16} />
           </button>
         </div>
 
         {/* Total */}
-        <div className="px-5 py-5 border-b border-slate-100">
+        <div className="px-5 py-5 border-b border-slate-100 dark:border-slate-800">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Received</p>
-          <p className="text-3xl font-black text-slate-900 tracking-tight">{fmt(session.total)}</p>
+          <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{fmt(session.total)}</p>
         </div>
 
         {/* Breakdown */}
@@ -365,10 +368,10 @@ function SessionDrawer({ session, fmt, isPro, canVoid, onClose, onVoided }: {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Applied to</p>
           <div className="space-y-2">
             {session.lines.map((l, i) => (
-              <div key={i} className="flex items-start justify-between gap-3 py-2.5 border-b border-slate-50 last:border-0">
+              <div key={i} className="flex items-start justify-between gap-3 py-2.5 border-b border-slate-50 dark:border-slate-800 last:border-0">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-sm font-semibold text-slate-800 leading-snug">{l.label}</p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-snug">{l.label}</p>
                     {l.type === "charge" && (
                       <span className="text-[10px] font-bold bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full">charge</span>
                     )}
@@ -380,7 +383,7 @@ function SessionDrawer({ session, fmt, isPro, canVoid, onClose, onVoided }: {
                     <p className="text-xs text-emerald-600 mt-0.5">Fully paid ✓</p>
                   )}
                 </div>
-                <span className="font-bold text-slate-800 text-sm shrink-0">{fmt(l.amount)}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-sm shrink-0">{fmt(l.amount)}</span>
               </div>
             ))}
             {totalCredit > 0 && (
@@ -393,7 +396,7 @@ function SessionDrawer({ session, fmt, isPro, canVoid, onClose, onVoided }: {
         </div>
 
         {/* Actions */}
-        <div className="px-5 py-4 border-t border-slate-100 space-y-2">
+        <div className="px-5 py-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
           {canSend && (
             <button onClick={send} disabled={sending}
               className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors">
@@ -404,12 +407,12 @@ function SessionDrawer({ session, fmt, isPro, canVoid, onClose, onVoided }: {
           <div className="flex gap-2">
             {firstPaymentId && session.lines.some(l => l.type === "payment") && (
               <Link href={`/payments/${firstPaymentId}/receipt`}
-                className="flex-1 flex items-center justify-center gap-1.5 border border-slate-200 text-slate-600 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-colors">
+                className="flex-1 flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                 <Receipt size={12} />Receipt
               </Link>
             )}
             <Link href={`/tenants/${session.tenantId}`}
-              className="flex-1 flex items-center justify-center gap-1.5 border border-slate-200 text-slate-600 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-colors">
+              className="flex-1 flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               <ExternalLink size={12} />Tenant
             </Link>
           </div>
@@ -422,7 +425,7 @@ function SessionDrawer({ session, fmt, isPro, canVoid, onClose, onVoided }: {
                   {voiding ? "Voiding…" : "Confirm Void"}
                 </button>
                 <button onClick={() => setVoidConfirm(false)} disabled={voiding}
-                  className="flex-1 border border-slate-200 text-slate-600 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-colors">
+                  className="flex-1 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                   Cancel
                 </button>
               </div>
@@ -562,15 +565,15 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
       </div>
 
       {/* ── Filter + sessions + bills card ──────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
 
         {/* Filter bar */}
-        <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center gap-2">
+        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2">
           <TenantDropdown names={tenantNames} value={tenant} onChange={setTenant} />
           <DateRangeChip dateFrom={dateFrom} dateTo={dateTo} onDateFrom={setDateFrom} onDateTo={setDateTo} />
           {hasFilter && (
             <button onClick={clearFilters}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 hover:text-slate-700 transition-all">
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 transition-all">
               <X size={11} />Clear all
             </button>
           )}
@@ -582,9 +585,9 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
         </div>
 
         {/* ── PAYMENT HISTORY ─────────────────────────────────────────────── */}
-        <div className="border-b border-slate-100">
-          <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-            <p className="text-sm font-bold text-slate-500">Payments Received</p>
+        <div className="border-b border-slate-100 dark:border-slate-800">
+          <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Payments Received</p>
             <p className="text-xs text-slate-400">{visibleSessions.length} session{visibleSessions.length !== 1 ? "s" : ""}</p>
           </div>
 
@@ -600,16 +603,16 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
               )}
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {pagedSessions.map(s => {
                 const totalCredit = s.lines.reduce((x, l) => x + (l.creditAmount ?? 0), 0);
                 return (
                   <div key={s.key}>
                     {/* Session header */}
-                    <div className="px-5 py-3 bg-slate-50/70 flex items-center gap-3">
+                    <div className="px-5 py-3 bg-slate-50/70 dark:bg-slate-800/70 flex items-center gap-3">
                       {!tenant && <TenantAvatar name={s.tenantName} size="sm" />}
                       <div className="flex-1 min-w-0">
-                        {!tenant && <p className="text-sm font-bold text-slate-800 leading-none">{s.tenantName}</p>}
+                        {!tenant && <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-none">{s.tenantName}</p>}
                         <p className={`text-xs text-slate-400 ${!tenant ? "mt-0.5" : ""}`}>
                           {new Date(s.paidAt).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
                           {s.method ? ` · ${s.method}` : ""}
@@ -617,26 +620,26 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <div className="text-right">
-                          <p className="text-base font-black text-slate-900 tracking-tight">{fmt(s.total)}</p>
+                          <p className="text-base font-black text-slate-900 dark:text-white tracking-tight">{fmt(s.total)}</p>
                           {totalCredit > 0 && <p className="text-[10px] text-emerald-600 font-semibold">+{fmt(totalCredit)} credit</p>}
                         </div>
                         <button onClick={() => setDrawer(s)} title="Details & actions"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 transition-colors">
                           <ChevronRight size={14} />
                         </button>
                       </div>
                     </div>
 
                     {/* Individual lines */}
-                    <div className="divide-y divide-slate-50">
+                    <div className="divide-y divide-slate-50 dark:divide-slate-800">
                       {s.lines.map((l, i) => {
                         const balance = l.amountDue - l.amountPaid;
                         return (
                           <div key={i} className="px-5 py-2.5 flex items-center gap-3 pl-8">
-                            <div className="w-px self-stretch bg-slate-100 shrink-0 ml-1" />
+                            <div className="w-px self-stretch bg-slate-100 dark:bg-slate-800 shrink-0 ml-1" />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-sm text-slate-700 font-medium">{l.label}</span>
+                                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">{l.label}</span>
                                 {l.type === "charge" && (
                                   <span className="text-[10px] font-bold bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full leading-none">charge</span>
                                 )}
@@ -646,7 +649,7 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
                               )}
                             </div>
                             <div className="text-right shrink-0 flex items-center gap-2">
-                              <span className="font-bold text-slate-800 text-sm">{fmt(l.amount)}</span>
+                              <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{fmt(l.amount)}</span>
                               {l.status === "PAID"    && <span className="text-emerald-500 text-xs font-bold">✓</span>}
                               {l.status === "PARTIAL" && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">partial</span>}
                             </div>
@@ -665,32 +668,32 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
         {/* ── OPEN BILLS ──────────────────────────────────────────────────── */}
         {visibleBills.length > 0 && (
           <div>
-            <div className="px-5 py-3 flex items-center gap-2.5 bg-amber-50/60 border-b border-amber-100/60">
+            <div className="px-5 py-3 flex items-center gap-2.5 bg-amber-50/60 dark:bg-amber-500/10 border-b border-amber-100/60 dark:border-amber-500/20">
               <AlertCircle size={14} className="text-amber-500 shrink-0" />
-              <p className="text-sm font-bold text-amber-700">
+              <p className="text-sm font-bold text-amber-700 dark:text-amber-400">
                 Open Bills
-                <span className="ml-2 bg-amber-200 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">
+                <span className="ml-2 bg-amber-200 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-bold px-2 py-0.5 rounded-full">
                   {visibleBills.length}
                 </span>
               </p>
             </div>
 
-            <div className="divide-y divide-slate-50">
+            <div className="divide-y divide-slate-50 dark:divide-slate-800">
               {pagedBills.map(b => {
                 const balance  = b.amountDue - b.amountPaid;
                 const colorCls = STATUS_COLOR[b.status] ?? "text-slate-600 bg-slate-50 border-slate-200";
                 return (
                   <div key={`${b.type}-${b.id}`}
-                    className={`px-5 py-3.5 flex items-center gap-4 transition-colors hover:bg-slate-50/50 ${b.status === "OVERDUE" ? "border-l-2 border-rose-400" : ""}`}>
+                    className={`px-5 py-3.5 flex items-center gap-4 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50 ${b.status === "OVERDUE" ? "border-l-2 border-rose-400" : ""}`}>
                     <div className="flex items-center gap-2.5 flex-1 min-w-0">
                       {!tenant && <TenantAvatar name={b.tenantName} size="sm" />}
                       <div className="min-w-0">
-                        {!tenant && <p className="text-xs font-bold text-slate-700 truncate">{b.tenantName}</p>}
-                        <p className={`text-sm font-semibold text-slate-800 truncate ${tenant ? "" : "mt-0.5"}`}>{b.label}</p>
+                        {!tenant && <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{b.tenantName}</p>}
+                        <p className={`text-sm font-semibold text-slate-800 dark:text-slate-200 truncate ${tenant ? "" : "mt-0.5"}`}>{b.label}</p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-base font-black text-slate-900">{fmt(balance)}</p>
+                      <p className="text-base font-black text-slate-900 dark:text-white">{fmt(balance)}</p>
                       {b.amountPaid > 0 && <p className="text-xs text-slate-400">{fmt(b.amountPaid)} paid</p>}
                     </div>
                     <span className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shrink-0 ${colorCls}`}>
@@ -732,9 +735,9 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
 
         {/* All caught up */}
         {visibleBills.length === 0 && visibleSessions.length > 0 && (
-          <div className="px-5 py-4 flex items-center gap-2.5 bg-emerald-50/40">
+          <div className="px-5 py-4 flex items-center gap-2.5 bg-emerald-50/40 dark:bg-emerald-500/10">
             <CheckCircle2 size={16} className="text-emerald-500" />
-            <p className="text-sm font-semibold text-emerald-700">
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
               {tenant ? `${tenant} has no outstanding bills` : "No outstanding bills"} ✓
             </p>
           </div>

@@ -9,8 +9,8 @@ export async function POST(req: Request) {
   if (typeof phone !== "string" || typeof otp !== "string" || typeof newPassword !== "string") {
     return NextResponse.json({ error: "Phone number, code, and new password are required" }, { status: 400 });
   }
-  if (newPassword.length < 6) {
-    return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+  if (newPassword.length < 8) {
+    return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
   }
 
   const user = await prisma.user.findUnique({ where: { phone } });

@@ -1,0 +1,56 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e4]:
+      - generic [ref=e6]:
+        - img [ref=e8]
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: EasyRent
+          - paragraph [ref=e16]: Loading…
+      - paragraph [ref=e18]: Navigation
+      - navigation [ref=e19]:
+        - link "Dashboard" [ref=e20] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e21]
+          - generic [ref=e26]: Dashboard
+        - link "Rooms" [ref=e27] [cursor=pointer]:
+          - /url: /rooms
+          - img [ref=e28]
+          - generic [ref=e31]: Rooms
+        - link "Tenants" [ref=e32] [cursor=pointer]:
+          - /url: /tenants
+          - img [ref=e33]
+          - generic [ref=e38]: Tenants
+        - link "Payments" [ref=e39] [cursor=pointer]:
+          - /url: /payments
+          - img [ref=e40]
+          - generic [ref=e42]: Payments
+        - link "Expenses" [ref=e43] [cursor=pointer]:
+          - /url: /expenses
+          - img [ref=e44]
+          - generic [ref=e46]: Expenses
+        - link "Reports" [ref=e47] [cursor=pointer]:
+          - /url: /reports
+          - img [ref=e48]
+          - generic [ref=e50]: Reports
+        - link "Settings" [ref=e51] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e52]
+          - generic [ref=e55]: Settings
+        - generic [ref=e57]:
+          - generic [ref=e61]: BETA
+          - generic [ref=e62]: Free access
+      - generic [ref=e64]:
+        - button "Sign out" [ref=e65]:
+          - img [ref=e66]
+          - generic [ref=e69]: Sign out
+        - paragraph [ref=e70]: © 2026 Rent Manager
+    - main [ref=e71]:
+      - generic [ref=e74]:
+        - img [ref=e76]
+        - heading "Page not found" [level=1] [ref=e79]
+        - paragraph [ref=e80]: The page you're looking for doesn't exist or has been moved.
+        - link "Go to dashboard" [ref=e81] [cursor=pointer]:
+          - /url: /dashboard
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e87] [cursor=pointer]:
+    - img [ref=e88]

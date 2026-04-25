@@ -14,7 +14,7 @@ export async function GET(req: Request, { params }: Params) {
     ?? req.headers.get("x-real-ip")
     ?? "unknown";
 
-  if (!checkRateLimit(`portal_token_${ip}`, 10, 5 * 60 * 1000)) {
+  if (!checkRateLimit(`portal_token_${ip}`, 3, 15 * 60 * 1000)) {
     return NextResponse.redirect(new URL("/portal?error=invalid", req.url));
   }
 

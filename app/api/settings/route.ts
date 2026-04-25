@@ -29,6 +29,13 @@ const ALLOWED_SETTING_KEYS = new Set([
   "auto_reminders_enabled",
   "reminder_hour",
   "reminder_last_run",
+  // Electricity
+  "electricityRate",
+  // Online payment methods
+  "esewaId",
+  "khaltiId",
+  "fonepayId",
+  "paymentNote",
 ]);
 
 export async function PUT(request: Request) {

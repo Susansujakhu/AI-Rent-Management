@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   const updates: { passwordHash?: string; email?: string } = {};
 
   if (typeof newPassword === "string" && newPassword) {
-    if (newPassword.length < 6) return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+    if (newPassword.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
     updates.passwordHash = await bcrypt.hash(newPassword, 12);
   }
 

@@ -51,7 +51,7 @@ export default async function RoomsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-slate-900">Rooms</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Rooms</h1>
           <p className="text-sm text-slate-500 mt-0.5">
             <span className="text-emerald-600 font-medium">{occupied} occupied</span>
             <span className="mx-1.5 text-slate-300">·</span>
@@ -59,7 +59,7 @@ export default async function RoomsPage() {
           </p>
           {rooms.length > 0 && (
             <div className="mt-2.5 flex items-center gap-2.5">
-              <div className="flex-1 max-w-[160px] h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="flex-1 max-w-[160px] h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all"
                   style={{ width: `${occupancyPct}%` }}
@@ -81,11 +81,11 @@ export default async function RoomsPage() {
       </div>
 
       {rooms.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-100 p-16 text-center shadow-sm">
-          <div className="w-14 h-14 bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-100">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-16 text-center shadow-sm">
+          <div className="w-14 h-14 bg-gradient-to-br from-indigo-50 dark:from-indigo-500/15 to-violet-50 dark:to-violet-500/15 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-100 dark:border-indigo-500/20">
             <Building2 size={24} className="text-indigo-400" />
           </div>
-          <p className="text-slate-700 font-semibold text-sm">No rooms yet</p>
+          <p className="text-slate-700 dark:text-slate-300 font-semibold text-sm">No rooms yet</p>
           <p className="text-slate-400 text-xs mt-1 mb-4">Add your first room to get started</p>
           <Link
             href="/rooms/new"
@@ -106,14 +106,14 @@ export default async function RoomsPage() {
               <Link
                 key={room.id}
                 href={`/rooms/${room.id}`}
-                className="group bg-white rounded-2xl border border-slate-100 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-50/60 transition-all overflow-hidden block"
+                className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-700 hover:shadow-lg hover:shadow-indigo-50/60 transition-all overflow-hidden block"
               >
                 {/* Colored top border */}
                 <div className={`h-1 w-full bg-gradient-to-r ${accent}`} />
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h2 className="font-bold text-slate-900 text-base group-hover:text-indigo-700 transition-colors leading-tight">
+                      <h2 className="font-bold text-slate-900 dark:text-white text-base group-hover:text-indigo-700 transition-colors leading-tight">
                         {room.name}
                       </h2>
                       {room.floor && (
@@ -123,18 +123,18 @@ export default async function RoomsPage() {
                         </p>
                       )}
                     </div>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
                       Occupied
                     </span>
                   </div>
 
-                  <p className="text-3xl font-bold text-slate-900 tracking-tight">
+                  <p className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                     {fmt(room.monthlyRent)}
                     <span className="text-sm font-normal text-slate-400 ml-1">/mo</span>
                   </p>
 
-                  <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
+                  <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div
                         className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm bg-gradient-to-br ${accent} text-white shadow-sm`}
@@ -142,7 +142,7 @@ export default async function RoomsPage() {
                         {activeTenant.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-800">{activeTenant.name}</p>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{activeTenant.name}</p>
                         {activeTenant.phone && (
                           <p className="text-xs text-slate-400">{activeTenant.phone}</p>
                         )}
@@ -159,12 +159,12 @@ export default async function RoomsPage() {
               <Link
                 key={room.id}
                 href={`/rooms/${room.id}`}
-                className="group bg-white rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all overflow-hidden block"
+                className="group bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50/30 dark:hover:bg-indigo-500/10 transition-all overflow-hidden block"
               >
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h2 className="font-bold text-slate-700 text-base group-hover:text-indigo-700 transition-colors leading-tight">
+                      <h2 className="font-bold text-slate-700 dark:text-slate-300 text-base group-hover:text-indigo-700 transition-colors leading-tight">
                         {room.name}
                       </h2>
                       {room.floor && (
@@ -174,19 +174,19 @@ export default async function RoomsPage() {
                         </p>
                       )}
                     </div>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
                       <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block" />
                       Vacant
                     </span>
                   </div>
 
-                  <p className="text-3xl font-bold text-slate-500 tracking-tight">
+                  <p className="text-3xl font-bold text-slate-500 dark:text-slate-400 tracking-tight">
                     {fmt(room.monthlyRent)}
                     <span className="text-sm font-normal text-slate-400 ml-1">/mo</span>
                   </p>
 
-                  <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2 text-slate-400">
-                    <div className="w-8 h-8 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center">
+                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-slate-400">
+                    <div className="w-8 h-8 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-600 flex items-center justify-center">
                       <Users size={13} />
                     </div>
                     <span className="text-xs font-medium">No tenant assigned</span>

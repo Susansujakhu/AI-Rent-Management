@@ -24,8 +24,8 @@ export async function POST(req: Request) {
   if (typeof password !== "string" || !password) {
     return NextResponse.json({ error: "Password is required" }, { status: 400 });
   }
-  if (password.length < 6) {
-    return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+  if (password.length < 8) {
+    return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
   }
   if (typeof phone !== "string" || !phone.trim()) {
     return NextResponse.json({ error: "Contact number is required" }, { status: 400 });
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
   const passwordHash  = await bcrypt.hash(password, 12);
   const sessionToken  = randomBytes(32).toString("hex");
-  const expiresAt     = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
+  const expiresAt     = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
 
   // Mark OTP used + create user in one transaction
   const [, user] = await prisma.$transaction([
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
     secure:   process.env.NODE_ENV === "production",
     sameSite: "lax",
     path:     "/",
-    maxAge:   60 * 60 * 24 * 30,
+    maxAge:   60 * 60 * 24 * 7,
   });
   return res;
 }

@@ -25,8 +25,17 @@ export async function POST(req: Request) {
   if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
   }
+  if (body.name.trim().length > 255) {
+    return NextResponse.json({ error: "name must be 255 characters or fewer" }, { status: 400 });
+  }
   if (!body.phone || typeof body.phone !== "string" || !body.phone.trim()) {
     return NextResponse.json({ error: "phone is required" }, { status: 400 });
+  }
+  if (body.phone.trim().length > 20) {
+    return NextResponse.json({ error: "phone must be 20 characters or fewer" }, { status: 400 });
+  }
+  if (body.notes && typeof body.notes === "string" && body.notes.length > 5000) {
+    return NextResponse.json({ error: "notes must be 5000 characters or fewer" }, { status: 400 });
   }
   if (!body.moveInDate || isNaN(new Date(body.moveInDate).getTime())) {
     return NextResponse.json({ error: "moveInDate must be a valid date" }, { status: 400 });

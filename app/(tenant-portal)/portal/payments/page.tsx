@@ -6,7 +6,9 @@ import { formatCurrency, formatDate, formatRentalPeriod } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
 import { PortalShell } from "../_components/portal-shell";
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { FileText, QrCode } from "lucide-react";
+import { existsSync } from "fs";
+import { join } from "path";
 
 const STATUS_STYLES: Record<string, string> = {
   PAID:    "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -18,7 +20,20 @@ const STATUS_STYLES: Record<string, string> = {
 export default async function PortalPaymentsPage() {
   const session  = await requireTenantPage();
   const tenant   = session.tenant;
-  const settings = await getSettings(tenant.userId);
+  const settings     = await getSettings(tenant.userId);
+  const allSettings  = await prisma.setting.findMany({ where: { userId: tenant.userId } });
+  const settingsMap: Record<string, string> = {};
+  for (const r of allSettings) settingsMap[r.key] = r.value;
+
+  const esewaId    = settingsMap["esewaId"]    || null;
+  const khaltiId   = settingsMap["khaltiId"]   || null;
+  const fonepayId  = settingsMap["fonepayId"]  || null;
+  const paymentNote = settingsMap["paymentNote"] || null;
+
+  const QR_DIR = join(process.cwd(), "storage", "payment-qr");
+  const esewaQR   = existsSync(join(QR_DIR, `${tenant.userId}-esewa.png`));
+  const khaltiQR  = existsSync(join(QR_DIR, `${tenant.userId}-khalti.png`));
+  const fonepayQR = existsSync(join(QR_DIR, `${tenant.userId}-fonepay.png`));
   const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -69,6 +84,53 @@ export default async function PortalPaymentsPage() {
             <p className="text-xs text-rose-600 font-medium">{overdueCount} overdue month{overdueCount > 1 ? "s" : ""}</p>
           )}
         </div>
+
+        {/* Pay Online section */}
+        {(esewaQR || khaltiQR || fonepayQR || esewaId || khaltiId || fonepayId) && (
+          <div className="bg-white rounded-2xl border border-teal-100 overflow-hidden">
+            <div className="px-4 py-3.5 border-b border-teal-50 flex items-center gap-2">
+              <QrCode size={15} className="text-teal-600" />
+              <h2 className="text-sm font-bold text-slate-800">Pay Online</h2>
+            </div>
+            <div className="px-4 py-4 space-y-4">
+              <div className="flex flex-wrap gap-6 justify-center sm:justify-start">
+                {(esewaQR || esewaId) && (
+                  <div className="text-center">
+                    {esewaQR && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/api/portal/payment-qr?type=esewa" alt="eSewa QR" className="w-28 h-28 rounded-xl border border-slate-100 mx-auto object-contain" />
+                    )}
+                    <p className="text-xs font-bold text-emerald-700 mt-1.5">eSewa</p>
+                    {esewaId && <p className="text-[11px] text-slate-400">{esewaId}</p>}
+                  </div>
+                )}
+                {(khaltiQR || khaltiId) && (
+                  <div className="text-center">
+                    {khaltiQR && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/api/portal/payment-qr?type=khalti" alt="Khalti QR" className="w-28 h-28 rounded-xl border border-slate-100 mx-auto object-contain" />
+                    )}
+                    <p className="text-xs font-bold text-violet-700 mt-1.5">Khalti</p>
+                    {khaltiId && <p className="text-[11px] text-slate-400">{khaltiId}</p>}
+                  </div>
+                )}
+                {(fonepayQR || fonepayId) && (
+                  <div className="text-center">
+                    {fonepayQR && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/api/portal/payment-qr?type=fonepay" alt="FonePay QR" className="w-28 h-28 rounded-xl border border-slate-100 mx-auto object-contain" />
+                    )}
+                    <p className="text-xs font-bold text-blue-700 mt-1.5">FonePay</p>
+                    {fonepayId && <p className="text-[11px] text-slate-400">{fonepayId}</p>}
+                  </div>
+                )}
+              </div>
+              {paymentNote && (
+                <p className="text-xs text-slate-500 bg-slate-50 rounded-xl px-3 py-2.5 leading-relaxed">{paymentNote}</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Payment list */}
         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">

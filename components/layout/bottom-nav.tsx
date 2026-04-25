@@ -2,20 +2,22 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Receipt, MoreHorizontal, DoorOpen, BarChart3, Settings, X, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Receipt, MoreHorizontal, DoorOpen, Hammer, Zap, BarChart3, Settings, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const primary = [
-  { href: "/",         label: "Home",     icon: LayoutDashboard },
+  { href: "/dashboard", label: "Home",     icon: LayoutDashboard },
   { href: "/tenants",  label: "Tenants",  icon: Users },
   { href: "/payments", label: "Payments", icon: CreditCard },
   { href: "/expenses", label: "Expenses", icon: Receipt },
 ];
 
 const secondary = [
-  { href: "/rooms",    label: "Rooms",    icon: DoorOpen },
-  { href: "/reports",  label: "Reports",  icon: BarChart3 },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/rooms",        label: "Rooms",        icon: DoorOpen },
+  { href: "/electricity",  label: "Electricity",  icon: Zap },
+  { href: "/maintenance",  label: "Maintenance",  icon: Hammer },
+  { href: "/reports",      label: "Reports",      icon: BarChart3 },
+  { href: "/settings",     label: "Settings",     icon: Settings },
 ];
 
 export function BottomNav() {
@@ -45,13 +47,13 @@ export function BottomNav() {
           />
 
           {/* Drawer panel */}
-          <div className="fixed bottom-[72px] left-3 right-3 z-50 md:hidden bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/15 border border-slate-200/80 overflow-hidden animate-scale-in">
+          <div className="fixed bottom-[72px] left-3 right-3 z-50 md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/15 border border-slate-200/80 dark:border-slate-800 overflow-hidden animate-scale-in">
             {/* Drawer header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">More</p>
               <button
                 onClick={() => setOpen(false)}
-                className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"
+                className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
               >
                 <X size={12} className="text-slate-500" />
               </button>
@@ -65,9 +67,9 @@ export function BottomNav() {
                   <Link key={href} href={href} onClick={() => setOpen(false)}
                     className={cn(
                       "flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium transition-all duration-150",
-                      active ? "bg-indigo-50 text-indigo-600" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+                      active ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200"
                     )}>
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", active ? "bg-indigo-100" : "bg-slate-100")}>
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", active ? "bg-indigo-100 dark:bg-indigo-500/20" : "bg-slate-100 dark:bg-slate-700")}>
                       <Icon size={16} className={active ? "text-indigo-600" : "text-slate-500"} />
                     </div>
                     {label}
@@ -76,21 +78,21 @@ export function BottomNav() {
               })}
 
               {/* Beta badge */}
-              <div className="flex items-center gap-3.5 px-3.5 py-3 rounded-xl bg-violet-50 border border-violet-100">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-violet-100">
+              <div className="flex items-center gap-3.5 px-3.5 py-3 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-violet-100 dark:bg-violet-500/20">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-violet-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" />
                   </span>
                 </div>
-                <span className="text-sm font-bold text-violet-600 tracking-wide">BETA</span>
+                <span className="text-sm font-bold text-violet-600 dark:text-violet-400 tracking-wide">BETA</span>
                 <span className="text-xs text-violet-400 ml-auto">Free access</span>
               </div>
 
               {/* Sign out */}
               <button onClick={handleLogout}
-                className="flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium w-full text-rose-500 hover:bg-rose-50 transition-all duration-150">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50">
+                className="flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium w-full text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all duration-150">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 dark:bg-rose-500/15">
                   <LogOut size={16} className="text-rose-500" />
                 </div>
                 Sign out
@@ -105,11 +107,11 @@ export function BottomNav() {
         {/* Top gradient border */}
         <div className="h-px bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent" />
 
-        <div className="bg-white/90 backdrop-blur-xl shadow-[0_-8px_32px_rgba(0,0,0,0.08)]">
+        <div className="bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl shadow-[0_-8px_32px_rgba(0,0,0,0.08)]">
           <div className="flex items-stretch h-[68px] px-1">
 
             {primary.map(({ href, label, icon: Icon }) => {
-              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              const active = href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
               return (
                 <Link
                   key={href}
@@ -122,7 +124,7 @@ export function BottomNav() {
                     "flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200",
                     active
                       ? "bg-indigo-600 shadow-md shadow-indigo-500/30"
-                      : "hover:bg-slate-100"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800"
                   )}>
                     <Icon
                       size={20}
@@ -151,7 +153,7 @@ export function BottomNav() {
                 "flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200",
                 isSecondaryActive || open
                   ? "bg-indigo-600 shadow-md shadow-indigo-500/30"
-                  : "hover:bg-slate-100"
+                  : "hover:bg-slate-100 dark:hover:bg-slate-800"
               )}>
                 <MoreHorizontal
                   size={20}

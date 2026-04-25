@@ -1,0 +1,47 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - link "Back to home" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e4]
+      - text: Back to home
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img [ref=e11]
+        - heading "EasyRent" [level=1] [ref=e17]
+        - paragraph [ref=e18]: Sign in to your workspace
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: Phone Number
+          - generic [ref=e22]:
+            - combobox [ref=e23] [cursor=pointer]:
+              - option "+977" [selected]
+              - option "+91"
+              - option "+1"
+              - option "+44"
+              - option "+61"
+              - option "+971"
+              - option "+974"
+              - option "+966"
+              - option "+65"
+              - option "+60"
+              - option "+63"
+              - option "+49"
+              - option "+81"
+              - option "+82"
+              - option "+86"
+            - textbox "9866XXXXXX" [active] [ref=e24]
+        - generic [ref=e25]:
+          - generic [ref=e26]: Password
+          - generic [ref=e27]:
+            - textbox "Enter your password" [ref=e28]
+            - button [ref=e29]:
+              - img [ref=e30]
+        - button "Sign in" [ref=e33]
+      - generic [ref=e34]:
+        - link "Forgot password?" [ref=e35] [cursor=pointer]:
+          - /url: /forgot-password
+        - generic [ref=e36]: ·
+        - link "Create account" [ref=e37] [cursor=pointer]:
+          - /url: /signup
+  - region "Notifications alt+T"
+  - alert [ref=e38]

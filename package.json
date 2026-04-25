@@ -46,7 +46,6 @@
     "recharts": "^3.8.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
-    "whatsapp-web.js": "^1.34.6",
     "zod": "^3.25.76"
   },
   "devDependencies": {

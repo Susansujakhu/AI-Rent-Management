@@ -247,7 +247,7 @@ export default async function PaymentsPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Payments</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Payments</h1>
           <p className="text-sm text-slate-500 mt-0.5">{sessions.length} payment record{sessions.length !== 1 ? "s" : ""}</p>
         </div>
         <GeneratePaymentsButton />

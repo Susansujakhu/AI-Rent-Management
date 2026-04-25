@@ -63,3 +63,9 @@ export.sql
 
 # Prisma schema backup created by setup.mjs during MySQL switch
 prisma/schema.sqlite.prisma
+
+# Video production assets (scripts, storyboards, raw footage — not for deployment)
+/video-assets/
+
+# Tenant document uploads (uploaded at runtime — must exist on server but not in git)
+/storage/

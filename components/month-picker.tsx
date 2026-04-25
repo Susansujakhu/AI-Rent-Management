@@ -55,7 +55,7 @@ export function MonthPicker({ months, selected, currentMonth }: {
 
   const select = (m: string) => {
     setOpen(false);
-    router.push(m === currentMonth ? "/" : `/?month=${m}`);
+    router.push(m === currentMonth ? "/dashboard" : `/dashboard?month=${m}`);
   };
 
   // Min year in available months

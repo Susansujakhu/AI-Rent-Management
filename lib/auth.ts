@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { prisma } from "./prisma";
 
-const SESSION_DURATION_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
-const SESSION_RENEW_BEFORE = 7  * 24 * 60 * 60 * 1000; // renew when < 7 days remain
+const SESSION_DURATION_MS  = 7 * 24 * 60 * 60 * 1000; // 7 days
+const SESSION_RENEW_BEFORE = 1 * 24 * 60 * 60 * 1000; // renew when < 1 day remains
 
 export type AuthUser = {
   id:            string;

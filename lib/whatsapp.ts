@@ -125,7 +125,8 @@ export async function initWhatsApp(key: string): Promise<void> {
 
       if (connection === "close") {
         const code = (lastDisconnect?.error as Boom)?.output?.statusCode;
-        const loggedOut = code === DisconnectReason.loggedOut;
+        const loggedOut          = code === DisconnectReason.loggedOut;
+        const connectionReplaced = code === DisconnectReason.connectionReplaced; // 440
 
         s.status  = "disconnected";
         s.qr      = null;
@@ -134,11 +135,13 @@ export async function initWhatsApp(key: string): Promise<void> {
         s.socket  = undefined;
         g._waSessions.delete(key);
 
-        if (loggedOut) {
-          // Phone removed the linked device — wipe stale credentials and show QR
-          console.log(`[whatsapp:${key}] Logged out — clearing credentials, will show QR`);
+        if (loggedOut || connectionReplaced) {
+          // loggedOut: phone removed the linked device
+          // connectionReplaced (440): another client connected with same credentials — auto-retry would cause a reconnect loop
+          // In both cases, wipe credentials and wait for a manual reconnect via the admin UI
+          console.log(`[whatsapp:${key}] ${connectionReplaced ? "Connection replaced (440) — another session took over" : "Logged out"} — clearing credentials`);
           try { fs.rmSync(path.join(AUTH_BASE, key), { recursive: true, force: true }); } catch { /* ignore */ }
-          setTimeout(() => initWhatsApp(key).catch(console.error), 2000);
+          // No auto-reconnect: admin must click "Connect" again in the settings UI
         } else {
           console.log(`[whatsapp:${key}] Reconnecting in 5s (code ${code})…`);
           setTimeout(() => initWhatsApp(key).catch(console.error), 5000);

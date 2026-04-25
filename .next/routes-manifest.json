@@ -37,6 +37,14 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
         }
       ],
       "regex": "^(?:/(.*))(?:/)?$"
@@ -71,6 +79,22 @@
         "nxtPid": "nxtPid"
       },
       "namedRegex": "^/api/expenses/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/maintenance/[id]",
+      "regex": "^/api/maintenance/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/maintenance/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/meter-readings/[id]",
+      "regex": "^/api/meter\\-readings/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/meter\\-readings/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
       "page": "/api/one-time-charges/[id]",
@@ -144,6 +168,23 @@
         "nxtPid": "nxtPid"
       },
       "namedRegex": "^/api/tenants/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/tenants/[id]/documents",
+      "regex": "^/api/tenants/([^/]+?)/documents(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/tenants/(?<nxtPid>[^/]+?)/documents(?:/)?$"
+    },
+    {
+      "page": "/api/tenants/[id]/documents/[docId]",
+      "regex": "^/api/tenants/([^/]+?)/documents/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid",
+        "nxtPdocId": "nxtPdocId"
+      },
+      "namedRegex": "^/api/tenants/(?<nxtPid>[^/]+?)/documents/(?<nxtPdocId>[^/]+?)(?:/)?$"
     },
     {
       "page": "/api/tenants/[id]/portal",
@@ -385,6 +426,18 @@
       "namedRegex": "^/api/health(?:/)?$"
     },
     {
+      "page": "/api/maintenance",
+      "regex": "^/api/maintenance(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/maintenance(?:/)?$"
+    },
+    {
+      "page": "/api/meter-readings",
+      "regex": "^/api/meter\\-readings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/meter\\-readings(?:/)?$"
+    },
+    {
       "page": "/api/one-time-charges",
       "regex": "^/api/one\\-time\\-charges(?:/)?$",
       "routeKeys": {},
@@ -427,10 +480,22 @@
       "namedRegex": "^/api/portal/logout(?:/)?$"
     },
     {
+      "page": "/api/portal/maintenance",
+      "regex": "^/api/portal/maintenance(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/portal/maintenance(?:/)?$"
+    },
+    {
       "page": "/api/portal/me",
       "regex": "^/api/portal/me(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/portal/me(?:/)?$"
+    },
+    {
+      "page": "/api/portal/payment-qr",
+      "regex": "^/api/portal/payment\\-qr(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/portal/payment\\-qr(?:/)?$"
     },
     {
       "page": "/api/portal/payments",
@@ -455,6 +520,12 @@
       "regex": "^/api/settings(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/settings(?:/)?$"
+    },
+    {
+      "page": "/api/settings/payment-qr",
+      "regex": "^/api/settings/payment\\-qr(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/settings/payment\\-qr(?:/)?$"
     },
     {
       "page": "/api/tenants",
@@ -487,6 +558,24 @@
       "namedRegex": "^/api/whatsapp/status(?:/)?$"
     },
     {
+      "page": "/apple-icon",
+      "regex": "^/apple\\-icon(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/apple\\-icon(?:/)?$"
+    },
+    {
+      "page": "/dashboard",
+      "regex": "^/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard(?:/)?$"
+    },
+    {
+      "page": "/electricity",
+      "regex": "^/electricity(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/electricity(?:/)?$"
+    },
+    {
       "page": "/expenses",
       "regex": "^/expenses(?:/)?$",
       "routeKeys": {},
@@ -511,10 +600,28 @@
       "namedRegex": "^/forgot\\-password(?:/)?$"
     },
     {
+      "page": "/icon",
+      "regex": "^/icon(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/icon(?:/)?$"
+    },
+    {
       "page": "/login",
       "regex": "^/login(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/maintenance",
+      "regex": "^/maintenance(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/maintenance(?:/)?$"
+    },
+    {
+      "page": "/opengraph-image",
+      "regex": "^/opengraph\\-image(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/opengraph\\-image(?:/)?$"
     },
     {
       "page": "/payments",
@@ -539,6 +646,12 @@
       "regex": "^/portal/dashboard(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/portal/dashboard(?:/)?$"
+    },
+    {
+      "page": "/portal/maintenance",
+      "regex": "^/portal/maintenance(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/maintenance(?:/)?$"
     },
     {
       "page": "/portal/payments",

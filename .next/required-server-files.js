@@ -293,7 +293,6 @@ self.__SERVER_FILES_MANIFEST={
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
     "serverExternalPackages": [
-      "whatsapp-web.js",
       "puppeteer",
       "puppeteer-core",
       "qrcode",

@@ -244,3 +244,112 @@ body {
 .progress-fill {
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ─── Float ──────────────────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+.animate-float   { animation: float 4s ease-in-out infinite; }
+.animate-float-2 { animation: float 5.5s ease-in-out infinite; animation-delay: -1.8s; }
+.animate-float-3 { animation: float 4.8s ease-in-out infinite; animation-delay: -3.1s; }
+
+/* ─── Ticker / marquee ───────────────────────────────────── */
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.animate-ticker       { animation: ticker 32s linear infinite; }
+.animate-ticker:hover { animation-play-state: paused; }
+
+/* ─── Animated gradient text ─────────────────────────────── */
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+.animate-gradient-text {
+  background-size: 300% 300%;
+  animation: gradientShift 5s ease-in-out infinite;
+}
+
+/* ─── Dot grid background ────────────────────────────────── */
+.bg-dot-grid {
+  background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ─── Card hover shine ───────────────────────────────────── */
+@keyframes cardShine {
+  from { left: -100%; }
+  to   { left: 200%;  }
+}
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+.card-shine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+.card-shine:hover::before {
+  animation: cardShine 0.55s ease-out forwards;
+}
+
+/* ─── Pulse ring ─────────────────────────────────────────── */
+@keyframes pulseRing {
+  0%    { transform: scale(1);   opacity: 0.6; }
+  100%  { transform: scale(2.2); opacity: 0;   }
+}
+.animate-pulse-ring {
+  animation: pulseRing 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* ─── Animated underline grow ───────────────────────────── */
+@keyframes underline-grow {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+.animate-underline-grow {
+  animation: underline-grow 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+
+/* ─── Count up number (via CSS counter trick) ────────────── */
+@keyframes fade-scale-in {
+  from { opacity: 0; transform: scale(0.85) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-count-in {
+  animation: fade-scale-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.stagger-6 { animation-delay: 300ms; }
+.stagger-7 { animation-delay: 400ms; }
+
+/* ─── Light dot grid (for light pages) ──────────────────── */
+.bg-dot-grid-light {
+  background-image: radial-gradient(rgba(0,0,0,0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ─── Scroll-triggered reveal (modern browsers) ──────────── */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+@supports (animation-timeline: scroll()) {
+  .scroll-reveal {
+    opacity: 0;
+    animation: reveal-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 28%;
+  }
+  .scroll-reveal-delay-1 { animation-delay: 60ms;  }
+  .scroll-reveal-delay-2 { animation-delay: 120ms; }
+  .scroll-reveal-delay-3 { animation-delay: 180ms; }
+}

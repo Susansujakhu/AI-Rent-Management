@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Users } from "lucide-react";
+import { Users, Paperclip, X, FileText, Image } from "lucide-react";
 
 type Room = { id: string; name: string; floor: string | null; monthlyRent: number; tenants: { id: string }[] };
 type FormData = { name: string; phone: string; email: string; roomId: string; moveInDate: string; deposit: number; notes: string };
@@ -14,11 +14,22 @@ const field = "w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm f
 const label = "block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5";
 const err   = "text-rose-500 text-xs mt-1.5";
 
+function fileIcon(mime: string) {
+  if (mime.startsWith("image/")) return <Image size={13} className="text-blue-500" />;
+  return <FileText size={13} className="text-slate-400" />;
+}
+function fmtSize(bytes: number) {
+  return bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 function NewTenantForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedRoomId = searchParams.get("roomId") ?? "";
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     defaultValues: { deposit: 0, roomId: preselectedRoomId },
@@ -28,16 +39,46 @@ function NewTenantForm() {
     fetch("/api/rooms").then(r => r.json()).then((data: Room[]) => setRooms(data.filter(r => r.tenants.length === 0)));
   }, []);
 
+  const addFiles = (files: FileList | null) => {
+    if (!files) return;
+    const next = Array.from(files).filter(f => f.size <= 10 * 1024 * 1024);
+    const oversized = Array.from(files).filter(f => f.size > 10 * 1024 * 1024);
+    if (oversized.length) toast.error(`${oversized.length} file(s) skipped — max 10 MB each`);
+    setPendingFiles(prev => {
+      const names = new Set(prev.map(f => f.name));
+      return [...prev, ...next.filter(f => !names.has(f.name))];
+    });
+  };
+
+  const removeFile = (name: string) => setPendingFiles(prev => prev.filter(f => f.name !== name));
+
   const onSubmit = async (data: FormData) => {
     try {
       const res  = await fetch("/api/tenants", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      const body = await res.json().catch(() => ({})) as { error?: string; upgrade?: boolean };
+      const body = await res.json().catch(() => ({})) as { id?: string; error?: string; upgrade?: boolean };
       if (!res.ok) {
         if (body.upgrade) { toast.error(`Pro required — ${body.error}`); return; }
         throw new Error(body.error ?? "Failed to add tenant");
       }
+
+      const tenantId = body.id!;
+
+      if (pendingFiles.length > 0) {
+        setUploading(true);
+        const results = await Promise.allSettled(
+          pendingFiles.map(file => {
+            const form = new FormData();
+            form.append("file", file);
+            return fetch(`/api/tenants/${tenantId}/documents`, { method: "POST", body: form });
+          })
+        );
+        const failed = results.filter(r => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok)).length;
+        if (failed > 0) toast.error(`${failed} file(s) failed to upload`);
+        setUploading(false);
+      }
+
       toast.success("Tenant added successfully");
-      router.push("/tenants");
+      router.push(`/tenants/${tenantId}`);
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Failed to add tenant"); }
   };
 
@@ -104,10 +145,45 @@ function NewTenantForm() {
           <textarea {...register("notes")} rows={3} className={`${field} resize-none`} placeholder="Any additional notes..." />
         </div>
 
+        {/* Document uploads */}
+        <div>
+          <label className={label}>Documents <span className="normal-case font-normal text-slate-400">lease, ID, citizenship… (optional)</span></label>
+          <div
+            className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition-all"
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
+          >
+            <Paperclip size={18} className="mx-auto text-slate-300 mb-1.5" />
+            <p className="text-xs text-slate-400">Click to choose files or drag & drop</p>
+            <p className="text-[11px] text-slate-300 mt-0.5">PDF, images, Word, Excel — max 10 MB each</p>
+            <input
+              ref={fileInputRef} type="file" multiple className="hidden"
+              accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,image/*,application/pdf"
+              onChange={e => addFiles(e.target.files)}
+            />
+          </div>
+
+          {pendingFiles.length > 0 && (
+            <ul className="mt-2 space-y-1.5">
+              {pendingFiles.map(f => (
+                <li key={f.name} className="flex items-center gap-2.5 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl">
+                  {fileIcon(f.type)}
+                  <span className="flex-1 text-xs text-slate-700 truncate font-medium">{f.name}</span>
+                  <span className="text-[11px] text-slate-400 shrink-0">{fmtSize(f.size)}</span>
+                  <button type="button" onClick={() => removeFile(f.name)} className="shrink-0 text-slate-300 hover:text-rose-400 transition-colors">
+                    <X size={13} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div className="flex gap-3 pt-1">
-          <button type="submit" disabled={isSubmitting}
+          <button type="submit" disabled={isSubmitting || uploading}
             className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-200">
-            {isSubmitting ? "Adding..." : "Add Tenant"}
+            {uploading ? "Uploading files…" : isSubmitting ? "Adding…" : pendingFiles.length > 0 ? `Add Tenant & Upload ${pendingFiles.length} File${pendingFiles.length > 1 ? "s" : ""}` : "Add Tenant"}
           </button>
           <Link href="/tenants" className="flex-1 text-center border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
             Cancel

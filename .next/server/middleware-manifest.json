@@ -13,12 +13,16 @@
         {
           "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/portal(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json)?[\\/#\\?]?$",
           "originalSource": "/portal/:path*"
+        },
+        {
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/api(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json)?[\\/#\\?]?$",
+          "originalSource": "/api/:path*"
         }
       ],
       "wasm": [],
       "assets": [],
       "env": {
-        "__NEXT_BUILD_ID": "vbIffgk-M2GmxvxD_Bhw3",
+        "__NEXT_BUILD_ID": "XxxJz_jPQa4iNvmtyDNm0",
         "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "ppMmvsetxYRWghF8WcFSpw7c/B4nn6u6HH9Ue26EnO4=",
         "__NEXT_PREVIEW_MODE_ID": "d78516b5d7165c95e6b7a483d1034ddc",
         "__NEXT_PREVIEW_MODE_SIGNING_KEY": "4636eb7ba5e60421237938a078a33f3869851c99263432a8aef5668661bc66da",

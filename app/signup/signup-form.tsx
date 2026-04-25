@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Eye, EyeOff, MessageCircle, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, MessageCircle, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { LogoMark } from "@/components/brand/logo-mark";
 import Link from "next/link";
 import { COUNTRY_CODES, DEFAULT_CC } from "@/lib/country-codes";
+import { Playfair_Display } from "next/font/google";
+
+const serif = Playfair_Display({ weight: ["400", "700"], subsets: ["latin"] });
 
 type Step = "form" | "verify";
 
@@ -27,7 +31,7 @@ export function SignupForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error,      setError]      = useState("");
 
-  const inputCls = "w-full bg-white/8 border border-white/15 rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-400/70 focus:border-violet-400/50 transition-all";
+  const inputCls = "w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:border-indigo-400 focus:ring-indigo-400/20 transition-all";
   const fullPhone = `+${countryCode}${localPhone.replace(/\D/g, "")}`;
 
   const handleSendCode = async (e: React.FormEvent) => {
@@ -72,7 +76,7 @@ export function SignupForm() {
       });
       const data = await res.json() as { ok?: boolean; error?: string };
       if (!res.ok) { setError(data.error ?? "Something went wrong"); return; }
-      router.push("/");
+      router.push("/dashboard");
       router.refresh();
     } catch {
       setError("Something went wrong. Try again.");
@@ -86,200 +90,256 @@ export function SignupForm() {
   const strengthColor = ["", "bg-rose-500", "bg-amber-400", "bg-emerald-500"];
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-[#0f0f1a]">
-      <div className="animate-blob-1 pointer-events-none absolute -top-32 -left-32 w-[520px] h-[520px] rounded-full bg-violet-600/30 blur-[110px]" />
-      <div className="animate-blob-2 pointer-events-none absolute -bottom-40 -right-20 w-[480px] h-[480px] rounded-full bg-indigo-600/25 blur-[120px]" />
-      <div className="animate-blob-3 pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] rounded-full bg-blue-500/15 blur-[90px]" />
+    <div className="min-h-screen flex bg-[#faf9f6]">
 
-      <div className="animate-scale-in relative z-10 w-full max-w-[420px]">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-400 to-indigo-700 flex items-center justify-center mx-auto mb-5 shadow-[0_0_40px_rgba(139,92,246,0.55),0_8px_32px_rgba(0,0,0,0.4)]">
-            <Building2 size={34} className="text-white drop-shadow" />
+      {/* ── Left panel — dark brand ── */}
+      <div className="hidden lg:flex lg:flex-[5] bg-slate-950 relative overflow-hidden items-center justify-center p-16">
+        <div className="pointer-events-none absolute top-1/4 -left-20 w-[500px] h-[400px] rounded-full bg-indigo-600/10 blur-[120px]" />
+        <div className="pointer-events-none absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-amber-500/6 blur-[100px]" />
+
+        <div className="relative z-10 max-w-md">
+          <div className="flex items-center gap-3 mb-14">
+            <LogoMark size={38} />
+            <span className="text-lg font-bold text-white tracking-tight">EasyRent</span>
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Rent Manager</h1>
-          <p className="text-sm text-white/50 mt-1.5 font-medium">
-            {step === "form" ? "Create your account" : "Verify your phone"}
+
+          <h2 className={`${serif.className} text-5xl text-white leading-[1.1] mb-5`}>
+            Stop managing rent<br />
+            <span className="text-amber-400">in notebooks.</span>
+          </h2>
+          <p className="text-white/40 text-base mb-12 leading-relaxed">
+            Set up your property in minutes. Free forever for up to 3 rooms.
           </p>
+
+          <div className="space-y-4">
+            {[
+              { t: "Automatic monthly billing",   d: "Bills generate themselves every month" },
+              { t: "WhatsApp payment reminders",  d: "Remind tenants with one click" },
+              { t: "Tenant self-service portal",  d: "Tenants see dues & receipts without calling you" },
+              { t: "Reports & expense tracking",  d: "6-month trends, overdue alerts" },
+            ].map(f => (
+              <div key={f.t} className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0 mt-0.5">
+                  <Check size={10} className="text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-white/75 text-sm font-medium">{f.t}</p>
+                  <p className="text-white/35 text-xs mt-0.5">{f.d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Founding member callout */}
+          <div className="mt-10 flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-5 py-3.5">
+            <span className="text-xl shrink-0">🎁</span>
+            <div>
+              <p className="text-amber-300 text-sm font-semibold leading-none mb-1">Founding Member Offer</p>
+              <p className="text-amber-400/60 text-xs">Sign up during beta → Full access free, forever</p>
+            </div>
+          </div>
         </div>
+      </div>
 
-        {/* ── Step 1: Fill form ── */}
-        {step === "form" && (
-          <form onSubmit={handleSendCode} className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/15 shadow-[0_32px_64px_rgba(0,0,0,0.5)] p-8 space-y-4">
+      {/* ── Right panel — light form ── */}
+      <div className="w-full lg:flex-[4] min-h-screen flex items-center justify-center p-6 relative">
+        <Link href="/"
+          className="absolute top-5 left-5 z-20 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 transition-colors group">
+          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
+          Back to home
+        </Link>
 
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">
-                Name <span className="normal-case font-normal text-white/35">(optional)</span>
-              </label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)}
-                placeholder="Your name" autoFocus autoComplete="name" className={inputCls} />
+        <div className="animate-scale-in relative z-10 w-full max-w-[400px]">
+          <div className="text-center mb-7">
+            <div className="flex justify-center mb-5 lg:hidden">
+              <LogoMark size={56} />
             </div>
+            <h1 className={`${serif.className} text-[2rem] text-slate-900 mb-1`}>
+              {step === "form" ? "Create account" : "Verify phone"}
+            </h1>
+            <p className="text-sm text-slate-400">
+              {step === "form" ? "Free forever — no credit card required" : "Check your WhatsApp for the code"}
+            </p>
+          </div>
 
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">
-                Email <span className="normal-case font-normal text-white/35">(optional)</span>
-              </label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com" autoComplete="email" className={inputCls} />
-            </div>
+          {/* ── Step 1: Form ── */}
+          {step === "form" && (
+            <form onSubmit={handleSendCode} className="bg-white border border-slate-200 rounded-3xl shadow-sm shadow-slate-200/60 p-7 space-y-4">
 
-            {/* Phone with country code */}
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">
-                Phone Number <span className="text-rose-400 normal-case font-normal">*</span>
-              </label>
-              <div className="flex rounded-xl overflow-hidden border border-white/15 focus-within:ring-2 focus-within:ring-violet-400/70 focus-within:border-violet-400/50 transition-all">
-                <select
-                  value={countryCode}
-                  onChange={e => setCountryCode(e.target.value)}
-                  className="bg-white/15 text-white text-sm px-3 py-3.5 border-r border-white/15 focus:outline-none cursor-pointer shrink-0"
-                  style={{ maxWidth: "90px" }}
-                >
-                  {COUNTRY_CODES.map(c => (
-                    <option key={c.code} value={c.code} style={{ background: "#1e1b4b" }}>
-                      +{c.code}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="tel"
-                  value={localPhone}
-                  onChange={e => setLocalPhone(e.target.value.replace(/\D/g, ""))}
-                  placeholder="9866XXXXXX"
-                  autoComplete="tel-national"
-                  className="flex-1 bg-transparent px-4 py-3.5 text-sm text-white placeholder:text-white/30 focus:outline-none"
-                />
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em]">
+                  Name <span className="normal-case font-normal text-slate-300">(optional)</span>
+                </label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)}
+                  placeholder="Your name" autoFocus autoComplete="name" className={inputCls} />
               </div>
-              <p className="text-white/30 text-xs">A WhatsApp verification code will be sent to this number.</p>
-            </div>
 
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">Password</label>
-              <div className="relative">
-                <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="Min. 6 characters" autoComplete="new-password"
-                  className={`${inputCls} pr-12`} />
-                <button type="button" onClick={() => setShowPass(v => !v)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors p-1">
-                  {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em]">
+                  Email <span className="normal-case font-normal text-slate-300">(optional)</span>
+                </label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com" autoComplete="email" className={inputCls} />
               </div>
-              {password.length > 0 && (
-                <div className="space-y-1">
-                  <div className="flex gap-1">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className={`h-1 flex-1 rounded-full transition-all ${strength >= i ? strengthColor[strength] : "bg-white/15"}`} />
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em]">
+                  Phone Number <span className="text-rose-400 normal-case font-normal">*</span>
+                </label>
+                <div className="flex rounded-xl overflow-hidden border border-slate-200 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-400/20 transition-all">
+                  <select
+                    value={countryCode}
+                    onChange={e => setCountryCode(e.target.value)}
+                    className="bg-slate-50 text-slate-700 text-sm px-3 py-3.5 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0"
+                    style={{ maxWidth: "90px" }}
+                  >
+                    {COUNTRY_CODES.map(c => (
+                      <option key={c.code} value={c.code}>+{c.code}</option>
                     ))}
+                  </select>
+                  <input
+                    type="tel"
+                    value={localPhone}
+                    onChange={e => setLocalPhone(e.target.value.replace(/\D/g, ""))}
+                    placeholder="9866XXXXXX"
+                    autoComplete="tel-national"
+                    className="flex-1 bg-transparent px-4 py-3.5 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none"
+                  />
+                </div>
+                <p className="text-slate-400 text-xs">A WhatsApp verification code will be sent.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em]">Password</label>
+                <div className="relative">
+                  <input type={showPass ? "text" : "password"} value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Min. 6 characters" autoComplete="new-password"
+                    className={`${inputCls} pr-12`} />
+                  <button type="button" onClick={() => setShowPass(v => !v)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1">
+                    {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
+                {password.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex gap-1">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className={`h-1 flex-1 rounded-full transition-all ${strength >= i ? strengthColor[strength] : "bg-slate-100"}`} />
+                      ))}
+                    </div>
+                    <p className={`text-xs font-medium ${strength === 1 ? "text-rose-500" : strength === 2 ? "text-amber-500" : "text-emerald-500"}`}>
+                      {strengthLabel[strength]}
+                    </p>
                   </div>
-                  <p className={`text-xs font-medium ${strength === 1 ? "text-rose-400" : strength === 2 ? "text-amber-400" : "text-emerald-400"}`}>
-                    {strengthLabel[strength]}
-                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em]">Confirm Password</label>
+                <input type={showPass ? "text" : "password"} value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="Repeat your password" autoComplete="new-password"
+                  className={`${inputCls} ${confirmPassword && confirmPassword !== password ? "!border-rose-300 focus:!ring-rose-300/40" : ""}`} />
+                {confirmPassword && confirmPassword !== password && (
+                  <p className="text-rose-500 text-xs">Passwords do not match</p>
+                )}
+              </div>
+
+              {error && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+                  <p className="text-rose-600 text-xs">{error}</p>
                 </div>
               )}
-            </div>
 
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">Confirm Password</label>
-              <input type={showPass ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                placeholder="Repeat your password" autoComplete="new-password"
-                className={`${inputCls} ${confirmPassword && confirmPassword !== password ? "!border-rose-400/50 focus:!ring-rose-400/70" : ""}`} />
-              {confirmPassword && confirmPassword !== password && (
-                <p className="text-rose-400 text-xs">Passwords do not match</p>
-              )}
-            </div>
-
-            {error && (
-              <div className="bg-rose-500/15 border border-rose-400/25 rounded-xl px-4 py-3">
-                <p className="text-rose-300 text-xs">{error}</p>
-              </div>
-            )}
-
-            <button type="submit"
-              disabled={sending || !localPhone || !password || !confirmPassword || password !== confirmPassword}
-              className="w-full bg-gradient-to-r from-violet-500 via-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-sm font-semibold hover:from-violet-400 hover:via-indigo-500 hover:to-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-[0_4px_20px_rgba(139,92,246,0.45)] active:scale-[0.98] mt-1">
-              {sending ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                  </svg>
-                  Sending code…
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <MessageCircle size={15} /> Send Verification Code
-                </span>
-              )}
-            </button>
-
-            <p className="text-center text-white/35 text-xs pt-1">
-              Already have an account?{" "}
-              <Link href="/login" className="text-violet-400 hover:text-violet-300 font-semibold transition-colors">Sign in</Link>
-            </p>
-          </form>
-        )}
-
-        {/* ── Step 2: Enter OTP ── */}
-        {step === "verify" && (
-          <form onSubmit={handleVerify} className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/15 shadow-[0_32px_64px_rgba(0,0,0,0.5)] p-8 space-y-5">
-            <div className="flex items-start gap-3 bg-emerald-500/15 border border-emerald-400/25 rounded-xl px-4 py-3.5">
-              <MessageCircle size={16} className="text-emerald-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-emerald-300 text-sm font-semibold">Code sent via WhatsApp</p>
-                <p className="text-emerald-400/70 text-xs mt-0.5">
-                  Sent to <span className="font-bold text-emerald-300">{masked}</span>. Check your WhatsApp messages.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">6-Digit Code</label>
-              <input
-                type="text"
-                value={otp}
-                onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="000000"
-                inputMode="numeric"
-                autoFocus
-                maxLength={6}
-                className={`${inputCls} tracking-[0.5em] font-bold text-center text-lg`}
-              />
-              <p className="text-white/30 text-xs text-center">Expires in 15 minutes</p>
-            </div>
-
-            {error && (
-              <div className="bg-rose-500/15 border border-rose-400/25 rounded-xl px-4 py-3">
-                <p className="text-rose-300 text-xs">{error}</p>
-              </div>
-            )}
-
-            <button type="submit" disabled={submitting || otp.length !== 6}
-              className="w-full bg-gradient-to-r from-violet-500 via-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-sm font-semibold hover:from-violet-400 hover:via-indigo-500 hover:to-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-[0_4px_20px_rgba(139,92,246,0.45)] active:scale-[0.98]">
-              {submitting ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                  </svg>
-                  Creating account…
-                </span>
-              ) : "Verify & Create Account"}
-            </button>
-
-            <div className="flex items-center justify-between pt-1">
-              <button type="button"
-                onClick={() => { setStep("form"); setOtp(""); setError(""); }}
-                className="flex items-center gap-1 text-white/35 hover:text-white/60 text-xs transition-colors">
-                <ArrowLeft size={12} /> Edit details
+              <button type="submit"
+                disabled={sending || !localPhone || !password || !confirmPassword || password !== confirmPassword}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] mt-1">
+                {sending ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Sending code…
+                  </>
+                ) : (
+                  <><MessageCircle size={15} /> Send Verification Code</>
+                )}
               </button>
-              <button type="button"
-                onClick={handleSendCode}
-                disabled={sending}
-                className="text-violet-400 hover:text-violet-300 text-xs font-semibold transition-colors disabled:opacity-40">
-                {sending ? "Sending…" : "Resend code"}
+
+              <p className="text-center text-slate-400 text-xs pt-1">
+                Already have an account?{" "}
+                <Link href="/login" className="text-indigo-600 hover:text-indigo-700 font-semibold transition-colors">Sign in</Link>
+              </p>
+            </form>
+          )}
+
+          {/* ── Step 2: OTP verify ── */}
+          {step === "verify" && (
+            <form onSubmit={handleVerify} className="bg-white border border-slate-200 rounded-3xl shadow-sm shadow-slate-200/60 p-8 space-y-5">
+              <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3.5">
+                <MessageCircle size={15} className="text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-emerald-700 text-sm font-semibold">Code sent via WhatsApp</p>
+                  <p className="text-emerald-600/70 text-xs mt-0.5">
+                    Sent to <span className="font-bold text-emerald-700">{masked}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em]">6-Digit Code</label>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="000000"
+                  inputMode="numeric"
+                  autoFocus
+                  maxLength={6}
+                  className={`${inputCls} tracking-[0.5em] font-bold text-center text-lg`}
+                />
+                <p className="text-slate-400 text-xs text-center">Expires in 15 minutes</p>
+              </div>
+
+              {error && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+                  <p className="text-rose-600 text-xs">{error}</p>
+                </div>
+              )}
+
+              <button type="submit" disabled={submitting || otp.length !== 6}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-indigo-500/20 active:scale-[0.98]">
+                {submitting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Creating account…
+                  </>
+                ) : (
+                  <><span>Verify & Create Account</span> <ArrowRight size={14} /></>
+                )}
               </button>
-            </div>
-          </form>
-        )}
+
+              <div className="flex items-center justify-between pt-1">
+                <button type="button"
+                  onClick={() => { setStep("form"); setOtp(""); setError(""); }}
+                  className="flex items-center gap-1 text-slate-400 hover:text-slate-600 text-xs transition-colors">
+                  <ArrowLeft size={12} /> Edit details
+                </button>
+                <button type="button"
+                  onClick={handleSendCode}
+                  disabled={sending}
+                  className="text-indigo-600 hover:text-indigo-700 text-xs font-semibold transition-colors disabled:opacity-40">
+                  {sending ? "Sending…" : "Resend code"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

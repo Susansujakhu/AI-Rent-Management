@@ -12,6 +12,7 @@ import { PaymentLedger } from "./payment-ledger";
 import { OneTimeChargesPanel } from "./one-time-charges-panel";
 import { getSettings } from "@/lib/settings";
 import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, Sparkles, MessageCircle } from "lucide-react";
+import { TenantDocumentsPanel } from "./tenant-documents";
 
 function monthString(year: number, month: number) {
   return `${year}-${String(month).padStart(2, "0")}`;
@@ -355,6 +356,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         currencySymbol={settings.currencySymbol}
         isActive={isActive}
       />
+
+      {/* Documents */}
+      <TenantDocumentsPanel tenantId={id} />
     </div>
   );
 }

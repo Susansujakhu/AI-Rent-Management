@@ -34,8 +34,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const body = await req.json();
 
   const data: Record<string, unknown> = {};
-  if (body.name  !== undefined) data.name  = body.name;
-  if (body.phone !== undefined) data.phone = body.phone;
+  if (body.name !== undefined) {
+    if (typeof body.name === "string" && body.name.length > 255)
+      return NextResponse.json({ error: "name must be 255 characters or fewer" }, { status: 400 });
+    data.name = body.name;
+  }
+  if (body.phone !== undefined) {
+    if (typeof body.phone === "string" && body.phone.length > 20)
+      return NextResponse.json({ error: "phone must be 20 characters or fewer" }, { status: 400 });
+    data.phone = body.phone;
+  }
   if ("email"   in body) data.email  = body.email  || null;
   if ("roomId"  in body) data.roomId = body.roomId || null;
   if (body.moveInDate !== undefined) {
@@ -48,7 +56,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!Number.isFinite(dep) || dep < 0) return NextResponse.json({ error: "deposit must be a non-negative number" }, { status: 400 });
     data.deposit = dep;
   }
-  if ("notes"          in body) data.notes          = body.notes || null;
+  if ("notes" in body) {
+    if (body.notes && typeof body.notes === "string" && body.notes.length > 5000)
+      return NextResponse.json({ error: "notes must be 5000 characters or fewer" }, { status: 400 });
+    data.notes = body.notes || null;
+  }
   if ("whatsappNotify" in body) data.whatsappNotify = Boolean(body.whatsappNotify);
 
   // ── Move-out handling ────────────────────────────────────────────────────────

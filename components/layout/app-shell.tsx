@@ -6,16 +6,17 @@ import { BottomNav } from "./bottom-nav";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage   = pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password" || pathname === "/reset-password";
-  const isPortalPage = pathname.startsWith("/portal");
-  const isAdminPage  = pathname.startsWith("/admin");
+  const isAuthPage    = pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password" || pathname === "/reset-password";
+  const isPortalPage  = pathname.startsWith("/portal");
+  const isAdminPage   = pathname.startsWith("/admin");
+  const isLandingPage = pathname === "/";
 
-  if (isAuthPage || isPortalPage || isAdminPage) {
+  if (isAuthPage || isPortalPage || isAdminPage || isLandingPage) {
     return <>{children}</>;
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
       <div className="hidden md:flex">
         <Sidebar />
       </div>

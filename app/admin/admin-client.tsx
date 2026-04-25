@@ -328,7 +328,7 @@ export default function AdminClient() {
           </nav>
 
           {/* Back to app */}
-          <Link href="/" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-indigo-600 transition-colors shrink-0">
+          <Link href="/dashboard" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-indigo-600 transition-colors shrink-0">
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:block">Back to app</span>
           </Link>

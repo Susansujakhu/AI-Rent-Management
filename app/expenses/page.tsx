@@ -94,7 +94,7 @@ export default async function ExpensesPage({
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Expenses</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Expenses</h1>
           <p className="text-sm text-slate-500 mt-0.5">
             {expenses.length} expense{expenses.length !== 1 ? "s" : ""}
             {category ? ` · ${CATEGORY_LABELS[category] ?? category}` : ""}
@@ -120,8 +120,8 @@ export default async function ExpensesPage({
           href="/expenses"
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
             !category
-              ? "bg-slate-900 text-white shadow-sm"
-              : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+              ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm"
+              : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
           }`}
         >
           All
@@ -134,7 +134,7 @@ export default async function ExpensesPage({
               key={cat}
               href={`/expenses?category=${cat}`}
               className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
-                isActive ? `${cfg.bg} ${cfg.text} ${cfg.border} border shadow-sm` : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                isActive ? `${cfg.bg} ${cfg.text} ${cfg.border} border shadow-sm` : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
               }`}
             >
               <CategoryIcon category={cat} className={isActive ? cfg.text : "text-slate-400"} />
@@ -166,11 +166,11 @@ export default async function ExpensesPage({
 
       {/* Expenses List */}
       {expenses.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-16 text-center">
-          <div className="w-14 h-14 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-200">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-16 text-center">
+          <div className="w-14 h-14 bg-gradient-to-br from-slate-50 dark:from-slate-800 to-slate-100 dark:to-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-200 dark:border-slate-700">
             <Receipt size={24} className="text-slate-400" />
           </div>
-          <p className="text-slate-700 font-semibold text-sm">No expenses found</p>
+          <p className="text-slate-700 dark:text-slate-300 font-semibold text-sm">No expenses found</p>
           <p className="text-slate-400 text-xs mt-1 mb-4">
             {search || category
               ? "Try adjusting your search or filter"
@@ -189,21 +189,21 @@ export default async function ExpensesPage({
       ) : (
         <>
           {/* Desktop: card list */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hidden sm:block">
-            <div className="divide-y divide-slate-50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hidden sm:block">
+            <div className="divide-y divide-slate-50 dark:divide-slate-800">
               {expenses.map((expense) => {
                 const cfg = categoryConfig(expense.category);
                 return (
                   <div
                     key={expense.id}
-                    className="flex items-center justify-between px-5 py-4 hover:bg-slate-50/50 transition-colors"
+                    className="flex items-center justify-between px-5 py-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/60 transition-colors"
                   >
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cfg.icon}`}>
                         <CategoryIcon category={expense.category} />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">{expense.title}</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{expense.title}</p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pill}`}>
                             <CategoryIcon category={expense.category} className={`${cfg.text} !w-3 !h-3`} />
@@ -212,7 +212,7 @@ export default async function ExpensesPage({
                           <span className="text-xs text-slate-400">
                             {expense.room ? expense.room.name : "Common Area"}
                           </span>
-                          <span className="text-slate-200 text-xs">·</span>
+                          <span className="text-slate-200 dark:text-slate-700 text-xs">·</span>
                           <span className="text-xs text-slate-400">{formatDate(expense.date)}</span>
                         </div>
                         {expense.description && (
@@ -220,7 +220,7 @@ export default async function ExpensesPage({
                         )}
                       </div>
                     </div>
-                    <p className="text-base font-bold text-slate-800 shrink-0 ml-4">{fmt(expense.amount)}</p>
+                    <p className="text-base font-bold text-slate-800 dark:text-slate-200 shrink-0 ml-4">{fmt(expense.amount)}</p>
                   </div>
                 );
               })}
@@ -234,7 +234,7 @@ export default async function ExpensesPage({
               return (
                 <div
                   key={expense.id}
-                  className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4"
+                  className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
@@ -250,9 +250,9 @@ export default async function ExpensesPage({
                     </div>
                     <p className="text-base font-bold text-slate-800 shrink-0">{fmt(expense.amount)}</p>
                   </div>
-                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-50 text-xs text-slate-400">
+                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-50 dark:border-slate-800 text-xs text-slate-400">
                     <span>{expense.room ? expense.room.name : "Common Area"}</span>
-                    <span className="text-slate-200">·</span>
+                    <span className="text-slate-200 dark:text-slate-700">·</span>
                     <span>{formatDate(expense.date)}</span>
                   </div>
                   {expense.description && (

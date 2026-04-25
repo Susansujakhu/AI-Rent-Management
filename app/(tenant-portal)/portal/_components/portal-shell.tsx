@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, CreditCard, Receipt, User, LogOut, Building2 } from "lucide-react";
+import { LayoutDashboard, CreditCard, Receipt, Hammer, User, LogOut, Building2 } from "lucide-react";
 import { toast } from "sonner";
 
 const NAV = [
-  { href: "/portal/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/portal/payments",  label: "Payments",  icon: CreditCard },
-  { href: "/portal/charges",   label: "Charges",   icon: Receipt },
-  { href: "/portal/profile",   label: "Profile",   icon: User },
+  { href: "/portal/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/portal/payments",    label: "Payments",    icon: CreditCard },
+  { href: "/portal/charges",     label: "Charges",     icon: Receipt },
+  { href: "/portal/maintenance", label: "Maintenance", icon: Hammer },
+  { href: "/portal/profile",     label: "Profile",     icon: User },
 ];
 
 export function PortalShell({

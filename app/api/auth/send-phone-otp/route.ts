@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppMessage, getWAStatus, SYSTEM_WA_KEY } from "@/lib/whatsapp";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { z } from "zod";
 
-const DEV_BYPASS = process.env.BYPASS_PHONE_OTP === "true";
+const DEV_BYPASS = process.env.NODE_ENV !== "production" && process.env.BYPASS_PHONE_OTP === "true";
 const DEV_OTP    = "000000"; // fixed code used in bypass mode
 
 function generateOTP(): string {
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
 
   // Validate and check email uniqueness before sending OTP
   if (email !== undefined && email !== null && email !== "") {
-    if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
+    if (typeof email !== "string" || !z.string().email().safeParse(String(email).trim()).success) {
       return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
     }
     const emailTaken = await prisma.user.findUnique({ where: { email: String(email).trim().toLowerCase() } });

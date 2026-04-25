@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Lock, Eye, EyeOff, Building2 } from "lucide-react";
+import { Lock, Eye, EyeOff, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Suspense } from "react";
+import Link from "next/link";
+import { LogoMark } from "@/components/brand/logo-mark";
 import { COUNTRY_CODES, DEFAULT_CC } from "@/lib/country-codes";
+import { Playfair_Display } from "next/font/google";
+
+const serif = Playfair_Display({ weight: ["400", "700"], subsets: ["latin"] });
 
 function Form() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") ?? "/";
+  const from = searchParams.get("from") ?? "/dashboard";
   const [countryCode, setCountryCode] = useState(DEFAULT_CC);
   const [localPhone,  setLocalPhone]  = useState("");
   const [password,    setPassword]    = useState("");
@@ -52,105 +57,172 @@ function Form() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-[#0f0f1a]">
-      <div className="animate-blob-1 pointer-events-none absolute -top-32 -left-32 w-[520px] h-[520px] rounded-full bg-indigo-600/30 blur-[110px]" />
-      <div className="animate-blob-2 pointer-events-none absolute -bottom-40 -right-20 w-[480px] h-[480px] rounded-full bg-violet-600/25 blur-[120px]" />
-      <div className="animate-blob-3 pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] rounded-full bg-blue-500/15 blur-[90px]" />
+    <div className="min-h-screen flex bg-[#faf9f6]">
 
-      <div className="animate-scale-in relative z-10 w-full max-w-[420px]">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-400 to-indigo-700 flex items-center justify-center mx-auto mb-5 shadow-[0_0_40px_rgba(99,102,241,0.55),0_8px_32px_rgba(0,0,0,0.4)]">
-            <Building2 size={34} className="text-white drop-shadow" />
+      {/* ── Left panel — dark brand ── */}
+      <div className="hidden lg:flex lg:flex-[5] bg-slate-950 relative overflow-hidden items-center justify-center p-16">
+        {/* Subtle glows */}
+        <div className="pointer-events-none absolute top-1/4 -left-20 w-[500px] h-[400px] rounded-full bg-indigo-600/10 blur-[120px]" />
+        <div className="pointer-events-none absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-amber-500/6 blur-[100px]" />
+
+        <div className="relative z-10 max-w-md">
+          {/* Brand */}
+          <div className="flex items-center gap-3 mb-14">
+            <LogoMark size={38} />
+            <span className="text-lg font-bold text-white tracking-tight">EasyRent</span>
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Rent Manager</h1>
-          <p className="text-sm text-white/50 mt-1.5 font-medium">Sign in to your workspace</p>
+
+          <h2 className={`${serif.className} text-5xl text-white leading-[1.1] mb-5`}>
+            Welcome back.<br />
+            <span className="text-amber-400">Your properties</span><br />
+            are waiting.
+          </h2>
+          <p className="text-white/40 text-base mb-12 leading-relaxed">
+            Everything you need to collect rent on time — in one place.
+          </p>
+
+          {/* Feature list with amber checks */}
+          <div className="space-y-4">
+            {[
+              "Track rent & utility payments",
+              "Send WhatsApp reminders instantly",
+              "Tenant self-service portal",
+              "6-month collection reports",
+            ].map(f => (
+              <div key={f} className="flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
+                  <Check size={10} className="text-amber-400" />
+                </div>
+                <span className="text-white/55 text-sm">{f}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Stat chips */}
+          <div className="mt-12 grid grid-cols-3 gap-3">
+            {[
+              { value: "140+",   label: "Landlords" },
+              { value: "₹18L+",  label: "Collected" },
+              { value: "2,400+", label: "Bills sent" },
+            ].map(s => (
+              <div key={s.label} className="bg-white/[0.05] border border-white/[0.07] rounded-xl p-3.5">
+                <div className="text-base font-bold text-white">{s.value}</div>
+                <div className="text-white/30 text-[10px] mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
+      </div>
 
-        <form onSubmit={submit} className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/15 shadow-[0_32px_64px_rgba(0,0,0,0.5)] p-8 space-y-5">
+      {/* ── Right panel — light form ── */}
+      <div className="w-full lg:flex-[4] min-h-screen flex items-center justify-center p-6 relative">
+        {/* Back link */}
+        <Link href="/"
+          className="absolute top-5 left-5 z-20 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 transition-colors group">
+          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
+          Back to home
+        </Link>
 
-          {/* Phone with country code */}
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">
-              Phone Number
-            </label>
-            <div className={`flex rounded-xl overflow-hidden border focus-within:ring-2 transition-all
-              ${phoneErr ? "border-rose-400/60 focus-within:ring-rose-400/50" : "border-white/15 focus-within:ring-indigo-400/70 focus-within:border-indigo-400/50"}`}>
-              <select
-                value={countryCode}
-                onChange={e => setCountryCode(e.target.value)}
-                className="bg-white/15 text-white text-sm px-3 py-3.5 border-r border-white/15 focus:outline-none cursor-pointer shrink-0"
-                style={{ maxWidth: "90px" }}
-              >
-                {COUNTRY_CODES.map(c => (
-                  <option key={c.code} value={c.code} style={{ background: "#1e1b4b" }}>
-                    +{c.code}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="tel"
-                value={localPhone}
-                onChange={e => { setLocalPhone(e.target.value.replace(/\D/g, "")); if (phoneErr) setPhoneErr(""); }}
-                placeholder="9866XXXXXX"
-                autoFocus
-                autoComplete="tel-national"
-                className="flex-1 bg-transparent px-4 py-3.5 text-sm text-white placeholder:text-white/30 focus:outline-none"
-              />
+        <div className="animate-scale-in relative z-10 w-full max-w-[400px]">
+          <div className="text-center mb-8">
+            {/* Logo visible on mobile only */}
+            <div className="flex justify-center mb-5 lg:hidden">
+              <LogoMark size={56} />
             </div>
-            {phoneErr && <p className="text-rose-400 text-xs">{phoneErr}</p>}
+            <h1 className={`${serif.className} text-[2rem] text-slate-900 mb-1`}>Sign in</h1>
+            <p className="text-sm text-slate-400">Enter your phone number and password</p>
           </div>
 
-          {/* Password */}
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest">Password</label>
-            <div className="relative">
-              <input
-                type={show ? "text" : "password"}
-                value={password}
-                onChange={e => { setPassword(e.target.value); if (passwordErr) setPasswordErr(""); }}
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                className={`w-full bg-white/8 border rounded-xl px-4 py-3.5 text-sm text-white
-                           placeholder:text-white/30 focus:outline-none focus:ring-2 transition-all pr-12
-                           ${passwordErr ? "border-rose-400/60 focus:ring-rose-400/50" : "border-white/15 focus:ring-indigo-400/70 focus:border-indigo-400/50"}`}
-              />
-              <button type="button" onClick={() => setShow(!show)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors p-1">
-                {show ? <EyeOff size={17} /> : <Eye size={17} />}
-              </button>
+          <form onSubmit={submit} className="bg-white border border-slate-200 rounded-3xl shadow-sm shadow-slate-200/60 p-8 space-y-5">
+
+            {/* Phone */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em]">
+                Phone Number
+              </label>
+              <div className={`flex rounded-xl overflow-hidden border transition-all focus-within:ring-2
+                ${phoneErr
+                  ? "border-rose-300 focus-within:ring-rose-300/40"
+                  : "border-slate-200 focus-within:border-indigo-400 focus-within:ring-indigo-400/20"}`}>
+                <select
+                  value={countryCode}
+                  onChange={e => setCountryCode(e.target.value)}
+                  className="bg-slate-50 text-slate-700 text-sm px-3 py-3.5 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0"
+                  style={{ maxWidth: "90px" }}
+                >
+                  {COUNTRY_CODES.map(c => (
+                    <option key={c.code} value={c.code}>+{c.code}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={localPhone}
+                  onChange={e => { setLocalPhone(e.target.value.replace(/\D/g, "")); if (phoneErr) setPhoneErr(""); }}
+                  placeholder="9866XXXXXX"
+                  autoFocus
+                  autoComplete="tel-national"
+                  className="flex-1 bg-transparent px-4 py-3.5 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none"
+                />
+              </div>
+              {phoneErr && <p className="text-rose-500 text-xs">{phoneErr}</p>}
             </div>
-            {passwordErr && <p className="text-rose-400 text-xs">{passwordErr}</p>}
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em]">Password</label>
+              <div className="relative">
+                <input
+                  type={show ? "text" : "password"}
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); if (passwordErr) setPasswordErr(""); }}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  className={`w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-slate-800
+                             placeholder:text-slate-300 focus:outline-none focus:ring-2 transition-all pr-12
+                             ${passwordErr
+                               ? "border-rose-300 focus:ring-rose-300/40"
+                               : "border-slate-200 focus:border-indigo-400 focus:ring-indigo-400/20"}`}
+                />
+                <button type="button" onClick={() => setShow(!show)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1">
+                  {show ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+              {passwordErr && <p className="text-rose-500 text-xs">{passwordErr}</p>}
+            </div>
+
+            {error && (
+              <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+                <Lock size={14} className="text-rose-500 mt-0.5 shrink-0" />
+                <p className="text-rose-600 text-xs leading-relaxed">{error}</p>
+              </div>
+            )}
+
+            <button type="submit" disabled={loading}
+              className="btn-shimmer w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] mt-1">
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white/80" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Signing in…
+                </>
+              ) : (
+                <><span>Sign in</span> <ArrowRight size={14} /></>
+              )}
+            </button>
+          </form>
+
+          <div className="flex items-center justify-center gap-4 mt-5">
+            <a href="/forgot-password" className="text-slate-400 hover:text-slate-600 text-xs transition-colors">
+              Forgot password?
+            </a>
+            <span className="text-slate-200 text-xs">·</span>
+            <a href="/signup" className="text-indigo-600 hover:text-indigo-700 font-semibold text-xs transition-colors">
+              Create account
+            </a>
           </div>
-
-          {error && (
-            <div className="flex items-start gap-2.5 bg-rose-500/15 border border-rose-400/25 rounded-xl px-4 py-3">
-              <Lock size={14} className="text-rose-400 mt-0.5 shrink-0" />
-              <p className="text-rose-300 text-xs leading-relaxed">{error}</p>
-            </div>
-          )}
-
-          <button type="submit" disabled={loading}
-            className="btn-shimmer w-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-sm font-semibold hover:from-indigo-400 hover:via-indigo-500 hover:to-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-[0_4px_20px_rgba(99,102,241,0.45)] hover:shadow-[0_6px_28px_rgba(99,102,241,0.6)] active:scale-[0.98] mt-1">
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4 text-white/80" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                </svg>
-                Signing in…
-              </span>
-            ) : "Sign in"}
-          </button>
-        </form>
-
-        <div className="flex items-center justify-center gap-4 mt-6">
-          <a href="/forgot-password" className="text-white/30 hover:text-white/60 text-xs transition-colors">
-            Forgot password?
-          </a>
-          <span className="text-white/15 text-xs">·</span>
-          <a href="/signup" className="text-indigo-400 hover:text-indigo-300 font-semibold text-xs transition-colors">
-            Create account
-          </a>
         </div>
       </div>
     </div>

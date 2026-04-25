@@ -66,7 +66,7 @@ export async function POST(req: Request) {
   clearRateLimit(ip);
 
   const token     = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 days
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7 days
 
   // user is guaranteed non-null here: passwordOk=true only when user exists
   await prisma.session.create({ data: { userId: user!.id, token, expiresAt } });
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge: 60 * 60 * 24 * 7,
   });
   return res;
 }

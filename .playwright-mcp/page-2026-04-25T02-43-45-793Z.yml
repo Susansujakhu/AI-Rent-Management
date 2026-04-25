@@ -1,0 +1,290 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - link "EasyRent" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e7]
+          - generic [ref=e13]: EasyRent
+        - generic [ref=e14]:
+          - link "Features" [ref=e15] [cursor=pointer]:
+            - /url: "#features"
+          - link "How it works" [ref=e16] [cursor=pointer]:
+            - /url: "#how-it-works"
+          - link "Pricing" [ref=e17] [cursor=pointer]:
+            - /url: "#pricing"
+        - generic [ref=e18]:
+          - link "Sign in" [ref=e19] [cursor=pointer]:
+            - /url: /login
+          - link "Get Started Free" [ref=e20] [cursor=pointer]:
+            - /url: /signup
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e23]: Now in Beta — Free for all founding members
+        - heading "Stop Using Notebooks. Manage Rent Like a Pro." [level=1] [ref=e25]:
+          - text: Stop Using Notebooks.
+          - text: Manage Rent Like a Pro.
+        - paragraph [ref=e26]: Track rent, utilities, and payments across all your rooms. Generate professional receipts, send WhatsApp reminders, and give tenants a self-service portal — all in one place.
+        - generic [ref=e27]:
+          - link "Get Started Free" [ref=e28] [cursor=pointer]:
+            - /url: /signup
+            - text: Get Started Free
+            - img [ref=e29]
+          - link "Explore Features" [ref=e31] [cursor=pointer]:
+            - /url: "#features"
+            - text: Explore Features
+            - img [ref=e32]
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - img [ref=e36]
+            - text: Free forever · up to 3 rooms
+          - generic [ref=e38]: ·
+          - generic [ref=e39]:
+            - img [ref=e40]
+            - text: No credit card required
+          - generic [ref=e42]: ·
+          - generic [ref=e43]:
+            - img [ref=e44]
+            - text: Set up in under 5 minutes
+      - generic [ref=e48]:
+        - generic [ref=e54]: easy-rent.xpertthemes.com/dashboard
+        - generic [ref=e55]:
+          - generic [ref=e60]: RM
+          - generic [ref=e72]:
+            - generic [ref=e73]:
+              - generic [ref=e74]: Dashboard
+              - generic [ref=e75]: April 2026
+            - generic [ref=e76]:
+              - generic [ref=e77]:
+                - generic [ref=e80]: 75% full
+                - paragraph [ref=e81]: "8"
+                - paragraph [ref=e82]: Total Rooms
+              - generic [ref=e83]:
+                - generic [ref=e86]: 6 active
+                - paragraph [ref=e87]: "6"
+                - paragraph [ref=e88]: Tenants
+              - generic [ref=e89]:
+                - generic [ref=e92]: +8%
+                - paragraph [ref=e93]: Rs 42k
+                - paragraph [ref=e94]: Collected
+              - generic [ref=e95]:
+                - generic [ref=e98]: Action!
+                - paragraph [ref=e99]: "2"
+                - paragraph [ref=e100]: Overdue
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - generic [ref=e103]:
+                  - generic [ref=e104]: Collection Trend
+                  - generic [ref=e105]: 6 months
+                - generic [ref=e113]:
+                  - generic [ref=e114]: Nov
+                  - generic [ref=e115]: Dec
+                  - generic [ref=e116]: Jan
+                  - generic [ref=e117]: Feb
+                  - generic [ref=e118]: Mar
+                  - generic [ref=e119]: Apr
+              - generic [ref=e120]:
+                - paragraph [ref=e121]: Overdue
+                - generic [ref=e122]:
+                  - generic [ref=e123]:
+                    - generic [ref=e124]:
+                      - generic [ref=e126]: R
+                      - generic [ref=e127]: R. Sharma
+                    - generic [ref=e128]: Rs 6,500
+                  - generic [ref=e129]:
+                    - generic [ref=e130]:
+                      - generic [ref=e132]: S
+                      - generic [ref=e133]: S. Tamang
+                    - generic [ref=e134]: Rs 5,200
+            - generic [ref=e135]:
+              - generic [ref=e136]: April 2026 — Rent Collection · 3 / 5 paid
+              - generic [ref=e137]:
+                - generic [ref=e138]:
+                  - generic [ref=e140]: A
+                  - generic [ref=e141]:
+                    - paragraph [ref=e142]: A. Gurung
+                    - paragraph [ref=e143]: Room 101
+                - generic [ref=e144]:
+                  - generic [ref=e145]: Rs 8,000
+                  - generic [ref=e146]: PAID
+              - generic [ref=e147]:
+                - generic [ref=e148]:
+                  - generic [ref=e150]: B
+                  - generic [ref=e151]:
+                    - paragraph [ref=e152]: B. Rai
+                    - paragraph [ref=e153]: Room 102
+                - generic [ref=e154]:
+                  - generic [ref=e155]: Rs 7,500
+                  - generic [ref=e156]: PAID
+              - generic [ref=e157]:
+                - generic [ref=e158]:
+                  - generic [ref=e160]: C
+                  - generic [ref=e161]:
+                    - paragraph [ref=e162]: C. Thapa
+                    - paragraph [ref=e163]: Room 201
+                - generic [ref=e164]:
+                  - generic [ref=e165]: Rs 9,000
+                  - generic [ref=e166]: PENDING
+              - generic [ref=e167]:
+                - generic [ref=e168]:
+                  - generic [ref=e170]: D
+                  - generic [ref=e171]:
+                    - paragraph [ref=e172]: D. Magar
+                    - paragraph [ref=e173]: Room 202
+                - generic [ref=e174]:
+                  - generic [ref=e175]: Rs 6,800
+                  - generic [ref=e176]: OVERDUE
+    - generic [ref=e178]:
+      - generic [ref=e179]:
+        - paragraph [ref=e180]: Features
+        - heading "Everything you need to manage rent" [level=2] [ref=e181]
+        - paragraph [ref=e182]: Built for small landlords tired of tracking rent in notebooks and spreadsheets.
+      - generic [ref=e183]:
+        - generic [ref=e184]:
+          - img [ref=e186]
+          - heading "Rent & Utility Tracking" [level=3] [ref=e190]
+          - paragraph [ref=e191]: Set monthly rent and recurring utility charges per room. Bills are generated automatically each month.
+        - generic [ref=e193]:
+          - img [ref=e195]
+          - heading "PDF Receipts" [level=3] [ref=e198]
+          - paragraph [ref=e199]: Generate professional payment receipts in one click and share them directly with tenants.
+        - generic [ref=e201]:
+          - img [ref=e203]
+          - heading "WhatsApp Reminders" [level=3] [ref=e205]
+          - paragraph [ref=e206]: Send automated payment reminders and receipts to tenants via WhatsApp. No manual follow-ups.
+        - generic [ref=e208]:
+          - img [ref=e210]
+          - heading "Tenant Portal" [level=3] [ref=e215]
+          - paragraph [ref=e216]: Give every tenant a private portal to view their payment history, charges, and dues.
+        - generic [ref=e218]:
+          - img [ref=e220]
+          - heading "Expense Tracking" [level=3] [ref=e222]
+          - paragraph [ref=e223]: Log maintenance costs, repairs, and property expenses. Keep your finances in order.
+        - generic [ref=e225]:
+          - img [ref=e227]
+          - heading "Reports & Analytics" [level=3] [ref=e229]
+          - paragraph [ref=e230]: See 6-month collection trends, occupancy rates, and income summaries at a glance.
+    - generic [ref=e233]:
+      - generic [ref=e234]:
+        - paragraph [ref=e235]: How it works
+        - heading "Up and running in minutes" [level=2] [ref=e236]
+        - paragraph [ref=e237]: No complex setup. No learning curve. Add your property and start tracking today.
+      - generic [ref=e238]:
+        - generic [ref=e240]:
+          - generic [ref=e241]:
+            - img [ref=e243]
+            - generic [ref=e246]: "1"
+          - heading "Add your rooms" [level=3] [ref=e247]
+          - paragraph [ref=e248]: Create a room for each rental unit and set monthly rent plus any recurring charges like electricity or water.
+        - generic [ref=e249]:
+          - generic [ref=e250]:
+            - img [ref=e252]
+            - generic [ref=e255]: "2"
+          - heading "Assign tenants" [level=3] [ref=e256]
+          - paragraph [ref=e257]: Add tenant details and move-in dates. Their monthly bills start generating automatically.
+        - generic [ref=e258]:
+          - generic [ref=e259]:
+            - img [ref=e261]
+            - generic [ref=e263]: "3"
+          - heading "Track & collect" [level=3] [ref=e264]
+          - paragraph [ref=e265]: Record payments as they come in. Send WhatsApp reminders, generate receipts, and track overdue accounts.
+    - generic [ref=e267]:
+      - generic [ref=e268]:
+        - paragraph [ref=e269]: Pricing
+        - heading "Simple, honest pricing" [level=2] [ref=e270]
+        - paragraph [ref=e271]: Start free, upgrade when you need more. No hidden fees, no surprises.
+      - generic [ref=e272]:
+        - generic [ref=e273]:
+          - generic [ref=e274]:
+            - paragraph [ref=e275]: Free
+            - paragraph [ref=e277]: Rs 0
+            - paragraph [ref=e278]: Forever, for up to 3 rooms
+          - link "Get Started Free" [ref=e279] [cursor=pointer]:
+            - /url: /signup
+          - list [ref=e280]:
+            - listitem [ref=e281]:
+              - img [ref=e282]
+              - text: Up to 3 rooms
+            - listitem [ref=e284]:
+              - img [ref=e285]
+              - text: Unlimited tenants
+            - listitem [ref=e287]:
+              - img [ref=e288]
+              - text: Monthly payment tracking
+            - listitem [ref=e290]:
+              - img [ref=e291]
+              - text: Tenant self-service portal
+            - listitem [ref=e293]:
+              - img [ref=e294]
+              - text: Dashboard & basic reports
+            - listitem [ref=e296]:
+              - img [ref=e297]
+              - text: Move-in anniversary alerts
+        - generic [ref=e299]:
+          - generic [ref=e301]:
+            - img [ref=e302]
+            - text: Coming Soon
+          - generic [ref=e304]:
+            - paragraph [ref=e305]: Pro
+            - paragraph [ref=e306]: TBD
+            - paragraph [ref=e307]: Per month · unlimited rooms
+          - button "Coming Soon" [disabled] [ref=e308]
+          - list [ref=e309]:
+            - listitem [ref=e310]:
+              - img [ref=e311]
+              - text: Unlimited rooms
+            - listitem [ref=e313]:
+              - img [ref=e314]
+              - text: Everything in Free
+            - listitem [ref=e316]:
+              - img [ref=e317]
+              - text: PDF receipt generation
+            - listitem [ref=e319]:
+              - img [ref=e320]
+              - text: WhatsApp payment reminders
+            - listitem [ref=e322]:
+              - img [ref=e323]
+              - text: Advanced analytics
+            - listitem [ref=e325]:
+              - img [ref=e326]
+              - text: CSV / Excel export
+            - listitem [ref=e328]:
+              - img [ref=e329]
+              - text: Priority support
+      - generic [ref=e332]:
+        - img [ref=e333]
+        - paragraph [ref=e335]: "Founding member perk: Sign up during beta and keep unlimited access free forever — no catch, no expiry."
+    - generic [ref=e337]:
+      - heading "Ready to stop managing rent in notebooks?" [level=2] [ref=e338]:
+        - text: Ready to stop managing
+        - text: rent in notebooks?
+      - paragraph [ref=e339]: Join landlords already managing their properties with EasyRent. It takes less than 5 minutes to get started.
+      - generic [ref=e340]:
+        - link "Get Started Free" [ref=e341] [cursor=pointer]:
+          - /url: /signup
+          - text: Get Started Free
+          - img [ref=e342]
+        - link "Already have an account? Sign in →" [ref=e344] [cursor=pointer]:
+          - /url: /login
+    - contentinfo [ref=e345]:
+      - generic [ref=e347]:
+        - generic [ref=e348]:
+          - img [ref=e350]
+          - generic [ref=e356]:
+            - paragraph [ref=e357]: EasyRent
+            - paragraph [ref=e358]: by XpertThemes
+        - generic [ref=e359]:
+          - link "Features" [ref=e360] [cursor=pointer]:
+            - /url: "#features"
+          - link "How it works" [ref=e361] [cursor=pointer]:
+            - /url: "#how-it-works"
+          - link "Pricing" [ref=e362] [cursor=pointer]:
+            - /url: "#pricing"
+          - link "Sign in" [ref=e363] [cursor=pointer]:
+            - /url: /login
+          - link "Sign up" [ref=e364] [cursor=pointer]:
+            - /url: /signup
+        - paragraph [ref=e365]: © 2026 XpertThemes. All rights reserved.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e371] [cursor=pointer]:
+    - img [ref=e372]
