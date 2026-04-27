@@ -40,8 +40,8 @@ export function ConfirmDialog({
             {variant !== "default" && (
               <div className={cn(
                 "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center mt-0.5",
-                variant === "destructive" && "bg-red-50",
-                variant === "warning"     && "bg-amber-50",
+                variant === "destructive" && "bg-red-50 dark:bg-red-500/15",
+                variant === "warning"     && "bg-amber-50 dark:bg-amber-500/15",
               )}>
                 <AlertTriangle size={20} className={cn(
                   variant === "destructive" && "text-red-600",
@@ -50,7 +50,7 @@ export function ConfirmDialog({
               </div>
             )}
             <div className="flex-1">
-              <DialogTitle className="text-base font-semibold text-slate-900 leading-snug">
+              <DialogTitle className="text-base font-semibold text-slate-900 dark:text-white leading-snug">
                 {title}
               </DialogTitle>
               <DialogDescription className="mt-1.5 text-sm text-slate-500 leading-relaxed">
@@ -64,7 +64,7 @@ export function ConfirmDialog({
           <button
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>

@@ -29,7 +29,7 @@ export function SearchInput({ placeholder = "Search…", paramKey = "search" }: 
         defaultValue={current}
         onChange={e => update(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-8 pr-8 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white transition-shadow"
+        className="w-full pl-8 pr-8 py-2 text-sm border border-app-field-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-app-field-bg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 transition-shadow"
       />
       {current && (
         <button
