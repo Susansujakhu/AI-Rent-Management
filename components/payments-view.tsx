@@ -497,7 +497,7 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
     <div className="space-y-4">
 
       {/* ── Hero stats card ─────────────────────────────────────────────────── */}
-      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-6 shadow-xl text-white overflow-hidden relative">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-4 sm:p-6 shadow-xl text-white overflow-hidden relative">
         {/* Decorative glow */}
         <div className="absolute -top-10 -right-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -516,19 +516,19 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
             </div>
           )}
 
-          {/* Three stat columns */}
-          <div className="grid grid-cols-3 gap-4 sm:gap-8">
+          {/* Stats — 2 cols on mobile, 3 cols on sm+ */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-3 sm:gap-8">
             {/* Collected */}
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collected</p>
-              <p className="text-2xl sm:text-3xl font-black text-white mt-1 tracking-tight leading-none">{fmt(totalCollected)}</p>
+              <p className="text-xl sm:text-3xl font-black text-white mt-1 tracking-tight leading-none tabular-nums">{fmt(totalCollected)}</p>
               <p className="text-xs text-emerald-400 mt-1.5 font-medium">{visibleSessions.length} payment{visibleSessions.length !== 1 ? "s" : ""}</p>
             </div>
 
             {/* Outstanding */}
-            <div className="border-l border-slate-700 pl-4 sm:pl-8">
+            <div className="border-l border-slate-700 pl-3 sm:pl-8">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Outstanding</p>
-              <p className={`text-2xl sm:text-3xl font-black mt-1 tracking-tight leading-none ${totalOutstanding > 0 ? "text-rose-400" : "text-slate-500"}`}>
+              <p className={`text-xl sm:text-3xl font-black mt-1 tracking-tight leading-none tabular-nums ${totalOutstanding > 0 ? "text-rose-400" : "text-slate-500"}`}>
                 {fmt(totalOutstanding)}
               </p>
               {overdueCount > 0 ? (
@@ -538,11 +538,13 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
               )}
             </div>
 
-            {/* Collection rate */}
-            <div className="border-l border-slate-700 pl-4 sm:pl-8">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collected</p>
-              <p className="text-2xl sm:text-3xl font-black text-white mt-1 tracking-tight leading-none">{collectionRate}%</p>
-              <p className="text-xs text-slate-400 mt-1.5">of {fmt(totalBilled)}</p>
+            {/* Collection rate — spans full width on mobile, 1 col on sm+ */}
+            <div className="col-span-2 sm:col-span-1 flex items-center gap-4 sm:block border-t sm:border-t-0 sm:border-l border-slate-700 pt-3 sm:pt-0 sm:pl-8">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collection Rate</p>
+                <p className="text-xl sm:text-3xl font-black text-white mt-1 tracking-tight leading-none">{collectionRate}%</p>
+              </div>
+              <p className="text-xs text-slate-400 sm:mt-1.5">of {fmt(totalBilled)}</p>
             </div>
           </div>
 
