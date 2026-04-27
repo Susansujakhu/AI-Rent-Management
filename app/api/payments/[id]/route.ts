@@ -260,9 +260,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     // Build receipt deep-link if tenant has portal access
     let receiptUrl: string | undefined;
     if (updated.tenant.portalEnabled && updated.tenant.portalToken) {
-      const appUrl   = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const proto    = req.headers.get("x-forwarded-proto") ?? "https";
+      const host     = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3000";
       const redirect = encodeURIComponent(`/portal/payments/${id}/receipt`);
-      receiptUrl     = `${appUrl}/portal/t/${updated.tenant.portalToken}?redirect=${redirect}`;
+      receiptUrl     = `${proto}://${host}/portal/t/${updated.tenant.portalToken}?redirect=${redirect}`;
     }
 
     // Build per-month breakdown lines

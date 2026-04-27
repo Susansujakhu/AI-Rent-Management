@@ -25,7 +25,9 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Portal access is not enabled for this tenant" }, { status: 400 });
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const proto   = req.headers.get("x-forwarded-proto") ?? "https";
+  const host    = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3000";
+  const baseUrl = `${proto}://${host}`;
   const link    = `${baseUrl}/portal/t/${tenant.portalToken}`;
 
   const msg = `Hi ${tenant.name}, here's your personal tenant portal link to view your rent and payment details:\n\n${link}\n\nBookmark this page for future access. The link is personal — please don't share it with others.`;

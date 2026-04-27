@@ -24,8 +24,7 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
   const [loading, setLoading]   = useState<string | null>(null);
   const [copied,  setCopied]    = useState(false);
 
-  const origin     = process.env.NEXT_PUBLIC_APP_URL
-    ?? (typeof window !== "undefined" ? window.location.origin : "");
+  const origin     = typeof window !== "undefined" ? window.location.origin : "";
   const portalLink = token ? `${origin}/portal/t/${token}` : null;
 
   const enable = async () => {
@@ -125,6 +124,25 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
         )}
       </div>
 
+      <ConfirmDialog
+        open={regenOpen}
+        onOpenChange={setRegenOpen}
+        title="Regenerate Portal Link"
+        description="This will invalidate the current link. Anyone using the old link will lose access immediately."
+        confirmLabel="Regenerate"
+        variant="warning"
+        onConfirm={regenerate}
+      />
+      <ConfirmDialog
+        open={disableOpen}
+        onOpenChange={setDisableOpen}
+        title="Revoke Portal Access"
+        description={`Disable portal access for ${tenantName}? All active sessions will be revoked immediately.`}
+        confirmLabel="Revoke Access"
+        variant="destructive"
+        onConfirm={disable}
+      />
+
       <div className="px-5 py-4">
         {/* Pro gate */}
         {!isPro ? (
@@ -146,24 +164,6 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
               </button>
             </div>
             <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} feature="Tenant portal" />
-      <ConfirmDialog
-        open={regenOpen}
-        onOpenChange={setRegenOpen}
-        title="Regenerate Portal Link"
-        description="This will invalidate the current link. Anyone using the old link will lose access immediately."
-        confirmLabel="Regenerate"
-        variant="warning"
-        onConfirm={regenerate}
-      />
-      <ConfirmDialog
-        open={disableOpen}
-        onOpenChange={setDisableOpen}
-        title="Revoke Portal Access"
-        description={`Disable portal access for ${tenantName}? All active sessions will be revoked immediately.`}
-        confirmLabel="Revoke Access"
-        variant="destructive"
-        onConfirm={disable}
-      />
           </>
         ) : !enabled ? (
           <div className="flex flex-col items-center gap-3 py-2">
