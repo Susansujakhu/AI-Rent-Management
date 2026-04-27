@@ -61,7 +61,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: "notes must be 5000 characters or fewer" }, { status: 400 });
     data.notes = body.notes || null;
   }
-  if ("whatsappNotify" in body) data.whatsappNotify = Boolean(body.whatsappNotify);
+  if ("whatsappNotify"         in body) data.whatsappNotify         = Boolean(body.whatsappNotify);
+  if ("canSubmitMeterReading"  in body) data.canSubmitMeterReading  = Boolean(body.canSubmitMeterReading);
+  if ("meterReadingAutoAccept" in body) data.meterReadingAutoAccept = Boolean(body.meterReadingAutoAccept);
 
   // ── Move-out handling ────────────────────────────────────────────────────────
   if ("moveOutDate" in body && !body.moveOutDate) {

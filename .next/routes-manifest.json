@@ -145,6 +145,14 @@
       "namedRegex": "^/api/payments/(?<nxtPid>[^/]+?)/transactions(?:/)?$"
     },
     {
+      "page": "/api/portal/meter-readings/[id]/photo",
+      "regex": "^/api/portal/meter\\-readings/([^/]+?)/photo(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/portal/meter\\-readings/(?<nxtPid>[^/]+?)/photo(?:/)?$"
+    },
+    {
       "page": "/api/rooms/[id]",
       "regex": "^/api/rooms/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -500,6 +508,12 @@
       "namedRegex": "^/api/portal/me(?:/)?$"
     },
     {
+      "page": "/api/portal/meter-readings",
+      "regex": "^/api/portal/meter\\-readings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/portal/meter\\-readings(?:/)?$"
+    },
+    {
       "page": "/api/portal/payment-qr",
       "regex": "^/api/portal/payment\\-qr(?:/)?$",
       "routeKeys": {},
@@ -654,6 +668,12 @@
       "regex": "^/portal/dashboard(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/portal/dashboard(?:/)?$"
+    },
+    {
+      "page": "/portal/electricity",
+      "regex": "^/portal/electricity(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/electricity(?:/)?$"
     },
     {
       "page": "/portal/maintenance",

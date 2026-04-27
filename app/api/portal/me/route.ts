@@ -16,5 +16,6 @@ export async function GET() {
     deposit:      t.deposit,
     creditBalance: t.creditBalance,
     room:         t.room ? { id: t.room.id, name: t.room.name, floor: t.room.floor } : null,
+    canSubmitMeterReading: t.canSubmitMeterReading,
   });
 }

@@ -65,6 +65,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../app/(tenant-portal)/portal/electricity/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/portal/electricity">> = Specific
+  const handler = {} as typeof import("../../app/(tenant-portal)/portal/electricity/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/(tenant-portal)/portal/maintenance/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/portal/maintenance">> = Specific
@@ -708,6 +717,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/portal/me">> = Specific
   const handler = {} as typeof import("../../app/api/portal/me/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/api/portal/meter-readings/[id]/photo/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/portal/meter-readings/[id]/photo">> = Specific
+  const handler = {} as typeof import("../../app/api/portal/meter-readings/[id]/photo/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/api/portal/meter-readings/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/portal/meter-readings">> = Specific
+  const handler = {} as typeof import("../../app/api/portal/meter-readings/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

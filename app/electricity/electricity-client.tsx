@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Zap, Plus, Trash2, CheckCircle2, ChevronDown, ChevronUp, Save, Camera, X } from "lucide-react";
+import { Zap, Plus, Trash2, CheckCircle2, ChevronDown, ChevronUp, Save, Camera, X, Clock } from "lucide-react";
+import { toast } from "sonner";
 
 type Tenant = { id: string; name: string; room: { name: string } | null };
 type Reading = {
   id: string; tenantId: string; month: string;
   previous: number; current: number; ratePerUnit: number;
   unitsUsed: number; amount: number; chargeId: string | null;
-  photoPath: string | null;
+  photoPath: string | null; status: string; submittedByTenant: boolean;
   tenant: { id: string; name: string; room: { name: string } | null };
 };
 
@@ -40,10 +41,16 @@ export function ElectricityClient({
   const [lastCurrent, setLastCurrent] = useState<Record<string, number>>({});
   const [photoUploading, setPhotoUploading] = useState<Record<string, boolean>>({});
   const photoInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [pendingReviews, setPendingReviews] = useState<Reading[]>([]);
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   const loadReadings = useCallback(async () => {
     const res = await fetch(`/api/meter-readings?month=${month}`);
-    if (res.ok) setReadings(await res.json());
+    if (res.ok) {
+      const all: Reading[] = await res.json();
+      setReadings(all.filter(r => r.status !== "pending_review"));
+      setPendingReviews(all.filter(r => r.status === "pending_review"));
+    }
   }, [month]);
 
   useEffect(() => { loadReadings(); }, [loadReadings]);
@@ -149,7 +156,26 @@ export function ElectricityClient({
     return new Date(y, mo - 1).toLocaleDateString("en", { month: "long", year: "numeric" });
   };
 
-  const activeTenants = tenants.filter(t => !readingForTenant(t.id));
+  const handleConfirm = async (readingId: string, createCharge: boolean) => {
+    setConfirming(readingId);
+    const res = await fetch(`/api/meter-readings/${readingId}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ status: "confirmed", createCharge }),
+    });
+    if (res.ok) {
+      const updated: Reading = await res.json();
+      setPendingReviews(prev => prev.filter(r => r.id !== readingId));
+      setReadings(prev => [...prev, updated]);
+      setLastCurrent(prev => ({ ...prev, [updated.tenantId]: updated.current }));
+      toast.success("Reading confirmed");
+    } else {
+      toast.error("Failed to confirm reading");
+    }
+    setConfirming(null);
+  };
+
+  const activeTenants = tenants.filter(t => !readingForTenant(t.id) && !pendingReviews.find(r => r.tenantId === t.id));
   const doneCount     = readings.length;
 
   return (
@@ -192,6 +218,67 @@ export function ElectricityClient({
           <span>{doneCount} of {tenants.length} tenant{tenants.length !== 1 ? "s" : ""} recorded for {monthLabel(month)}</span>
         </div>
       </div>
+
+      {/* Tenant-submitted readings awaiting review */}
+      {pendingReviews.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Clock size={13} className="text-amber-500" />
+            <h2 className="text-xs font-bold text-amber-600 uppercase tracking-widest">Awaiting Review ({pendingReviews.length})</h2>
+          </div>
+          <div className="space-y-2">
+            {pendingReviews.map(r => (
+              <div key={r.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-amber-200 dark:border-amber-500/30 overflow-hidden">
+                <div className="px-4 py-3.5 flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <Clock size={13} className="text-amber-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      {r.tenant.name}
+                      {r.tenant.room && <span className="text-slate-400 font-normal"> · {r.tenant.room.name}</span>}
+                      <span className="ml-2 text-xs font-normal text-amber-500">submitted by tenant</span>
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {r.previous} → {r.current} · <span className="font-semibold">{r.unitsUsed} units</span>
+                      {r.ratePerUnit > 0 && <span className="text-slate-600 dark:text-slate-300 ml-1 font-semibold">= {r.amount}</span>}
+                    </p>
+                  </div>
+                </div>
+                <div className="border-t border-amber-100 dark:border-amber-500/20 px-4 py-3 bg-amber-50/40 dark:bg-amber-500/5 flex items-center gap-2">
+                  <button
+                    onClick={() => handleConfirm(r.id, true)}
+                    disabled={confirming === r.id}
+                    className="flex-1 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white py-2 rounded-xl text-xs font-semibold transition-colors"
+                  >
+                    {confirming === r.id ? "Confirming…" : "Confirm & Create Charge"}
+                  </button>
+                  <button
+                    onClick={() => handleConfirm(r.id, false)}
+                    disabled={confirming === r.id}
+                    className="flex-1 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-2 rounded-xl text-xs font-semibold transition-colors"
+                  >
+                    {confirming === r.id ? "Confirming…" : "Confirm (no charge)"}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(r.id)}
+                    className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                {r.photoPath && (
+                  <div className="px-4 pb-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/api/meter-readings/${r.id}/photo`} alt="Meter" className="w-full max-w-xs rounded-xl border border-slate-200 object-cover" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recorded readings */}
       {readings.length > 0 && (

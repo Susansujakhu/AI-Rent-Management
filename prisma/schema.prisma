@@ -131,6 +131,9 @@ model Tenant {
   portalEnabled Boolean  @default(false)
   portalToken   String?  @unique
 
+  canSubmitMeterReading  Boolean @default(false)
+  meterReadingAutoAccept Boolean @default(false)
+
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   room               Room?               @relation(fields: [roomId], references: [id])
   payments           Payment[]
@@ -313,6 +316,8 @@ model MeterReading {
   chargeId    String?  @unique  // linked OneTimeCharge (null if charge not created)
   photoPath   String?           // optional meter photo filename
   notes       String?  @db.Text
+  submittedByTenant Boolean @default(false)
+  status            String  @default("confirmed") // "confirmed" | "pending_review"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

@@ -2,16 +2,19 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, CreditCard, Receipt, Hammer, User, LogOut, Building2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LayoutDashboard, CreditCard, Receipt, Hammer, User, LogOut, Building2, Zap } from "lucide-react";
 import { toast } from "sonner";
 
-const NAV = [
+const BASE_NAV = [
   { href: "/portal/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
   { href: "/portal/payments",    label: "Payments",    icon: CreditCard },
   { href: "/portal/charges",     label: "Charges",     icon: Receipt },
   { href: "/portal/maintenance", label: "Maintenance", icon: Hammer },
   { href: "/portal/profile",     label: "Profile",     icon: User },
 ];
+
+const ELECTRICITY_NAV = { href: "/portal/electricity", label: "Electricity", icon: Zap };
 
 export function PortalShell({
   tenantName,
@@ -24,6 +27,20 @@ export function PortalShell({
 }) {
   const pathname = usePathname();
   const router   = useRouter();
+  const [showElectricity, setShowElectricity] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/portal/me")
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { canSubmitMeterReading?: boolean } | null) => {
+        if (d?.canSubmitMeterReading) setShowElectricity(true);
+      })
+      .catch(() => {});
+  }, []);
+
+  const NAV = showElectricity
+    ? [...BASE_NAV.slice(0, 3), ELECTRICITY_NAV, ...BASE_NAV.slice(3)]
+    : BASE_NAV;
 
   const initials = tenantName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
 

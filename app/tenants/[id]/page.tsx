@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MoveOutButton } from "./move-out-button";
 import { WhatsAppToggle } from "./whatsapp-toggle";
+import { ElectricityMeterToggle } from "./electricity-meter-toggle";
 import { TenantRecurringChargesPanel } from "./tenant-recurring-charges";
 import { PortalAccessCard } from "./portal-access";
 import { PaymentLedger } from "./payment-ledger";
@@ -264,6 +265,15 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
       {/* WhatsApp notification toggle */}
       <WhatsAppToggle tenantId={id} enabled={tenant.whatsappNotify} />
+
+      {/* Electricity meter reading toggle */}
+      {process.env.TENANT_PORTAL_ENABLED === "true" && (
+        <ElectricityMeterToggle
+          tenantId={id}
+          canSubmit={tenant.canSubmitMeterReading}
+          autoAccept={tenant.meterReadingAutoAccept}
+        />
+      )}
 
       {/* Tenant Portal Access */}
       {process.env.TENANT_PORTAL_ENABLED === "true" && (
