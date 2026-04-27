@@ -6,18 +6,18 @@ import { LayoutDashboard, Users, CreditCard, Receipt, MoreHorizontal, DoorOpen, 
 import { cn } from "@/lib/utils";
 
 const primary = [
-  { href: "/dashboard", label: "Home",     icon: LayoutDashboard },
-  { href: "/tenants",  label: "Tenants",  icon: Users },
-  { href: "/payments", label: "Payments", icon: CreditCard },
-  { href: "/expenses", label: "Expenses", icon: Receipt },
+  { href: "/dashboard",   label: "Home",        icon: LayoutDashboard },
+  { href: "/rooms",       label: "Rooms",       icon: DoorOpen },
+  { href: "/tenants",     label: "Tenants",     icon: Users },
+  { href: "/payments",    label: "Payments",    icon: CreditCard },
+  { href: "/electricity", label: "Electricity", icon: Zap },
 ];
 
 const secondary = [
-  { href: "/rooms",        label: "Rooms",        icon: DoorOpen },
-  { href: "/electricity",  label: "Electricity",  icon: Zap },
-  { href: "/maintenance",  label: "Maintenance",  icon: Hammer },
-  { href: "/reports",      label: "Reports",      icon: BarChart3 },
-  { href: "/settings",     label: "Settings",     icon: Settings },
+  { href: "/expenses",    label: "Expenses",    icon: Receipt },
+  { href: "/maintenance", label: "Maintenance", icon: Hammer },
+  { href: "/reports",     label: "Reports",     icon: BarChart3 },
+  { href: "/settings",    label: "Settings",    icon: Settings },
 ];
 
 export function BottomNav() {
