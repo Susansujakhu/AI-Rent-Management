@@ -1,7 +1,13 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+/node_modules/*
+!/node_modules/.prisma
+/node_modules/.prisma/*
+!/node_modules/.prisma/client
+/node_modules/.prisma/client/*.node
+/node_modules/.prisma/client/*.tmp*
+/node_modules/.prisma/client/*wasm-base64*
 /.pnp
 .pnp.*
 .yarn/*
