@@ -35,7 +35,7 @@ export default async function PortalDashboard() {
   const recentPaid       = allPayments.filter(p => p.amountPaid > 0).slice(0, 3);
 
   return (
-    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null}>
+    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading}>
       <div className="space-y-5">
 
         {/* Welcome */}

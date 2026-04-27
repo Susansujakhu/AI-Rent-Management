@@ -57,7 +57,7 @@ export default async function PortalPaymentsPage() {
   const overdueCount = payments.filter(p => p.status === "OVERDUE").length;
 
   return (
-    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null}>
+    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading}>
       <div className="space-y-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Payment History</h1>

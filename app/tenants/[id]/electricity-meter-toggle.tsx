@@ -80,7 +80,7 @@ export function ElectricityMeterToggle({
           <div className="pl-12">
             <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Auto-confirm readings</p>
             <p className="text-xs text-slate-400 mt-0.5">
-              {auto ? "Charges created automatically on submission" : "You review each reading before it&apos;s charged"}
+              {auto ? "Charges created automatically on submission" : "You review each reading before it's charged"}
             </p>
           </div>
           <button

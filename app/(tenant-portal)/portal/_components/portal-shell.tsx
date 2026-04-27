@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { LayoutDashboard, CreditCard, Receipt, Hammer, User, LogOut, Building2, Zap } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,24 +18,16 @@ const ELECTRICITY_NAV = { href: "/portal/electricity", label: "Electricity", ico
 export function PortalShell({
   tenantName,
   roomName,
+  showElectricity = false,
   children,
 }: {
-  tenantName: string;
-  roomName:   string | null;
-  children:   React.ReactNode;
+  tenantName:       string;
+  roomName:         string | null;
+  showElectricity?: boolean;
+  children:         React.ReactNode;
 }) {
   const pathname = usePathname();
   const router   = useRouter();
-  const [showElectricity, setShowElectricity] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/portal/me")
-      .then(r => r.ok ? r.json() : null)
-      .then((d: { canSubmitMeterReading?: boolean } | null) => {
-        if (d?.canSubmitMeterReading) setShowElectricity(true);
-      })
-      .catch(() => {});
-  }, []);
 
   const NAV = showElectricity
     ? [...BASE_NAV.slice(0, 3), ELECTRICITY_NAV, ...BASE_NAV.slice(3)]

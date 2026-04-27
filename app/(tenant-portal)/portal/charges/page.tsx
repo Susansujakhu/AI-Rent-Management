@@ -28,7 +28,7 @@ export default async function PortalChargesPage() {
   const totalOutstanding = charges.reduce((s, c) => s + Math.max(0, c.amount - c.amountPaid), 0);
 
   return (
-    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null}>
+    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading}>
       <div className="space-y-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900">One-time Charges</h1>

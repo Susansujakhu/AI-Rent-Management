@@ -32,7 +32,7 @@ export default async function PortalMaintenancePage() {
   }));
 
   return (
-    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null}>
+    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading}>
       <MaintenancePortalClient initial={serialized} />
     </PortalShell>
   );

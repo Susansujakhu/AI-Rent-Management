@@ -14,7 +14,7 @@ export default async function PortalElectricityPage() {
 
   if (!tenant.canSubmitMeterReading) {
     return (
-      <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null}>
+      <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading}>
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
             <Zap size={24} className="text-slate-300" />
@@ -57,7 +57,7 @@ export default async function PortalElectricityPage() {
   const lastCurrent = readings[0]?.current ?? null;
 
   return (
-    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null}>
+    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading}>
       <ElectricityPortalClient
         initialReadings={serialized}
         ratePerUnit={ratePerUnit}
