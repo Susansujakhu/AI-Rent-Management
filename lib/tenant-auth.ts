@@ -73,7 +73,7 @@ export function setTenantSessionCookie(res: NextResponse, token: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    path: "/portal",
+    path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });
 }
@@ -81,7 +81,7 @@ export function setTenantSessionCookie(res: NextResponse, token: string) {
 /** Clear the tenant session cookie on a response. */
 export function clearTenantSessionCookie(res: NextResponse) {
   res.cookies.set("rms_tenant_session", "", {
-    path: "/portal",
+    path: "/",
     maxAge: 0,
   });
 }
