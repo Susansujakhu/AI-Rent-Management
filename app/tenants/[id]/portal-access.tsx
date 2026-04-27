@@ -107,19 +107,19 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
-            <Globe size={14} className="text-teal-600" />
+          <div className="w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-500/15 flex items-center justify-center">
+            <Globe size={14} className="text-teal-600 dark:text-teal-400" />
           </div>
           <div>
-            <h2 className="font-bold text-slate-900 text-sm">Tenant Portal Access</h2>
+            <h2 className="font-bold text-slate-900 dark:text-white text-sm">Tenant Portal Access</h2>
             <p className="text-xs text-slate-400">Share a personal link for the tenant to view their account</p>
           </div>
         </div>
         {enabled && (
-          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-teal-50 dark:bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-500/20">
             Active
           </span>
         )}
@@ -130,11 +130,11 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
         {!isPro ? (
           <>
             <div className="flex flex-col items-center gap-3 py-4 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-500/15 border border-amber-100 dark:border-amber-500/20 flex items-center justify-center">
                 <Lock size={20} className="text-amber-500" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-700">Pro feature</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pro feature</p>
                 <p className="text-xs text-slate-400 mt-0.5">Tenant portal requires a Pro plan</p>
               </div>
               <button
@@ -183,12 +183,12 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
           <div className="space-y-4">
             {/* Link display */}
             {portalLink && (
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 flex items-center gap-2">
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-3 flex items-center gap-2">
                 <Link2 size={13} className="text-slate-400 shrink-0" />
-                <p className="text-xs text-slate-600 truncate flex-1 font-mono">{portalLink}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 truncate flex-1 font-mono">{portalLink}</p>
                 <button
                   onClick={copyLink}
-                  className="shrink-0 p-1 rounded-lg hover:bg-slate-200 text-slate-500 transition-colors"
+                  className="shrink-0 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 transition-colors"
                   title="Copy link"
                 >
                   {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
@@ -208,7 +208,7 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
               </button>
               <button
                 onClick={copyLink}
-                className="flex items-center gap-1.5 text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-1.5 rounded-lg transition-colors"
               >
                 {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
                 Copy Link
@@ -232,7 +232,7 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
               </button>
             </div>
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               The link grants direct access — treat it like a password. Use &quot;Regenerate&quot; to invalidate the old link if it was shared accidentally.
             </p>
           </div>

@@ -192,24 +192,24 @@ export default function PayPage() {
     OVERDUE: "bg-rose-50 text-rose-700 border border-rose-100",
   };
 
-  const fieldClass = "w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow";
-  const labelClass = "block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide";
+  const fieldClass = "w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-white dark:bg-slate-800 dark:text-slate-200";
+  const labelClass = "block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide";
 
   return (
     <div className="max-w-lg space-y-6 animate-fade-up">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Record Payment</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{formatMonth(payment.month)}</p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Record Payment</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{formatMonth(payment.month)}</p>
       </div>
 
       {/* Payment Info Card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-50">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-50 dark:border-slate-800">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm">
             {payment.tenant.name.charAt(0)}
           </div>
           <div>
-            <p className="font-semibold text-slate-900">{payment.tenant.name}</p>
+            <p className="font-semibold text-slate-900 dark:text-white">{payment.tenant.name}</p>
             <p className="text-xs text-slate-400">{payment.room.name} · {formatMonth(payment.month)}</p>
           </div>
           <span className={`ml-auto inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${STATUS_STYLES[payment.status] ?? "bg-slate-100 text-slate-600"}`}>
@@ -217,29 +217,29 @@ export default function PayPage() {
           </span>
         </div>
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="bg-slate-50 rounded-xl p-3">
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
             <p className="text-xs text-slate-400 font-medium">Amount Due</p>
-            <p className="font-bold text-slate-900 mt-0.5">{formatCurrency(payment.amountDue, currencySymbol)}</p>
+            <p className="font-bold text-slate-900 dark:text-white mt-0.5">{formatCurrency(payment.amountDue, currencySymbol)}</p>
           </div>
-          <div className="bg-slate-50 rounded-xl p-3">
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
             <p className="text-xs text-slate-400 font-medium">Already Paid</p>
-            <p className="font-bold text-slate-900 mt-0.5">{formatCurrency(payment.amountPaid, currencySymbol)}</p>
+            <p className="font-bold text-slate-900 dark:text-white mt-0.5">{formatCurrency(payment.amountPaid, currencySymbol)}</p>
           </div>
-          <div className="bg-rose-50 rounded-xl p-3">
+          <div className="bg-rose-50 dark:bg-rose-500/10 rounded-xl p-3">
             <p className="text-xs text-rose-400 font-medium">Balance (this month)</p>
-            <p className="font-bold text-rose-600 mt-0.5">{formatCurrency(balance, currencySymbol)}</p>
+            <p className="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{formatCurrency(balance, currencySymbol)}</p>
           </div>
           {totalOutstanding > balance && (
-            <div className="bg-rose-50 rounded-xl p-3">
+            <div className="bg-rose-50 dark:bg-rose-500/10 rounded-xl p-3">
               <p className="text-xs text-rose-400 font-medium">Total Outstanding</p>
-              <p className="font-bold text-rose-700 mt-0.5">{formatCurrency(totalOutstanding, currencySymbol)}</p>
+              <p className="font-bold text-rose-700 dark:text-rose-400 mt-0.5">{formatCurrency(totalOutstanding, currencySymbol)}</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Payment Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 space-y-4">
         <div>
           <label className={labelClass}>
             Amount Paid ({currencySymbol}) <span className="text-rose-500 normal-case">*</span>
@@ -259,17 +259,17 @@ export default function PayPage() {
 
           {/* Distribution preview */}
           {showPreview && (
-            <div className="mt-3 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3 text-xs space-y-2">
-              <p className="font-semibold text-indigo-800">This payment will cover:</p>
+            <div className="mt-3 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 px-4 py-3 text-xs space-y-2">
+              <p className="font-semibold text-indigo-800 dark:text-indigo-300">This payment will cover:</p>
               {coverage.map((item, i) => (
                 <div key={i} className="flex justify-between items-start gap-2">
-                  <span className={`font-medium ${item.kind === "charge" ? "text-orange-700" : "text-indigo-700"}`}>
+                  <span className={`font-medium ${item.kind === "charge" ? "text-orange-700 dark:text-orange-400" : "text-indigo-700 dark:text-indigo-300"}`}>
                     {item.kind === "charge" ? `📋 ${item.label}` : item.label}
                   </span>
                   <span className="text-right shrink-0">
                     {item.full
-                      ? <span className="text-emerald-600 font-semibold">Full payment</span>
-                      : <><span className="text-indigo-700">Partial — {formatCurrency(item.amount, currencySymbol)}</span><br /><span className="text-rose-400">Remaining: {formatCurrency(item.remainingAfter, currencySymbol)}</span></>
+                      ? <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Full payment</span>
+                      : <><span className="text-indigo-700 dark:text-indigo-300">Partial — {formatCurrency(item.amount, currencySymbol)}</span><br /><span className="text-rose-400">Remaining: {formatCurrency(item.remainingAfter, currencySymbol)}</span></>
                     }
                   </span>
                 </div>
@@ -279,13 +279,13 @@ export default function PayPage() {
         </div>
 
         {unpaidCharges.length > 0 && (
-          <label className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
+          <label className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors select-none">
             <input
               type="checkbox"
               {...register("applyToOneTimeCharges")}
               className="accent-indigo-600 w-4 h-4 rounded"
             />
-            <span className="text-sm text-slate-700 font-medium">
+            <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
               Also apply to one-time charges
               <span className="ml-1.5 text-xs font-normal text-slate-400">
                 ({unpaidCharges.length} unpaid · {formatCurrency(unpaidCharges.reduce((s, c) => s + (c.amount - c.amountPaid), 0), currencySymbol)} due)
@@ -334,7 +334,7 @@ export default function PayPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+            className="flex-1 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Cancel
           </button>

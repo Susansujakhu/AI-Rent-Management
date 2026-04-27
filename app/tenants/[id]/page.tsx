@@ -32,10 +32,10 @@ function monthRange(start: string, end: string) {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    PAID:    "bg-emerald-50 text-emerald-700 border border-emerald-200 ring-1 ring-emerald-100",
-    PARTIAL: "bg-blue-50 text-blue-700 border border-blue-200 ring-1 ring-blue-100",
-    PENDING: "bg-amber-50 text-amber-700 border border-amber-200 ring-1 ring-amber-100",
-    OVERDUE: "bg-rose-50 text-rose-700 border border-rose-200 ring-1 ring-rose-100",
+    PAID:    "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20",
+    PARTIAL: "bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20",
+    PENDING: "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20",
+    OVERDUE: "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20",
   };
   const dots: Record<string, string> = {
     PAID: "bg-emerald-500", PARTIAL: "bg-blue-500", PENDING: "bg-amber-400", OVERDUE: "bg-rose-500",
@@ -158,11 +158,11 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {/* Hero card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className={`bg-gradient-to-r ${avatarColor} h-20 relative`}>
           <div className="absolute inset-0 bg-black/10" />
           <div className="absolute bottom-0 right-4 translate-y-1/2">
-            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatarColor} shadow-lg border-4 border-white flex items-center justify-center text-white text-xl font-black`}>
+            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatarColor} shadow-lg border-4 border-white dark:border-slate-900 flex items-center justify-center text-white text-xl font-black`}>
               {initials}
             </div>
           </div>
@@ -171,20 +171,20 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-bold text-slate-900">{tenant.name}</h1>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{tenant.name}</h1>
                 <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
-                  isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500"
+                  isActive ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                 }`}>
                   {isActive ? "Active" : "Past Tenant"}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-3 mt-2.5">
-                <span className="flex items-center gap-1.5 text-sm text-slate-500">
+                <span className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                   <Phone size={13} className="text-slate-400" />
                   {tenant.phone}
                 </span>
                 {tenant.email && (
-                  <span className="flex items-center gap-1.5 text-sm text-slate-500">
+                  <span className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                     <Mail size={13} className="text-slate-400" />
                     {tenant.email}
                   </span>
@@ -195,7 +195,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
                     {tenant.room.name}
                   </Link>
                 )}
-                <span className="flex items-center gap-1.5 text-sm text-slate-500">
+                <span className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                   <Calendar size={13} className="text-slate-400" />
                   Since {formatDate(tenant.moveInDate)}
                   {yearsWithUs >= 1 && (
@@ -209,7 +209,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
             </div>
             <div className="flex gap-2 shrink-0">
               <Link href={`/tenants/${id}/edit`}
-                className="border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors">
+                className="border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                 Edit
               </Link>
               {isActive && <MoveOutButton tenantId={id} moveInDate={tenant.moveInDate.toISOString()} />}
@@ -232,7 +232,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         <div className={`rounded-2xl shadow-sm p-5 relative overflow-hidden ${
           totalOutstanding > 0
             ? "bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-200"
-            : "bg-white border border-slate-100"
+            : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800"
         }`}>
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${totalOutstanding > 0 ? "bg-white/20" : "bg-rose-50"}`}>
@@ -248,17 +248,17 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
       {/* Advance credit */}
       {tenant.creditBalance > 0 && (
-        <div className="bg-gradient-to-r from-indigo-50 to-violet-50 rounded-2xl border border-indigo-100 p-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-500/10 dark:to-violet-500/10 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center">
-              <Shield size={15} className="text-indigo-600" />
+            <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center">
+              <Shield size={15} className="text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
-              <p className="text-sm font-bold text-indigo-900">Advance Credit</p>
-              <p className="text-xs text-indigo-500">Will auto-apply to next payment</p>
+              <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">Advance Credit</p>
+              <p className="text-xs text-indigo-500 dark:text-indigo-400">Will auto-apply to next payment</p>
             </div>
           </div>
-          <p className="text-xl font-black text-indigo-700">{fmt(tenant.creditBalance)}</p>
+          <p className="text-xl font-black text-indigo-700 dark:text-indigo-300">{fmt(tenant.creditBalance)}</p>
         </div>
       )}
 
@@ -279,25 +279,25 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
       {/* Contact info card */}
       {(tenant.deposit > 0 || tenant.notes) && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-3">
-          <h2 className="text-sm font-bold text-slate-900">Details</h2>
-          <div className="space-y-2.5 text-sm divide-y divide-slate-50">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 space-y-3">
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Details</h2>
+          <div className="space-y-2.5 text-sm divide-y divide-slate-50 dark:divide-slate-800">
             {tenant.deposit > 0 && (
               <div className="flex justify-between pt-2 first:pt-0">
-                <span className="text-slate-400 font-medium">Security Deposit</span>
-                <span className="font-bold text-slate-800">{fmt(tenant.deposit)}</span>
+                <span className="text-slate-400 dark:text-slate-500 font-medium">Security Deposit</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{fmt(tenant.deposit)}</span>
               </div>
             )}
             {tenant.moveOutDate && (
               <div className="flex justify-between pt-2 first:pt-0">
-                <span className="text-slate-400 font-medium">Move-out Date</span>
-                <span className="font-semibold text-slate-800">{formatDate(tenant.moveOutDate)}</span>
+                <span className="text-slate-400 dark:text-slate-500 font-medium">Move-out Date</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{formatDate(tenant.moveOutDate)}</span>
               </div>
             )}
             {tenant.notes && (
               <div className="pt-2 first:pt-0">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Notes</p>
-                <p className="text-sm text-slate-600">{tenant.notes}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{tenant.notes}</p>
               </div>
             )}
           </div>
@@ -317,9 +317,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       )}
 
       {/* Payment Ledger */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="font-bold text-slate-900 text-sm">Payment Ledger</h2>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="font-bold text-slate-900 dark:text-white text-sm">Payment Ledger</h2>
           <p className="text-xs text-slate-400 mt-0.5">{tenant.payments.length} months recorded</p>
         </div>
         <PaymentLedger

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { Zap, Plus, Trash2, CheckCircle2, ChevronDown, ChevronUp, Save } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Zap, Plus, Trash2, CheckCircle2, ChevronDown, ChevronUp, Save, Camera, X } from "lucide-react";
 
 type Tenant = { id: string; name: string; room: { name: string } | null };
 type Reading = {
   id: string; tenantId: string; month: string;
   previous: number; current: number; ratePerUnit: number;
   unitsUsed: number; amount: number; chargeId: string | null;
+  photoPath: string | null;
   tenant: { id: string; name: string; room: { name: string } | null };
 };
 
@@ -35,8 +36,10 @@ export function ElectricityClient({
   const [rateSaved,    setRateSaved]    = useState(false);
   const [error,        setError]        = useState<Record<string, string>>({});
 
-  const [forms, setForms] = useState<Record<string, { previous: string; current: string; notes: string; createCharge: boolean }>>({});
+  const [forms, setForms] = useState<Record<string, { previous: string; current: string; notes: string; createCharge: boolean; photo: File | null }>>({});
   const [lastCurrent, setLastCurrent] = useState<Record<string, number>>({});
+  const [photoUploading, setPhotoUploading] = useState<Record<string, boolean>>({});
+  const photoInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const loadReadings = useCallback(async () => {
     const res = await fetch(`/api/meter-readings?month=${month}`);
@@ -68,6 +71,7 @@ export function ElectricityClient({
           current:      "",
           notes:        "",
           createCharge: true,
+          photo:        null,
         },
       }));
     }
@@ -117,6 +121,17 @@ export function ElectricityClient({
     });
     const data = await res.json() as Reading & { error?: string };
     if (!res.ok) { setError(p => ({ ...p, [tenantId]: data.error ?? "Failed to save" })); setSubmitting(null); return; }
+    // Upload photo if selected
+    const photoFile = forms[tenantId]?.photo;
+    if (photoFile) {
+      setPhotoUploading(p => ({ ...p, [tenantId]: true }));
+      const form = new FormData();
+      form.append("photo", photoFile);
+      await fetch(`/api/meter-readings/${data.id}/photo`, { method: "POST", body: form });
+      data.photoPath = `${data.id}.jpg`;
+      setPhotoUploading(p => ({ ...p, [tenantId]: false }));
+    }
+
     setReadings(prev2 => [...prev2, data]);
     setLastCurrent(prev => ({ ...prev, [tenantId]: data.current }));
     setShowForm(null);
@@ -204,17 +219,49 @@ export function ElectricityClient({
                   {expanded === r.id ? <ChevronUp size={14} className="text-slate-400 shrink-0" /> : <ChevronDown size={14} className="text-slate-400 shrink-0" />}
                 </button>
                 {expanded === r.id && (
-                  <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-3.5 bg-slate-50/40 dark:bg-slate-800/40 flex items-center justify-between">
-                    <div className="text-xs text-slate-600 dark:text-slate-400 space-y-0.5">
-                      <p>Previous reading: <span className="font-semibold">{r.previous}</span></p>
-                      <p>Current reading: <span className="font-semibold">{r.current}</span></p>
-                      <p>Units used: <span className="font-semibold">{r.unitsUsed}</span></p>
-                      <p>Rate: <span className="font-semibold">{r.ratePerUnit}/unit</span></p>
+                  <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-3.5 bg-slate-50/40 dark:bg-slate-800/40 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="text-xs text-slate-600 dark:text-slate-400 space-y-0.5">
+                        <p>Previous reading: <span className="font-semibold">{r.previous}</span></p>
+                        <p>Current reading: <span className="font-semibold">{r.current}</span></p>
+                        <p>Units used: <span className="font-semibold">{r.unitsUsed}</span></p>
+                        <p>Rate: <span className="font-semibold">{r.ratePerUnit}/unit</span></p>
+                      </div>
+                      <button onClick={() => handleDelete(r.id)}
+                        className="text-xs text-rose-500 hover:text-rose-700 flex items-center gap-1 font-medium transition-colors">
+                        <Trash2 size={12} /> Delete
+                      </button>
                     </div>
-                    <button onClick={() => handleDelete(r.id)}
-                      className="text-xs text-rose-500 hover:text-rose-700 flex items-center gap-1 font-medium transition-colors">
-                      <Trash2 size={12} /> Delete
-                    </button>
+                    {r.photoPath ? (
+                      <div className="space-y-1.5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/api/meter-readings/${r.id}/photo`} alt="Meter" className="w-full max-w-xs rounded-xl border border-slate-200 object-cover" />
+                        <button onClick={async () => {
+                          await fetch(`/api/meter-readings/${r.id}/photo`, { method: "DELETE" });
+                          setReadings(prev => prev.map(x => x.id === r.id ? { ...x, photoPath: null } : x));
+                        }} className="text-[11px] text-rose-400 hover:text-rose-600 transition-colors">
+                          Remove photo
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-400 hover:text-amber-600 transition-colors w-fit">
+                        <Camera size={12} />
+                        {photoUploading[r.id] ? "Uploading…" : "Add meter photo"}
+                        <input type="file" accept="image/*" capture="environment" className="hidden"
+                          onChange={async e => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            setPhotoUploading(p => ({ ...p, [r.id]: true }));
+                            const form = new FormData();
+                            form.append("photo", f);
+                            await fetch(`/api/meter-readings/${r.id}/photo`, { method: "POST", body: form });
+                            setReadings(prev => prev.map(x => x.id === r.id ? { ...x, photoPath: `${r.id}.jpg` } : x));
+                            setPhotoUploading(p => ({ ...p, [r.id]: false }));
+                            e.currentTarget.value = "";
+                          }}
+                        />
+                      </label>
+                    )}
                   </div>
                 )}
               </div>
@@ -286,6 +333,34 @@ export function ElectricityClient({
                       <input type="text" value={forms[tenant.id]?.notes ?? ""}
                         onChange={e => setField(tenant.id, "notes", e.target.value)}
                         placeholder="Notes (optional)" className={inputCls} />
+
+                      {/* Meter photo */}
+                      <div>
+                        {forms[tenant.id]?.photo ? (
+                          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl">
+                            <Camera size={13} className="text-amber-500 shrink-0" />
+                            <span className="text-xs text-amber-700 font-medium flex-1 truncate">{forms[tenant.id].photo!.name}</span>
+                            <button type="button" onClick={() => setField(tenant.id, "photo", null as unknown as string)}
+                              className="text-slate-400 hover:text-rose-400 transition-colors">
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-500 hover:text-amber-600 transition-colors">
+                            <Camera size={13} />
+                            Attach meter photo (optional)
+                            <input
+                              type="file" accept="image/*" capture="environment" className="hidden"
+                              ref={el => { photoInputRefs.current[tenant.id] = el; }}
+                              onChange={e => {
+                                const f = e.target.files?.[0];
+                                if (f) setField(tenant.id, "photo", f as unknown as string);
+                                e.currentTarget.value = "";
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
 
                       {error[tenant.id] && (
                         <p className="text-xs text-rose-600">{error[tenant.id]}</p>

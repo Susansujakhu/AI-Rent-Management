@@ -12,10 +12,10 @@ import { ChevronRight, DoorOpen, Banknote, CreditCard, Wrench, UserCheck, UserX 
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    PAID:    "bg-emerald-50 text-emerald-700 border border-emerald-200 ring-1 ring-emerald-100",
-    PARTIAL: "bg-blue-50 text-blue-700 border border-blue-200 ring-1 ring-blue-100",
-    PENDING: "bg-amber-50 text-amber-700 border border-amber-200 ring-1 ring-amber-100",
-    OVERDUE: "bg-rose-50 text-rose-700 border border-rose-200 ring-1 ring-rose-100",
+    PAID:    "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20",
+    PARTIAL: "bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20",
+    PENDING: "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20",
+    OVERDUE: "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20",
   };
   const dots: Record<string, string> = {
     PAID: "bg-emerald-500", PARTIAL: "bg-blue-500", PENDING: "bg-amber-400", OVERDUE: "bg-rose-500",
@@ -110,7 +110,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
       {/* Actions */}
       <div className="flex gap-2">
         <Link href={`/rooms/${id}/edit`}
-          className="border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
+          className="border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
           Edit Room
         </Link>
         <DeleteRoomButton roomId={id} />
@@ -118,48 +118,48 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden">
           <div className="absolute inset-y-0 left-0 w-1 bg-emerald-400 rounded-l-2xl" />
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center mb-3">
-            <Banknote size={15} className="text-emerald-600" />
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center mb-3">
+            <Banknote size={15} className="text-emerald-600 dark:text-emerald-400" />
           </div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Collected</p>
-          <p className="text-xl font-black text-slate-900 mt-1 tracking-tight">{fmt(totalCollected)}</p>
+          <p className="text-xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">{fmt(totalCollected)}</p>
           <p className="text-xs text-slate-400 mt-0.5">last 12 months</p>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden">
           <div className="absolute inset-y-0 left-0 w-1 bg-indigo-400 rounded-l-2xl" />
-          <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center mb-3">
-            <CreditCard size={15} className="text-indigo-600" />
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center mb-3">
+            <CreditCard size={15} className="text-indigo-600 dark:text-indigo-400" />
           </div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Payments</p>
           <div className="mt-1 flex items-end gap-1">
-            <p className="text-xl font-black text-slate-900 tracking-tight">{paidCount}</p>
+            <p className="text-xl font-black text-slate-900 dark:text-white tracking-tight">{paidCount}</p>
             <p className="text-sm text-slate-400 font-medium mb-0.5">/ {room.payments.length}</p>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">paid in full</p>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden">
           <div className="absolute inset-y-0 left-0 w-1 bg-orange-400 rounded-l-2xl" />
-          <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center mb-3">
-            <Wrench size={15} className="text-orange-600" />
+          <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-500/15 flex items-center justify-center mb-3">
+            <Wrench size={15} className="text-orange-600 dark:text-orange-400" />
           </div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Expenses</p>
-          <p className="text-xl font-black text-slate-900 mt-1 tracking-tight">{room.expenses.length}</p>
+          <p className="text-xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">{room.expenses.length}</p>
           <p className="text-xs text-slate-400 mt-0.5">recorded</p>
         </div>
       </div>
 
       {room.description && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Description</p>
-          <p className="text-sm text-slate-600">{room.description}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">{room.description}</p>
         </div>
       )}
 
       {/* Current Tenant */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <h2 className="font-bold text-slate-900 mb-4 text-sm">Current Tenant</h2>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+        <h2 className="font-bold text-slate-900 dark:text-white mb-4 text-sm">Current Tenant</h2>
         {currentTenant ? (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -167,13 +167,13 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
                 {currentTenant.name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <p className="font-semibold text-slate-900">{currentTenant.name}</p>
+                <p className="font-semibold text-slate-900 dark:text-white">{currentTenant.name}</p>
                 <p className="text-xs text-slate-400">{currentTenant.phone}</p>
                 <p className="text-xs text-slate-400 mt-0.5">Since {formatDate(currentTenant.moveInDate)}</p>
               </div>
             </div>
             <Link href={`/tenants/${currentTenant.id}`}
-              className="text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-semibold px-3 py-1.5 rounded-lg transition-colors">
+              className="text-sm bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 font-semibold px-3 py-1.5 rounded-lg transition-colors">
               View Profile →
             </Link>
           </div>
@@ -199,31 +199,31 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
       />
 
       {/* Payment History */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-slate-900 text-sm">Payment History</h2>
+            <h2 className="font-bold text-slate-900 dark:text-white text-sm">Payment History</h2>
             <p className="text-xs text-slate-400 mt-0.5">Last 12 months</p>
           </div>
         </div>
         {room.payments.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center mx-auto mb-3">
-              <CreditCard size={18} className="text-slate-300" />
+            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3">
+              <CreditCard size={18} className="text-slate-300 dark:text-slate-600" />
             </div>
             <p className="text-sm text-slate-400">No payments recorded yet.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-slate-50 dark:divide-slate-800">
             {room.payments.map(p => (
-              <div key={p.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
+              <div key={p.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">{formatMonth(p.month)}</p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{formatMonth(p.month)}</p>
                   <p className="text-xs text-slate-400">{p.tenant.name}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right hidden sm:block">
-                    <p className="text-sm font-bold text-slate-900">{fmt(p.amountPaid)}</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">{fmt(p.amountPaid)}</p>
                     <p className="text-xs text-slate-400">of {fmt(p.amountDue)}</p>
                   </div>
                   <StatusBadge status={p.status} />

@@ -60,10 +60,10 @@ function Paginator({ page, total, pageSize, onChange }: {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    PAID:    "bg-emerald-50 text-emerald-700 border border-emerald-200",
-    PARTIAL: "bg-blue-50 text-blue-700 border border-blue-200",
-    PENDING: "bg-amber-50 text-amber-700 border border-amber-200",
-    OVERDUE: "bg-rose-50 text-rose-700 border border-rose-200",
+    PAID:    "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20",
+    PARTIAL: "bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20",
+    PENDING: "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20",
+    OVERDUE: "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20",
   };
   const dots: Record<string, string> = {
     PAID: "bg-emerald-500", PARTIAL: "bg-blue-500", PENDING: "bg-amber-400", OVERDUE: "bg-rose-500",
@@ -98,7 +98,7 @@ function EditModal({
   const [amountErr, setAmountErr] = useState("");
   const [dateErr,   setDateErr]   = useState("");
 
-  const field = "w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white";
+  const field = "w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-slate-800 dark:text-slate-200";
   const lbl   = "block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1";
   const err   = "text-rose-500 text-xs mt-1";
 
@@ -138,11 +138,11 @@ function EditModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900">Edit Charge</h3>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+            <h3 className="font-bold text-slate-900 dark:text-white">Edit Charge</h3>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
               <X size={18} />
             </button>
           </div>
@@ -205,7 +205,7 @@ function EditModal({
             </button>
             <button
               onClick={onClose}
-              className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+              className="flex-1 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               Cancel
             </button>
@@ -299,15 +299,15 @@ export function OneTimeChargesPanel({
         />
       )}
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-slate-900 text-sm">One-time Charges</h2>
+            <h2 className="font-bold text-slate-900 dark:text-white text-sm">One-time Charges</h2>
             <p className="text-xs text-slate-400 mt-0.5">{charges.length} charge{charges.length !== 1 ? "s" : ""}</p>
           </div>
           {isActive && (
             <a href={`/tenants/${tenantId}/one-time-charge/new`}
-              className="text-xs bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-700 transition-colors font-semibold">
+              className="text-xs bg-slate-900 dark:bg-slate-700 text-white px-3 py-1.5 rounded-lg hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors font-semibold">
               + Add Charge
             </a>
           )}
@@ -321,7 +321,7 @@ export function OneTimeChargesPanel({
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-slate-50/40">
+                  <tr className="border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-slate-50/80 to-slate-50/40 dark:from-slate-800/80 dark:to-slate-800/40">
                     <th className="text-left px-5 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Description</th>
                     <th className="text-left px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Date</th>
                     <th className="text-right px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Amount</th>
@@ -330,7 +330,7 @@ export function OneTimeChargesPanel({
                     <th className="px-4 py-3.5"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                   {pagedCharges.map(c => {
                     const canEdit    = c.status !== "PAID";
                     const isPaid     = c.status === "PAID" || c.amountPaid > 0;
@@ -339,14 +339,14 @@ export function OneTimeChargesPanel({
                     const isUndoing  = undoingId     === c.id;
                     const isUndoLoading = undoLoadingId === c.id;
                     return (
-                      <tr key={c.id} className="hover:bg-slate-50/60 transition-colors group">
+                      <tr key={c.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors group">
                         <td className="px-5 py-3.5">
-                          <span className="font-semibold text-slate-800">{c.title}</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200">{c.title}</span>
                           {c.notes && <p className="text-xs text-slate-400 mt-0.5">{c.notes}</p>}
                         </td>
                         <td className="px-4 py-3.5 text-slate-400 text-xs tabular-nums">{formatDate(c.date)}</td>
                         <td className="px-4 py-3.5 text-right text-slate-500">{fmt(c.amount)}</td>
-                        <td className="px-4 py-3.5 text-right font-bold text-slate-900">{fmt(c.amountPaid)}</td>
+                        <td className="px-4 py-3.5 text-right font-bold text-slate-900 dark:text-white">{fmt(c.amountPaid)}</td>
                         <td className="px-4 py-3.5 text-center"><StatusBadge status={c.status} /></td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -417,7 +417,7 @@ export function OneTimeChargesPanel({
             </div>
 
             {/* Mobile */}
-            <div className="sm:hidden divide-y divide-slate-50">
+            <div className="sm:hidden divide-y divide-slate-50 dark:divide-slate-800">
               {pagedCharges.map(c => {
                 const canEdit       = c.status !== "PAID";
                 const isPaid        = c.status === "PAID" || c.amountPaid > 0;
@@ -429,7 +429,7 @@ export function OneTimeChargesPanel({
                   <div key={c.id} className="p-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-semibold text-slate-800 text-sm">{c.title}</p>
+                        <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{c.title}</p>
                         {c.notes && <p className="text-xs text-slate-400 mt-0.5">{c.notes}</p>}
                       </div>
                       <StatusBadge status={c.status} />

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { compressImage } from "@/lib/compress-image";
 
 const STORAGE_DIR = join(process.cwd(), "storage", "tenant-docs");
 const MAX_SIZE_MB  = 10;
@@ -81,16 +82,24 @@ export async function POST(
     },
   });
 
-  const ext      = extFromMime(file.type);
+  let buffer: Buffer   = Buffer.from(await file.arrayBuffer() as ArrayBuffer);
+  let mimeType = file.type;
+
+  if (file.type.startsWith("image/")) {
+    const compressed = await compressImage(buffer, file.type);
+    buffer   = compressed.buffer as Buffer;
+    mimeType = compressed.mimeType;
+  }
+
+  const ext      = mimeType.startsWith("image/") ? "jpg" : extFromMime(file.type);
   const fileName = `${doc.id}.${ext}`;
   const filePath = join(STORAGE_DIR, fileName);
 
-  const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);
 
   const updated = await prisma.tenantDocument.update({
     where: { id: doc.id },
-    data:  { fileName },
+    data:  { fileName, mimeType, size: buffer.length },
   });
 
   return NextResponse.json(updated, { status: 201 });

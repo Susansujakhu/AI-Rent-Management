@@ -11,8 +11,8 @@ import { EXPENSE_CATEGORIES } from "@/lib/utils";
 type Room = { id: string; name: string; floor: string | null };
 type FormData = { title: string; amount: number; date: string; category: string; roomId: string; description: string };
 
-const field = "w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-white";
-const label = "block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5";
+const field = "w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-white dark:bg-slate-800 dark:text-slate-200";
+const label = "block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5";
 const err   = "text-rose-500 text-xs mt-1.5";
 
 export default function NewExpensePage() {
@@ -42,12 +42,12 @@ export default function NewExpensePage() {
           <Receipt size={18} className="text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Add Expense</h1>
-          <p className="text-sm text-slate-500">Record a maintenance or other expense</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Add Expense</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Record a maintenance or other expense</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 space-y-5">
         <div>
           <label className={label}>Title <span className="text-rose-500 normal-case">*</span></label>
           <input {...register("title", { required: "Title is required" })} className={field} placeholder="e.g. Pipe repair" />
@@ -93,7 +93,7 @@ export default function NewExpensePage() {
             className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-orange-200">
             {isSubmitting ? "Adding..." : "Add Expense"}
           </button>
-          <Link href="/expenses" className="flex-1 text-center border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
+          <Link href="/expenses" className="flex-1 text-center border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
             Cancel
           </Link>
         </div>

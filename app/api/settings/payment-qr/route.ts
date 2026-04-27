@@ -3,6 +3,7 @@ import { requireAuthAPI } from "@/lib/auth";
 import { writeFile, mkdir, unlink, readFile } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
+import { compressImage } from "@/lib/compress-image";
 
 const QR_DIR      = join(process.cwd(), "storage", "payment-qr");
 const VALID_TYPES = ["esewa", "khalti", "fonepay"] as const;
@@ -59,7 +60,11 @@ export async function POST(req: Request) {
   }
 
   await mkdir(QR_DIR, { recursive: true });
-  const buffer = Buffer.from(await file.arrayBuffer());
+  let buffer: Buffer = Buffer.from(await file.arrayBuffer() as ArrayBuffer);
+  if (file.type.startsWith("image/")) {
+    const compressed = await compressImage(buffer, file.type);
+    buffer = compressed.buffer as Buffer;
+  }
   await writeFile(qrPath(auth.id, type), buffer);
 
   return NextResponse.json({ ok: true, type });

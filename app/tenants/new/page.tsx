@@ -10,8 +10,8 @@ import { Users, Paperclip, X, FileText, Image } from "lucide-react";
 type Room = { id: string; name: string; floor: string | null; monthlyRent: number; tenants: { id: string }[] };
 type FormData = { name: string; phone: string; email: string; roomId: string; moveInDate: string; deposit: number; notes: string };
 
-const field = "w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-white";
-const label = "block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5";
+const field = "w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-white dark:bg-slate-800 dark:text-slate-200";
+const label = "block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5";
 const err   = "text-rose-500 text-xs mt-1.5";
 
 function fileIcon(mime: string) {
@@ -89,12 +89,12 @@ function NewTenantForm() {
           <Users size={18} className="text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Add New Tenant</h1>
-          <p className="text-sm text-slate-500">Fill in the tenant details below</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Add New Tenant</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Fill in the tenant details below</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className={label}>Full Name <span className="text-rose-500 normal-case">*</span></label>
@@ -149,7 +149,7 @@ function NewTenantForm() {
         <div>
           <label className={label}>Documents <span className="normal-case font-normal text-slate-400">lease, ID, citizenship… (optional)</span></label>
           <div
-            className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition-all"
+            className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/60 hover:bg-indigo-50/30 dark:hover:bg-indigo-500/10 transition-all"
             onClick={() => fileInputRef.current?.click()}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
@@ -167,9 +167,9 @@ function NewTenantForm() {
           {pendingFiles.length > 0 && (
             <ul className="mt-2 space-y-1.5">
               {pendingFiles.map(f => (
-                <li key={f.name} className="flex items-center gap-2.5 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl">
+                <li key={f.name} className="flex items-center gap-2.5 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl">
                   {fileIcon(f.type)}
-                  <span className="flex-1 text-xs text-slate-700 truncate font-medium">{f.name}</span>
+                  <span className="flex-1 text-xs text-slate-700 dark:text-slate-300 truncate font-medium">{f.name}</span>
                   <span className="text-[11px] text-slate-400 shrink-0">{fmtSize(f.size)}</span>
                   <button type="button" onClick={() => removeFile(f.name)} className="shrink-0 text-slate-300 hover:text-rose-400 transition-colors">
                     <X size={13} />
@@ -185,7 +185,7 @@ function NewTenantForm() {
             className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-200">
             {uploading ? "Uploading files…" : isSubmitting ? "Adding…" : pendingFiles.length > 0 ? `Add Tenant & Upload ${pendingFiles.length} File${pendingFiles.length > 1 ? "s" : ""}` : "Add Tenant"}
           </button>
-          <Link href="/tenants" className="flex-1 text-center border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
+          <Link href="/tenants" className="flex-1 text-center border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
             Cancel
           </Link>
         </div>

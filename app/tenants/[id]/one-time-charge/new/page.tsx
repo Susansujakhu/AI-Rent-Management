@@ -8,8 +8,8 @@ import { Receipt, ArrowLeft } from "lucide-react";
 
 type FormData = { title: string; amount: number; date: string; notes: string };
 
-const field = "w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-white";
-const label = "block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5";
+const field = "w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-white dark:bg-slate-800 dark:text-slate-200";
+const label = "block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5";
 const err   = "text-rose-500 text-xs mt-1.5";
 
 export default function NewOneTimeChargePage() {
@@ -51,13 +51,13 @@ export default function NewOneTimeChargePage() {
           <Receipt size={18} className="text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Add One-time Charge</h1>
-          <p className="text-sm text-slate-500">Bill the tenant for an extra expense</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Add One-time Charge</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Bill the tenant for an extra expense</p>
         </div>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 space-y-5">
         <div>
           <label className={label}>Description <span className="text-rose-500 normal-case">*</span></label>
           <input
@@ -114,7 +114,7 @@ export default function NewOneTimeChargePage() {
           </button>
           <Link
             href={`/tenants/${tenantId}`}
-            className="flex-1 text-center border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+            className="flex-1 text-center border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Cancel
           </Link>

@@ -97,6 +97,14 @@
       "namedRegex": "^/api/meter\\-readings/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/api/meter-readings/[id]/photo",
+      "regex": "^/api/meter\\-readings/([^/]+?)/photo(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/meter\\-readings/(?<nxtPid>[^/]+?)/photo(?:/)?$"
+    },
+    {
       "page": "/api/one-time-charges/[id]",
       "regex": "^/api/one\\-time\\-charges/([^/]+?)(?:/)?$",
       "routeKeys": {

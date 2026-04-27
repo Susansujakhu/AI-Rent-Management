@@ -45,7 +45,7 @@ export function AssignTenantPanel({
 
   if (unassignedTenants.length === 0) {
     return (
-      <p className="text-sm text-gray-400 text-center py-2">
+      <p className="text-sm text-slate-400 text-center py-2">
         No available tenants. Add a new tenant below.
       </p>
     );
@@ -56,7 +56,7 @@ export function AssignTenantPanel({
       <select
         value={selectedId}
         onChange={(e) => setSelectedId(e.target.value)}
-        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        className="flex-1 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800 dark:text-slate-200"
       >
         <option value="">— Select tenant —</option>
         {unassignedTenants.map((t) => (
@@ -68,7 +68,7 @@ export function AssignTenantPanel({
       <button
         onClick={handleAssign}
         disabled={loading || !selectedId}
-        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors whitespace-nowrap"
+        className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors whitespace-nowrap"
       >
         {loading ? "Assigning..." : "Assign"}
       </button>

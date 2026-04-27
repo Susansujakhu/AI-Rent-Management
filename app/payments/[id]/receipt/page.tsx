@@ -72,14 +72,14 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
         {/* Nav — hidden on print */}
         <div className="no-print flex items-center justify-between">
           <Link href={`/tenants/${payment.tenantId}`}
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors">
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
             <ArrowLeft size={15} /> Back to tenant
           </Link>
           <PrintButton />
         </div>
 
         {/* Receipt card */}
-        <div className="print-card bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="print-card bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
 
           {/* Color header strip */}
           <div className={`${sc.bg} px-8 py-5 text-white`}>
@@ -105,7 +105,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Billing Period</p>
-                <p className="text-xl font-black text-slate-900 mt-0.5">{formatRentalPeriod(payment.month, payment.tenant.moveInDate.getDate())}</p>
+                <p className="text-xl font-black text-slate-900 dark:text-white mt-0.5">{formatRentalPeriod(payment.month, payment.tenant.moveInDate.getDate())}</p>
               </div>
               <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border ${sc.light}`}>
                 <StatusIcon size={12} />
@@ -113,73 +113,73 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
               </span>
             </div>
 
-            <hr className="border-slate-100" />
+            <hr className="border-slate-100 dark:border-slate-800" />
 
             {/* Parties */}
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tenant</p>
-                <p className="font-bold text-slate-900">{payment.tenant.name}</p>
-                <p className="text-sm text-slate-500 mt-0.5">{payment.tenant.phone}</p>
+                <p className="font-bold text-slate-900 dark:text-white">{payment.tenant.name}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{payment.tenant.phone}</p>
                 {payment.tenant.email && <p className="text-sm text-slate-400">{payment.tenant.email}</p>}
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Property</p>
-                <p className="font-bold text-slate-900">{payment.room.name}</p>
-                {payment.room.floor && <p className="text-sm text-slate-500 mt-0.5">{payment.room.floor} Floor</p>}
+                <p className="font-bold text-slate-900 dark:text-white">{payment.room.name}</p>
+                {payment.room.floor && <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{payment.room.floor} Floor</p>}
               </div>
             </div>
 
-            <hr className="border-slate-100" />
+            <hr className="border-slate-100 dark:border-slate-800" />
 
             {/* Payment Details */}
             <div className="space-y-3">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Payment Details</p>
-              <div className="bg-slate-50 rounded-xl overflow-hidden">
-                <div className="divide-y divide-white">
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl overflow-hidden">
+                <div className="divide-y divide-white dark:divide-slate-700">
                   {/* Monthly rent */}
                   <div className="flex justify-between px-4 py-3 text-sm">
-                    <span className="text-slate-500">Monthly Rent</span>
-                    <span className="font-semibold text-slate-800">{fmt(payment.amountDue)}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Monthly Rent</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{fmt(payment.amountDue)}</span>
                   </div>
                   {/* Rent applied */}
                   <div className="flex justify-between px-4 py-3 text-sm">
-                    <span className="text-slate-500">{hasCharges ? "Applied to Rent" : "Amount Received"}</span>
-                    <span className="font-bold text-emerald-700">{fmt(payment.amountPaid)}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{hasCharges ? "Applied to Rent" : "Amount Received"}</span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400">{fmt(payment.amountPaid)}</span>
                   </div>
                   {/* One-time charge lines */}
                   {chargeTxns.map((c, i) => (
                     <div key={i} className="flex justify-between px-4 py-3 text-sm">
-                      <span className="text-slate-500 flex items-center gap-1.5">
+                      <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                         {c.chargeTitle}
-                        <span className="text-[10px] font-bold bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full leading-none">charge</span>
+                        <span className="text-[10px] font-bold bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded-full leading-none">charge</span>
                       </span>
-                      <span className="font-semibold text-slate-800">{fmt(c.amount)}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{fmt(c.amount)}</span>
                     </div>
                   ))}
                   {/* Session total — only shown when charges are included */}
                   {showTotal && (
-                    <div className="flex justify-between px-4 py-3 text-sm bg-slate-100/60">
-                      <span className="font-bold text-slate-700">Total Received</span>
-                      <span className="font-black text-slate-900">{fmt(sessionTotal)}</span>
+                    <div className="flex justify-between px-4 py-3 text-sm bg-slate-100/60 dark:bg-slate-700/60">
+                      <span className="font-bold text-slate-700 dark:text-slate-200">Total Received</span>
+                      <span className="font-black text-slate-900 dark:text-white">{fmt(sessionTotal)}</span>
                     </div>
                   )}
                   {payment.method && (
                     <div className="flex justify-between px-4 py-3 text-sm">
-                      <span className="text-slate-500">Payment Method</span>
-                      <span className="font-semibold text-slate-800">{payment.method}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Payment Method</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{payment.method}</span>
                     </div>
                   )}
                   {payment.paidDate && (
                     <div className="flex justify-between px-4 py-3 text-sm">
-                      <span className="text-slate-500">Date Received</span>
-                      <span className="font-semibold text-slate-800">{formatDate(payment.paidDate)}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Date Received</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{formatDate(payment.paidDate)}</span>
                     </div>
                   )}
                   {balance > 0 && (
-                    <div className="flex justify-between px-4 py-3 text-sm bg-rose-50">
-                      <span className="text-rose-600 font-semibold">Outstanding Balance</span>
-                      <span className="font-black text-rose-700">{fmt(balance)}</span>
+                    <div className="flex justify-between px-4 py-3 text-sm bg-rose-50 dark:bg-rose-500/10">
+                      <span className="text-rose-600 dark:text-rose-400 font-semibold">Outstanding Balance</span>
+                      <span className="font-black text-rose-700 dark:text-rose-400">{fmt(balance)}</span>
                     </div>
                   )}
                 </div>
@@ -187,7 +187,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* Footer */}
-            <p className="text-center text-xs text-slate-400 pt-2 border-t border-slate-100">
+            <p className="text-center text-xs text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
               Generated on {formatDate(new Date())} · Rent Manager
             </p>
           </div>

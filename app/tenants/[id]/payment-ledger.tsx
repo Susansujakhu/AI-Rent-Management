@@ -35,10 +35,10 @@ interface Props {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    PAID:    "bg-emerald-50 text-emerald-700 border border-emerald-200",
-    PARTIAL: "bg-blue-50 text-blue-700 border border-blue-200",
-    PENDING: "bg-amber-50 text-amber-700 border border-amber-200",
-    OVERDUE: "bg-rose-50 text-rose-700 border border-rose-200",
+    PAID:    "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20",
+    PARTIAL: "bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20",
+    PENDING: "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20",
+    OVERDUE: "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20",
   };
   const dots: Record<string, string> = {
     PAID: "bg-emerald-500", PARTIAL: "bg-blue-500", PENDING: "bg-amber-400", OVERDUE: "bg-rose-500",
@@ -84,11 +84,11 @@ function Paginator({ page, total, pageSize, onChange }: {
   for (let i = Math.max(1, page - delta); i <= Math.min(totalPages, page + delta); i++) pages.push(i);
 
   return (
-    <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-100 bg-slate-50/60">
+    <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-100 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60">
       <span className="text-xs text-slate-400">{start}–{end} of {total}</span>
       <div className="flex items-center gap-0.5">
         <button onClick={() => onChange(page - 1)} disabled={page === 1}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
           <ChevronLeft size={14} />
         </button>
         {pages[0] > 1 && <span className="px-1 text-slate-300 text-xs">…</span>}
@@ -102,7 +102,7 @@ function Paginator({ page, total, pageSize, onChange }: {
         ))}
         {pages[pages.length - 1] < totalPages && <span className="px-1 text-slate-300 text-xs">…</span>}
         <button onClick={() => onChange(page + 1)} disabled={page === totalPages}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
           <ChevronRight size={14} />
         </button>
       </div>
@@ -114,10 +114,10 @@ function TxnTotal({ txns, fmt }: { txns: Transaction[]; fmt: (n: number) => stri
   const totalPaid   = txns.reduce((s, t) => s + t.amount, 0);
   const totalCredit = txns.reduce((s, t) => s + (t.creditAmount ?? 0), 0);
   return (
-    <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+    <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
       <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Total paid</span>
       <div className="text-right">
-        <span className="text-base font-black text-slate-900">{fmt(totalPaid + totalCredit)}</span>
+        <span className="text-base font-black text-slate-900 dark:text-white">{fmt(totalPaid + totalCredit)}</span>
         {totalCredit > 0 && (
           <p className="text-[11px] text-slate-400 mt-0.5">{fmt(totalPaid)} rent · {fmt(totalCredit)} credit</p>
         )}
@@ -188,17 +188,17 @@ function TransactionHistory({ paymentId, fmt }: { paymentId: string; fmt: (n: nu
 
       {open && typeof document !== "undefined" && createPortal(
         <div
-          className="absolute z-50 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
+          className="absolute z-50 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
           style={{ top: pos.top, right: pos.right }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-50 to-slate-50 border-b border-slate-100">
+          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-50 to-slate-50 dark:from-indigo-500/10 dark:to-slate-800 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <History className="w-3.5 h-3.5 text-indigo-500" />
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Payment History</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Payment History</span>
             </div>
             <button onClick={() => setOpen(false)}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -212,17 +212,17 @@ function TransactionHistory({ paymentId, fmt }: { paymentId: string; fmt: (n: nu
             <p className="px-4 py-5 text-xs text-slate-400 italic text-center">No transactions recorded.</p>
           ) : (
             <>
-              <div className="divide-y divide-slate-50">
+              <div className="divide-y divide-slate-50 dark:divide-slate-800">
                 {txns.map(t => (
-                  <div key={t.id} className={`px-4 py-3 flex items-start gap-3 ${t.type === "charge" ? "bg-violet-50/40" : ""}`}>
+                  <div key={t.id} className={`px-4 py-3 flex items-start gap-3 ${t.type === "charge" ? "bg-violet-50/40 dark:bg-violet-500/10" : ""}`}>
                     <div className="shrink-0 mt-0.5">
                       {t.type === "charge"
-                        ? <span className="text-[10px] font-bold bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full leading-none">charge</span>
-                        : <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full leading-none">rent</span>
+                        ? <span className="text-[10px] font-bold bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded-full leading-none">charge</span>
+                        : <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full leading-none">rent</span>
                       }
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-800 truncate" title={t.label ?? "rent"}>
+                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={t.label ?? "rent"}>
                         {t.label ?? "rent"}
                       </p>
                       {t.note && (
@@ -233,7 +233,7 @@ function TransactionHistory({ paymentId, fmt }: { paymentId: string; fmt: (n: nu
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-slate-900">{fmt(t.amount)}</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">{fmt(t.amount)}</p>
                       {t.creditAmount > 0 && (
                         <p className="text-[11px] text-emerald-600 font-medium mt-0.5">+{fmt(t.creditAmount)} credit</p>
                       )}
@@ -276,21 +276,21 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
   return (
     <>
       {/* ── Mobile ─────────────────────────────────────────────────────────── */}
-      <div className="divide-y divide-slate-50 sm:hidden">
+      <div className="divide-y divide-slate-50 dark:divide-slate-800 sm:hidden">
         {paged.map(p => {
           const balance = Math.max(0, p.amountDue - p.amountPaid);
           return (
-            <div key={p.id} className="p-4 space-y-2 hover:bg-slate-50/60 transition-colors">
+            <div key={p.id} className="p-4 space-y-2 hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-800 text-sm">{fmtMon(p.month)}</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{fmtMon(p.month)}</span>
                 <StatusBadge status={p.status} />
               </div>
 
               {/* Amounts row */}
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3 text-slate-500">
-                  <span>Due <span className="font-medium text-slate-700">{fmt(p.amountDue)}</span></span>
-                  <span>Paid <span className="font-semibold text-slate-900">{fmt(p.amountPaid)}</span></span>
+                  <span>Due <span className="font-medium text-slate-700 dark:text-slate-300">{fmt(p.amountDue)}</span></span>
+                  <span>Paid <span className="font-semibold text-slate-900 dark:text-white">{fmt(p.amountPaid)}</span></span>
                   {balance > 0 && (
                     <span className={p.status === "OVERDUE" ? "text-rose-600 font-bold" : "text-amber-600 font-bold"}>
                       Bal {fmt(balance)}
@@ -348,11 +348,11 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
         })}
 
         {/* Mobile summary */}
-        <div className="px-4 py-3 bg-slate-50 flex items-center justify-between text-xs font-semibold border-t border-slate-100">
+        <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800 flex items-center justify-between text-xs font-semibold border-t border-slate-100 dark:border-slate-700">
           <span className="text-slate-500">Total ({payments.length} months)</span>
           <div className="flex items-center gap-4">
-            <span className="text-slate-500">Due <span className="text-slate-800">{fmt(totalDue)}</span></span>
-            <span className="text-slate-500">Paid <span className="text-slate-900">{fmt(totalPaid)}</span></span>
+            <span className="text-slate-500">Due <span className="text-slate-800 dark:text-slate-300">{fmt(totalDue)}</span></span>
+            <span className="text-slate-500">Paid <span className="text-slate-900 dark:text-white">{fmt(totalPaid)}</span></span>
             {hasOutstanding && <span className="text-rose-600">Bal {fmt(totalBalance)}</span>}
           </div>
         </div>
@@ -363,7 +363,7 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
       <div className="hidden sm:block">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-slate-50/40">
+            <tr className="border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-slate-50/80 to-slate-50/40 dark:from-slate-800/80 dark:to-slate-800/40">
               <th className="text-left px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Month</th>
               <th className="text-right px-3 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Paid</th>
               <th className="text-right px-3 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Balance</th>
@@ -372,12 +372,12 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
               <th className="px-3 py-3"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {paged.map(p => (
-              <tr key={p.id} className="hover:bg-slate-50/60 transition-colors group align-top">
-                <td className="px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">{fmtMon(p.month)}</td>
+              <tr key={p.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors group align-top">
+                <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{fmtMon(p.month)}</td>
                 <td className="px-3 py-3 text-right whitespace-nowrap">
-                  <span className="font-bold text-slate-900">{fmt(p.amountPaid)}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{fmt(p.amountPaid)}</span>
                   <span className="block text-[11px] text-slate-400">of {fmt(p.amountDue)}</span>
                   {p.status === "PARTIAL" && (
                     <div className="mt-1 w-full h-1 bg-slate-100 rounded-full overflow-hidden">
@@ -438,11 +438,11 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
 
           {/* Summary footer */}
           <tfoot>
-            <tr className="border-t-2 border-slate-200 bg-slate-50/60">
+            <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60">
               <td className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">
                 Total <span className="font-normal text-slate-400">({payments.length} months)</span>
               </td>
-              <td className="px-3 py-3 text-right text-sm font-bold text-slate-900">{fmt(totalPaid)}</td>
+              <td className="px-3 py-3 text-right text-sm font-bold text-slate-900 dark:text-white">{fmt(totalPaid)}</td>
               <td className="px-3 py-3 text-right text-sm">
                 {hasOutstanding
                   ? <span className="font-bold text-rose-600">{fmt(totalBalance)}</span>

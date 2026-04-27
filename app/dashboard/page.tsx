@@ -316,7 +316,7 @@ export default async function DashboardPage({
           ) : (
             <div className="space-y-3">
               {overduePayments.map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-app-row-hover transition-colors">
                   <div>
                     <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">{p.tenant.name}</p>
                     <p className="text-xs text-slate-400">{p.room.name} · {p.month}</p>
@@ -333,8 +333,8 @@ export default async function DashboardPage({
       </div>
 
       {/* Selected Month Collection */}
-      <div className="animate-fade-up stagger-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
+      <div className="animate-fade-up stagger-3 bg-app-card rounded-2xl border border-app-card-border shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-app-card-border flex items-center justify-between">
           <div>
             <h2 className="font-semibold text-slate-900 dark:text-white">{formatMonth(month)} — Rent Collection</h2>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -353,9 +353,9 @@ export default async function DashboardPage({
             )}
           </div>
         ) : (
-          <div className="divide-y divide-slate-50 dark:divide-slate-800">
+          <div className="divide-y divide-app-divider">
             {selectedMonthPayments.map((p) => (
-              <div key={p.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
+              <div key={p.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-app-row-hover transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xs font-bold">
                     {p.tenant.name.charAt(0)}

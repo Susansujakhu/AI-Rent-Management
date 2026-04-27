@@ -311,6 +311,7 @@ model MeterReading {
   unitsUsed   Float             // current - previous
   amount      Float             // unitsUsed * ratePerUnit
   chargeId    String?  @unique  // linked OneTimeCharge (null if charge not created)
+  photoPath   String?           // optional meter photo filename
   notes       String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

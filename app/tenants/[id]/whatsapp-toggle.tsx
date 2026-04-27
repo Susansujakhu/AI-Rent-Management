@@ -28,13 +28,13 @@ export function WhatsAppToggle({ tenantId, enabled }: { tenantId: string; enable
   };
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+    <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
       <div className="flex items-center gap-3">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${on ? "bg-green-50" : "bg-slate-50"}`}>
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${on ? "bg-green-50 dark:bg-green-500/15" : "bg-slate-50 dark:bg-slate-800"}`}>
           <MessageCircle size={16} className={on ? "text-green-600" : "text-slate-400"} />
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-800">WhatsApp Notifications</p>
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">WhatsApp Notifications</p>
           <p className="text-xs text-slate-400 mt-0.5">
             {on ? "Payment confirmations & reminders will be sent" : "No WhatsApp messages will be sent"}
           </p>

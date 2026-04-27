@@ -56,8 +56,8 @@ export default function PayOneTimeChargePage() {
     }
   };
 
-  const fieldCls = "w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-shadow bg-white";
-  const labelCls = "block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5";
+  const fieldCls = "w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-shadow bg-white dark:bg-slate-800 dark:text-slate-200";
+  const labelCls = "block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5";
 
   if (!charge) {
     return (
@@ -83,7 +83,7 @@ export default function PayOneTimeChargePage() {
       {/* Back link */}
       <Link
         href={`/tenants/${tenantId}`}
-        className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
       >
         <ArrowLeft size={14} /> Back to tenant
       </Link>
@@ -94,41 +94,41 @@ export default function PayOneTimeChargePage() {
           <CreditCard size={18} className="text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Pay One-time Charge</h1>
-          <p className="text-sm text-slate-500 truncate max-w-xs">{charge.title}</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pay One-time Charge</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 truncate max-w-xs">{charge.title}</p>
         </div>
       </div>
 
       {/* Charge summary */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-50">
-          <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-700 font-bold text-sm shrink-0">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-50 dark:border-slate-800">
+          <div className="w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center text-emerald-700 dark:text-emerald-400 font-bold text-sm shrink-0">
             {charge.tenant.name.charAt(0)}
           </div>
           <div>
-            <p className="font-semibold text-slate-900">{charge.tenant.name}</p>
+            <p className="font-semibold text-slate-900 dark:text-white">{charge.tenant.name}</p>
             <p className="text-xs text-slate-400">{charge.title}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-3 text-sm">
-          <div className="bg-slate-50 rounded-xl p-3 text-center">
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 text-center">
             <p className="text-xs text-slate-400 font-medium mb-1">Total</p>
-            <p className="font-bold text-slate-900">{fmt(charge.amount, currencySymbol)}</p>
+            <p className="font-bold text-slate-900 dark:text-white">{fmt(charge.amount, currencySymbol)}</p>
           </div>
-          <div className="bg-slate-50 rounded-xl p-3 text-center">
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 text-center">
             <p className="text-xs text-slate-400 font-medium mb-1">Paid</p>
-            <p className="font-bold text-emerald-600">{fmt(charge.amountPaid, currencySymbol)}</p>
+            <p className="font-bold text-emerald-600 dark:text-emerald-400">{fmt(charge.amountPaid, currencySymbol)}</p>
           </div>
-          <div className="bg-rose-50 rounded-xl p-3 text-center">
+          <div className="bg-rose-50 dark:bg-rose-500/10 rounded-xl p-3 text-center">
             <p className="text-xs text-rose-400 font-medium mb-1">Balance</p>
-            <p className="font-bold text-rose-600">{fmt(balance, currencySymbol)}</p>
+            <p className="font-bold text-rose-600 dark:text-rose-400">{fmt(balance, currencySymbol)}</p>
           </div>
         </div>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 space-y-4">
         <div>
           <label className={labelCls}>Amount Paid ({currencySymbol}) <span className="text-rose-500 normal-case">*</span></label>
           <input
@@ -172,7 +172,7 @@ export default function PayOneTimeChargePage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+            className="flex-1 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Cancel
           </button>

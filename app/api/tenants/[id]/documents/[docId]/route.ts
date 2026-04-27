@@ -7,7 +7,7 @@ import { join } from "path";
 const STORAGE_DIR = join(process.cwd(), "storage", "tenant-docs");
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string; docId: string }> }
 ) {
   const auth = await requireAuthAPI();
@@ -19,12 +19,16 @@ export async function GET(
   });
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const inline = new URL(req.url).searchParams.get("view") === "1";
+
   try {
     const data = await readFile(join(STORAGE_DIR, doc.fileName));
     return new NextResponse(data, {
       headers: {
         "Content-Type": doc.mimeType,
-        "Content-Disposition": `attachment; filename="${encodeURIComponent(doc.name)}"`,
+        "Content-Disposition": inline
+          ? `inline; filename="${encodeURIComponent(doc.name)}"`
+          : `attachment; filename="${encodeURIComponent(doc.name)}"`,
         "Content-Length": String(data.length),
       },
     });
