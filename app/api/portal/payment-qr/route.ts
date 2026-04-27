@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireTenantAPI } from "@/lib/tenant-auth";
+import { requireTenantAPIByToken } from "@/lib/tenant-auth";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
@@ -9,7 +9,7 @@ const VALID_TYPES = ["esewa", "khalti", "fonepay"] as const;
 type QRType = typeof VALID_TYPES[number];
 
 export async function GET(req: Request) {
-  const { tenant, unauth } = await requireTenantAPI();
+  const { tenant, unauth } = await requireTenantAPIByToken(req);
   if (unauth) return unauth;
 
   const type = new URL(req.url).searchParams.get("type") as QRType | null;
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   }
 
-  const userId = tenant!.tenant.userId;
+  const userId = tenant!.userId;
   const path   = join(QR_DIR, `${userId}-${type}.png`);
 
   if (!existsSync(path)) {

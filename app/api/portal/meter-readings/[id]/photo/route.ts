@@ -1,20 +1,43 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireTenantAPI } from "@/lib/tenant-auth";
-import { writeFile, mkdir } from "fs/promises";
+import { requireTenantAPIByToken } from "@/lib/tenant-auth";
+import { writeFile, mkdir, readFile } from "fs/promises";
 import { join } from "path";
+import { existsSync } from "fs";
 import { compressImage } from "@/lib/compress-image";
 
 const PHOTO_DIR = join(process.cwd(), "storage", "meter-photos");
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { tenant, unauth } = await requireTenantAPIByToken(req);
+  if (unauth) return unauth;
+
+  const t      = tenant!;
+  const { id } = await params;
+
+  const reading = await prisma.meterReading.findFirst({ where: { id, tenantId: t.id } });
+  if (!reading?.photoPath) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const path = join(PHOTO_DIR, reading.photoPath);
+  if (!existsSync(path)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const data = await readFile(path);
+  return new NextResponse(data, {
+    headers: { "Content-Type": "image/jpeg", "Cache-Control": "private, max-age=3600" },
+  });
+}
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { tenant, unauth } = await requireTenantAPI();
+  const { tenant, unauth } = await requireTenantAPIByToken(req);
   if (unauth) return unauth;
 
-  const t = tenant!.tenant;
+  const t = tenant!;
   const { id } = await params;
 
   const reading = await prisma.meterReading.findFirst({

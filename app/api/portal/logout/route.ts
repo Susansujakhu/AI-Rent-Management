@@ -1,17 +1,9 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { prisma } from "@/lib/prisma";
-import { clearTenantSessionCookie } from "@/lib/tenant-auth";
 
+// Token-in-URL portals don't have sessions to clear.
+// This endpoint exists for backward compatibility with legacy cookie sessions.
 export async function POST() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("rms_tenant_session")?.value;
-
-  if (token) {
-    await prisma.tenantSession.deleteMany({ where: { token } }).catch(() => null);
-  }
-
   const res = NextResponse.json({ ok: true });
-  clearTenantSessionCookie(res);
+  res.cookies.set("rms_tenant_session", "", { path: "/", maxAge: 0 });
   return res;
 }

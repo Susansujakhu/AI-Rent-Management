@@ -3,31 +3,32 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, CreditCard, Receipt, Hammer, User, LogOut, Building2, Zap } from "lucide-react";
-import { toast } from "sonner";
-
-const BASE_NAV = [
-  { href: "/portal/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
-  { href: "/portal/payments",    label: "Payments",    icon: CreditCard },
-  { href: "/portal/charges",     label: "Charges",     icon: Receipt },
-  { href: "/portal/maintenance", label: "Maintenance", icon: Hammer },
-  { href: "/portal/profile",     label: "Profile",     icon: User },
-];
-
-const ELECTRICITY_NAV = { href: "/portal/electricity", label: "Electricity", icon: Zap };
 
 export function PortalShell({
   tenantName,
   roomName,
   showElectricity = false,
+  token,
   children,
 }: {
   tenantName:       string;
   roomName:         string | null;
   showElectricity?: boolean;
+  token:            string;
   children:         React.ReactNode;
 }) {
   const pathname = usePathname();
   const router   = useRouter();
+
+  const BASE_NAV = [
+    { href: `/portal/${token}/dashboard`,   label: "Dashboard",   icon: LayoutDashboard },
+    { href: `/portal/${token}/payments`,    label: "Payments",    icon: CreditCard },
+    { href: `/portal/${token}/charges`,     label: "Charges",     icon: Receipt },
+    { href: `/portal/${token}/maintenance`, label: "Maintenance", icon: Hammer },
+    { href: `/portal/${token}/profile`,     label: "Profile",     icon: User },
+  ];
+
+  const ELECTRICITY_NAV = { href: `/portal/${token}/electricity`, label: "Electricity", icon: Zap };
 
   const NAV = showElectricity
     ? [...BASE_NAV.slice(0, 3), ELECTRICITY_NAV, ...BASE_NAV.slice(3)]
@@ -35,11 +36,7 @@ export function PortalShell({
 
   const initials = tenantName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
 
-  const handleLogout = async () => {
-    await fetch("/api/portal/logout", { method: "POST" });
-    toast.success("Signed out");
-    router.push("/portal");
-  };
+  const handleSignOut = () => router.push("/portal");
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
@@ -100,7 +97,7 @@ export function PortalShell({
         {/* Footer */}
         <div className="px-3 py-4 border-t border-slate-100">
           <button
-            onClick={handleLogout}
+            onClick={handleSignOut}
             className="w-full group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-150"
           >
             <span className="flex items-center justify-center w-7 h-7 rounded-lg group-hover:bg-rose-100 transition-colors">
@@ -124,7 +121,7 @@ export function PortalShell({
             </div>
           </div>
           <button
-            onClick={handleLogout}
+            onClick={handleSignOut}
             className="flex items-center gap-1.5 text-slate-400 hover:text-rose-500 text-xs font-medium transition-colors p-2 rounded-lg hover:bg-rose-50"
           >
             <LogOut size={15} />

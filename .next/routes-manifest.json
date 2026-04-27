@@ -105,6 +105,14 @@
       "namedRegex": "^/api/meter\\-readings/(?<nxtPid>[^/]+?)/photo(?:/)?$"
     },
     {
+      "page": "/api/notifications/[id]/read",
+      "regex": "^/api/notifications/([^/]+?)/read(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/notifications/(?<nxtPid>[^/]+?)/read(?:/)?$"
+    },
+    {
       "page": "/api/one-time-charges/[id]",
       "regex": "^/api/one\\-time\\-charges/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -143,6 +151,14 @@
         "nxtPid": "nxtPid"
       },
       "namedRegex": "^/api/payments/(?<nxtPid>[^/]+?)/transactions(?:/)?$"
+    },
+    {
+      "page": "/api/portal/meter-readings/[id]",
+      "regex": "^/api/portal/meter\\-readings/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/portal/meter\\-readings/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
       "page": "/api/portal/meter-readings/[id]/photo",
@@ -257,6 +273,63 @@
         "nxtPtoken": "nxtPtoken"
       },
       "namedRegex": "^/portal/t/(?<nxtPtoken>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/portal/[token]/charges",
+      "regex": "^/portal/([^/]+?)/charges(?:/)?$",
+      "routeKeys": {
+        "nxtPtoken": "nxtPtoken"
+      },
+      "namedRegex": "^/portal/(?<nxtPtoken>[^/]+?)/charges(?:/)?$"
+    },
+    {
+      "page": "/portal/[token]/dashboard",
+      "regex": "^/portal/([^/]+?)/dashboard(?:/)?$",
+      "routeKeys": {
+        "nxtPtoken": "nxtPtoken"
+      },
+      "namedRegex": "^/portal/(?<nxtPtoken>[^/]+?)/dashboard(?:/)?$"
+    },
+    {
+      "page": "/portal/[token]/electricity",
+      "regex": "^/portal/([^/]+?)/electricity(?:/)?$",
+      "routeKeys": {
+        "nxtPtoken": "nxtPtoken"
+      },
+      "namedRegex": "^/portal/(?<nxtPtoken>[^/]+?)/electricity(?:/)?$"
+    },
+    {
+      "page": "/portal/[token]/maintenance",
+      "regex": "^/portal/([^/]+?)/maintenance(?:/)?$",
+      "routeKeys": {
+        "nxtPtoken": "nxtPtoken"
+      },
+      "namedRegex": "^/portal/(?<nxtPtoken>[^/]+?)/maintenance(?:/)?$"
+    },
+    {
+      "page": "/portal/[token]/payments",
+      "regex": "^/portal/([^/]+?)/payments(?:/)?$",
+      "routeKeys": {
+        "nxtPtoken": "nxtPtoken"
+      },
+      "namedRegex": "^/portal/(?<nxtPtoken>[^/]+?)/payments(?:/)?$"
+    },
+    {
+      "page": "/portal/[token]/payments/[id]/receipt",
+      "regex": "^/portal/([^/]+?)/payments/([^/]+?)/receipt(?:/)?$",
+      "routeKeys": {
+        "nxtPtoken": "nxtPtoken",
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/portal/(?<nxtPtoken>[^/]+?)/payments/(?<nxtPid>[^/]+?)/receipt(?:/)?$"
+    },
+    {
+      "page": "/portal/[token]/profile",
+      "regex": "^/portal/([^/]+?)/profile(?:/)?$",
+      "routeKeys": {
+        "nxtPtoken": "nxtPtoken"
+      },
+      "namedRegex": "^/portal/(?<nxtPtoken>[^/]+?)/profile(?:/)?$"
     },
     {
       "page": "/rooms/[id]",
@@ -452,6 +525,12 @@
       "regex": "^/api/meter\\-readings(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/meter\\-readings(?:/)?$"
+    },
+    {
+      "page": "/api/notifications",
+      "regex": "^/api/notifications(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/notifications(?:/)?$"
     },
     {
       "page": "/api/one-time-charges",

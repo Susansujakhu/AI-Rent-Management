@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Hammer, ChevronDown, ChevronUp } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export type MRequest = {
   id:          string;
@@ -49,6 +50,7 @@ export function MaintenanceClient({ initial }: { initial: MRequest[] }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [form, setForm]         = useState<Record<string, { status: string; notes: string }>>({});
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const counts = {
     ALL:         requests.length,
@@ -87,16 +89,29 @@ export function MaintenanceClient({ initial }: { initial: MRequest[] }) {
     setUpdating(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this maintenance request?")) return;
-    const res = await fetch(`/api/maintenance/${id}`, { method: "DELETE" });
+  const handleDelete = (id: string) => setDeleteId(id);
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    const res = await fetch(`/api/maintenance/${deleteId}`, { method: "DELETE" });
     if (res.ok) {
-      setRequests(prev => prev.filter(r => r.id !== id));
-      if (expanded === id) setExpanded(null);
+      setRequests(prev => prev.filter(r => r.id !== deleteId));
+      if (expanded === deleteId) setExpanded(null);
     }
+    setDeleteId(null);
   };
 
   return (
+    <>
+    <ConfirmDialog
+      open={!!deleteId}
+      onOpenChange={open => { if (!open) setDeleteId(null); }}
+      title="Delete request?"
+      description="This will permanently delete the maintenance request. This cannot be undone."
+      confirmLabel="Delete"
+      variant="destructive"
+      onConfirm={confirmDelete}
+    />
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -239,5 +254,6 @@ export function MaintenanceClient({ initial }: { initial: MRequest[] }) {
         </div>
       )}
     </div>
+    </>
   );
 }

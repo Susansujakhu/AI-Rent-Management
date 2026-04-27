@@ -18,6 +18,7 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; dot: string; ic
 export default async function PortalDashboard() {
   const session  = await requireTenantPage();
   const tenant   = session.tenant;
+  const token    = tenant.portalToken ?? "";
   const settings = await getSettings(tenant.userId);
   const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
 
@@ -35,7 +36,7 @@ export default async function PortalDashboard() {
   const recentPaid       = allPayments.filter(p => p.amountPaid > 0).slice(0, 3);
 
   return (
-    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading}>
+    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading} token={token}>
       <div className="space-y-5">
 
         {/* Welcome */}

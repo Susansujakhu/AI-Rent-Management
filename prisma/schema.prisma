@@ -47,6 +47,7 @@ model User {
   maintenanceRequests  MaintenanceRequest[]
   documents            TenantDocument[]
   meterReadings        MeterReading[]
+  notifications        Notification[]
 }
 
 model SubscriptionHistory {
@@ -350,6 +351,24 @@ model MaintenanceRequest {
 
   @@index([userId, status])
   @@index([tenantId])
+}
+
+// ── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "meter_reading_submitted" | "meter_reading_updated" | "meter_reading_deleted"
+  title     String
+  body      String   @db.Text
+  data      String?  @db.Text  // JSON: { tenantId, readingId, month }
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }
 
 // ── Tenant Portal ────────────────────────────────────────────────────────────

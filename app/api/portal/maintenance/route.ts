@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireTenantAPI } from "@/lib/tenant-auth";
+import { requireTenantAPIByToken } from "@/lib/tenant-auth";
 
 const VALID_CATEGORIES = ["PLUMBING", "ELECTRICAL", "APPLIANCE", "STRUCTURAL", "PEST", "OTHER"];
 const VALID_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 
-export async function GET() {
-  const { tenant, unauth } = await requireTenantAPI();
+export async function GET(req: Request) {
+  const { tenant, unauth } = await requireTenantAPIByToken(req);
   if (unauth) return unauth;
 
   const requests = await prisma.maintenanceRequest.findMany({
-    where:   { tenantId: tenant!.tenant.id },
+    where:   { tenantId: tenant!.id },
     orderBy: { createdAt: "desc" },
     select: {
       id:          true,
@@ -29,10 +29,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { tenant, unauth } = await requireTenantAPI();
+  const { tenant, unauth } = await requireTenantAPIByToken(req);
   if (unauth) return unauth;
 
-  const t    = tenant!.tenant;
+  const t    = tenant!;
   const body = await req.json() as {
     title?:       string;
     description?: string;

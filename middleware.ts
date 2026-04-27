@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Routes inside /portal that don't need a tenant session
-const PORTAL_PUBLIC = ["/portal", "/portal/disabled"];
-const PORTAL_TOKEN_PREFIX = "/portal/t/";
-
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 export function middleware(request: NextRequest) {
@@ -36,22 +32,7 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  // ── Public portal routes (no session needed) ──────────────────────────────
-  if (
-    PORTAL_PUBLIC.includes(pathname) ||
-    pathname.startsWith(PORTAL_TOKEN_PREFIX)
-  ) {
-    return NextResponse.next();
-  }
-
-  // ── Protected portal routes — require tenant session cookie ───────────────
-  // Full session validation (DB lookup) happens in lib/tenant-auth.ts.
-  // Middleware only checks cookie presence to avoid DB calls at the edge.
-  const session = request.cookies.get("rms_tenant_session");
-  if (!session?.value) {
-    return NextResponse.redirect(new URL("/portal", request.url));
-  }
-
+  // All portal routes are allowed through — each page validates its own token/session
   return NextResponse.next();
 }
 

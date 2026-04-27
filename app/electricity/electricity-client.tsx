@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Zap, Plus, Trash2, CheckCircle2, ChevronDown, ChevronUp, Save, Camera, X, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Tenant = { id: string; name: string; room: { name: string } | null };
 type Reading = {
@@ -43,6 +44,7 @@ export function ElectricityClient({
   const photoInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [pendingReviews, setPendingReviews] = useState<Reading[]>([]);
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [deleteReadingId, setDeleteReadingId] = useState<string | null>(null);
 
   const loadReadings = useCallback(async () => {
     const res = await fetch(`/api/meter-readings?month=${month}`);
@@ -145,10 +147,13 @@ export function ElectricityClient({
     setSubmitting(null);
   };
 
-  const handleDelete = async (readingId: string) => {
-    if (!confirm("Delete this reading? The linked electricity charge will also be deleted.")) return;
-    const res = await fetch(`/api/meter-readings/${readingId}`, { method: "DELETE" });
-    if (res.ok) setReadings(prev => prev.filter(r => r.id !== readingId));
+  const handleDelete = (readingId: string) => setDeleteReadingId(readingId);
+
+  const confirmDeleteReading = async () => {
+    if (!deleteReadingId) return;
+    const res = await fetch(`/api/meter-readings/${deleteReadingId}`, { method: "DELETE" });
+    if (res.ok) setReadings(prev => prev.filter(r => r.id !== deleteReadingId));
+    setDeleteReadingId(null);
   };
 
   const monthLabel = (m: string) => {
@@ -179,6 +184,16 @@ export function ElectricityClient({
   const doneCount     = readings.length;
 
   return (
+    <>
+    <ConfirmDialog
+      open={!!deleteReadingId}
+      onOpenChange={open => { if (!open) setDeleteReadingId(null); }}
+      title="Delete reading?"
+      description="This will permanently delete the reading. The linked electricity charge will also be deleted."
+      confirmLabel="Delete"
+      variant="destructive"
+      onConfirm={confirmDeleteReading}
+    />
     <div className="space-y-6">
 
       {/* Controls */}
@@ -474,5 +489,6 @@ export function ElectricityClient({
         </div>
       )}
     </div>
+    </>
   );
 }

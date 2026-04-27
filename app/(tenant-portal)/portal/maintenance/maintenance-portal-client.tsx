@@ -37,7 +37,7 @@ const STATUS_CONFIG: Record<string, { cls: string; icon: typeof Clock; label: st
 const inputCls =
   "w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-400/60 placeholder:text-slate-400 transition-all";
 
-export function MaintenancePortalClient({ initial }: { initial: MReq[] }) {
+export function MaintenancePortalClient({ initial, token }: { initial: MReq[]; token: string }) {
   const [requests, setRequests] = useState<MReq[]>(initial);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -62,7 +62,7 @@ export function MaintenancePortalClient({ initial }: { initial: MReq[] }) {
     try {
       const res = await fetch("/api/portal/maintenance", {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-portal-token": token },
         body:    JSON.stringify({ title: title.trim(), description: description.trim(), category, priority }),
       });
       const data = await res.json() as MReq & { error?: string };

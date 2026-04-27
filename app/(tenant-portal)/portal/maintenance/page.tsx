@@ -8,6 +8,7 @@ import { MaintenancePortalClient } from "./maintenance-portal-client";
 export default async function PortalMaintenancePage() {
   const session = await requireTenantPage();
   const tenant  = session.tenant;
+  const token   = tenant.portalToken ?? "";
 
   const requests = await prisma.maintenanceRequest.findMany({
     where:   { tenantId: tenant.id },
@@ -32,8 +33,8 @@ export default async function PortalMaintenancePage() {
   }));
 
   return (
-    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading}>
-      <MaintenancePortalClient initial={serialized} />
+    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading} token={token}>
+      <MaintenancePortalClient initial={serialized} token={token} />
     </PortalShell>
   );
 }

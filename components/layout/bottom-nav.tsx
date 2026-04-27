@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { LayoutDashboard, Users, CreditCard, Receipt, MoreHorizontal, DoorOpen, Hammer, Zap, BarChart3, Settings, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNotifications } from "@/lib/notification-context";
 
 const primary = [
   { href: "/dashboard",   label: "Home",        icon: LayoutDashboard },
@@ -24,6 +25,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const router   = useRouter();
   const [open, setOpen] = useState(false);
+  const { unreadCount } = useNotifications();
 
 
   const handleLogout = async () => {
@@ -149,19 +151,26 @@ export function BottomNav() {
               onClick={() => setOpen(!open)}
               className="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all duration-200 relative"
             >
-              <div className={cn(
-                "flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200",
-                isSecondaryActive || open
-                  ? "bg-indigo-600 shadow-md shadow-indigo-500/30"
-                  : "hover:bg-slate-100 dark:hover:bg-slate-800"
-              )}>
-                <MoreHorizontal
-                  size={20}
-                  className={cn(
-                    "transition-colors duration-200",
-                    isSecondaryActive || open ? "text-white" : "text-slate-400"
-                  )}
-                />
+              <div className="relative">
+                <div className={cn(
+                  "flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200",
+                  isSecondaryActive || open
+                    ? "bg-indigo-600 shadow-md shadow-indigo-500/30"
+                    : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                )}>
+                  <MoreHorizontal
+                    size={20}
+                    className={cn(
+                      "transition-colors duration-200",
+                      isSecondaryActive || open ? "text-white" : "text-slate-400"
+                    )}
+                  />
+                </div>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 rounded-full text-[9px] font-black text-white flex items-center justify-center leading-none">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </div>
               <span className={cn(
                 "text-[10px] font-semibold tracking-tight transition-colors duration-200",

@@ -20,6 +20,7 @@ const STATUS_STYLES: Record<string, string> = {
 export default async function PortalPaymentsPage() {
   const session  = await requireTenantPage();
   const tenant   = session.tenant;
+  const token    = tenant.portalToken ?? "";
   const settings     = await getSettings(tenant.userId);
   const allSettings  = await prisma.setting.findMany({ where: { userId: tenant.userId } });
   const settingsMap: Record<string, string> = {};
@@ -57,7 +58,7 @@ export default async function PortalPaymentsPage() {
   const overdueCount = payments.filter(p => p.status === "OVERDUE").length;
 
   return (
-    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading}>
+    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading} token={token}>
       <div className="space-y-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Payment History</h1>

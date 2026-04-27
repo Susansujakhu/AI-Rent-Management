@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireTenantAPI } from "@/lib/tenant-auth";
+import { requireTenantAPIByToken } from "@/lib/tenant-auth";
 import { prisma } from "@/lib/prisma";
+import { createNotification } from "@/lib/notifications";
 
-export async function GET() {
-  const { tenant, unauth } = await requireTenantAPI();
+export async function GET(req: Request) {
+  const { tenant, unauth } = await requireTenantAPIByToken(req);
   if (unauth) return unauth;
 
-  const t = tenant!.tenant;
+  const t = tenant!;
 
   if (!t.canSubmitMeterReading) {
     return NextResponse.json({ error: "Not enabled" }, { status: 403 });
@@ -21,10 +22,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { tenant, unauth } = await requireTenantAPI();
+  const { tenant, unauth } = await requireTenantAPIByToken(req);
   if (unauth) return unauth;
 
-  const t = tenant!.tenant;
+  const t = tenant!;
 
   if (!t.canSubmitMeterReading) {
     return NextResponse.json({ error: "Not enabled" }, { status: 403 });
@@ -98,6 +99,18 @@ export async function POST(req: Request) {
       status:            autoAccept ? "confirmed" : "pending_review",
     },
   });
+
+  const [y, m2] = month.split("-").map(Number);
+  const label   = new Date(y, m2 - 1).toLocaleDateString("en", { month: "long", year: "numeric" });
+  await createNotification(
+    t.userId,
+    "meter_reading_submitted",
+    `${t.name} submitted meter reading`,
+    autoAccept
+      ? `${t.name} submitted electricity reading for ${label} (auto-confirmed).`
+      : `${t.name} submitted electricity reading for ${label}. Review required.`,
+    { tenantId: t.id, readingId: reading.id, month },
+  ).catch(() => null);
 
   return NextResponse.json(reading, { status: 201 });
 }

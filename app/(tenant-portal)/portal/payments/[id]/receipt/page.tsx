@@ -17,6 +17,7 @@ export default async function PortalReceiptPage({
   const { id }   = await params;
   const session  = await requireTenantPage();
   const tenant   = session.tenant;
+  const token    = tenant.portalToken ?? "";
   const settings = await getSettings(tenant.userId);
   const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
 
@@ -36,7 +37,7 @@ export default async function PortalReceiptPage({
   const ownerPhone   = (await prisma.setting.findUnique({ where: { userId_key: { userId: uid, key: "ownerPhone" } } }))?.value;
 
   return (
-    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading}>
+    <PortalShell tenantName={tenant.name} roomName={tenant.room?.name ?? null} showElectricity={tenant.canSubmitMeterReading} token={token}>
       <div className="space-y-4">
         <Link href="/portal/payments" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors">
           <ArrowLeft size={14} />

@@ -6,6 +6,7 @@ import { LayoutDashboard, DoorOpen, Users, CreditCard, Wrench, Hammer, Zap, BarC
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/brand/logo-mark";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const links = [
   { href: "/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
@@ -63,10 +64,11 @@ export function Sidebar() {
       <div className="px-4 pt-5 pb-4 border-b border-slate-800/40">
         <div className="flex items-center gap-2.5 mb-4">
           <LogoMark size={32} />
-          <div>
+          <div className="flex-1">
             <p className="font-bold text-white text-[13px] tracking-tight leading-none">EasyRent</p>
             <p className="text-[10px] text-slate-600 font-medium">Property Manager</p>
           </div>
+          <NotificationBell />
         </div>
 
         {/* User pill */}

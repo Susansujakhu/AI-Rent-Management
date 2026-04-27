@@ -2,9 +2,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { prisma } from "./prisma";
+import type { Prisma } from "@prisma/client";
 
 const SESSION_DURATION_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
 const SESSION_RENEW_BEFORE =  7 * 24 * 60 * 60 * 1000; // renew if < 7 days left
+
+export type TenantWithRoom = Prisma.TenantGetPayload<{ include: { room: true } }>;
 
 async function getTenantSession() {
   const cookieStore = await cookies();
@@ -45,14 +48,28 @@ async function getTenantSession() {
   return session;
 }
 
-/** For portal page routes — redirects to /portal if not authenticated. */
+/** For legacy cookie-based portal pages — redirects to /portal if not authenticated. */
 export async function requireTenantPage() {
   const session = await getTenantSession();
   if (!session) redirect("/portal");
   return session;
 }
 
-/** For portal API routes — returns 401 JSON or null if OK. */
+/** For /portal/[token] SSR pages — redirects to /portal if token is invalid. */
+export async function requireTenantByToken(token: string): Promise<TenantWithRoom> {
+  if (!token) redirect("/portal");
+
+  const tenant = await prisma.tenant.findUnique({
+    where:   { portalToken: token },
+    include: { room: true },
+  });
+
+  if (!tenant || !tenant.portalEnabled) redirect("/portal");
+
+  return tenant;
+}
+
+/** For legacy cookie-based API routes — returns 401 JSON or null if OK. */
 export async function requireTenantAPI(): Promise<
   { tenant: Awaited<ReturnType<typeof getTenantSession>>; unauth: null } |
   { tenant: null; unauth: NextResponse }
@@ -65,6 +82,30 @@ export async function requireTenantAPI(): Promise<
     };
   }
   return { tenant: session, unauth: null };
+}
+
+/** For /portal/[token] API routes — reads x-portal-token header or t query param. */
+export async function requireTenantAPIByToken(req: Request): Promise<
+  { tenant: TenantWithRoom; unauth: null } |
+  { tenant: null; unauth: NextResponse }
+> {
+  const url   = new URL(req.url);
+  const token = req.headers.get("x-portal-token") ?? url.searchParams.get("t") ?? "";
+
+  if (!token) {
+    return { tenant: null, unauth: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+
+  const tenant = await prisma.tenant.findUnique({
+    where:   { portalToken: token },
+    include: { room: true },
+  });
+
+  if (!tenant || !tenant.portalEnabled) {
+    return { tenant: null, unauth: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+
+  return { tenant, unauth: null };
 }
 
 /** Set the tenant session cookie on a response. */

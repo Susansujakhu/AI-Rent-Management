@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FileText, FileImage, File, Upload, Trash2, Download, Loader2, Eye } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Doc = {
   id:        string;
@@ -29,6 +30,7 @@ export function TenantDocumentsPanel({ tenantId }: { tenantId: string }) {
   const [loading,   setLoading]   = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error,     setError]     = useState("");
+  const [deleteId,  setDeleteId]  = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
@@ -51,13 +53,26 @@ export function TenantDocumentsPanel({ tenantId }: { tenantId: string }) {
     setUploading(false);
   };
 
-  const handleDelete = async (docId: string) => {
-    if (!confirm("Delete this document?")) return;
-    const res = await fetch(`/api/tenants/${tenantId}/documents/${docId}`, { method: "DELETE" });
-    if (res.ok) setDocs(prev => prev.filter(d => d.id !== docId));
+  const handleDelete = (docId: string) => setDeleteId(docId);
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    const res = await fetch(`/api/tenants/${tenantId}/documents/${deleteId}`, { method: "DELETE" });
+    if (res.ok) setDocs(prev => prev.filter(d => d.id !== deleteId));
+    setDeleteId(null);
   };
 
   return (
+    <>
+    <ConfirmDialog
+      open={!!deleteId}
+      onOpenChange={open => { if (!open) setDeleteId(null); }}
+      title="Delete document?"
+      description="This will permanently delete the document. This cannot be undone."
+      confirmLabel="Delete"
+      variant="destructive"
+      onConfirm={confirmDelete}
+    />
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
       <div className="px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
@@ -148,5 +163,6 @@ export function TenantDocumentsPanel({ tenantId }: { tenantId: string }) {
         </div>
       )}
     </div>
+    </>
   );
 }
