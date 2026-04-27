@@ -10,6 +10,15 @@ export const metadata = { title: "Maintenance" };
 export default async function MaintenancePage() {
   const user = await requireAuth();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let dbError: any = null;
+  try { await prisma.$queryRaw`SELECT 1`; } catch(e) { dbError = e; }
+  if (dbError) return (
+    <pre className="p-4 text-xs text-red-600 bg-red-50 rounded-xl whitespace-pre-wrap break-all">
+      DB ERROR: {String(dbError?.message ?? dbError)}
+    </pre>
+  );
+
   const requests = await prisma.maintenanceRequest.findMany({
     where:   { userId: user.id },
     include: {
