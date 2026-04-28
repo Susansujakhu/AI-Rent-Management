@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 import { randomBytes } from "crypto";
 import { isPro, planLimitResponse } from "@/lib/plan";
-import { sendWhatsAppMessage, getWAStatus } from "@/lib/whatsapp";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -56,12 +55,16 @@ export async function DELETE(req: Request, { params }: Params) {
       WHERE id = ${id} AND userId = ${userId}
     `;
 
-    if (tenant.phone && getWAStatus(userId) === "ready") {
-      sendWhatsAppMessage(
-        userId,
-        tenant.phone,
-        `Hi ${tenant.name}, your tenant portal access has been disabled. Please contact your property owner if you need access restored.`
-      ).catch(() => null);
+    if (tenant.phone) {
+      import("@/lib/whatsapp").then(({ sendWhatsAppMessage, getWAStatus }) => {
+        if (getWAStatus(userId) === "ready") {
+          sendWhatsAppMessage(
+            userId,
+            tenant.phone!,
+            `Hi ${tenant.name}, your tenant portal access has been disabled. Please contact your property owner if you need access restored.`
+          ).catch(() => null);
+        }
+      }).catch(() => null);
     }
 
     return NextResponse.json({ ok: true });
