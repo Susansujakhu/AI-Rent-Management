@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, Prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 import { generatePaymentsFromMoveIn } from "@/lib/generate-payments";
 
@@ -27,6 +27,7 @@ function resolveStatus(paid: number, due: number, wasOverdue: boolean): string {
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const auth = await requireAuthAPI();
   if (auth instanceof NextResponse) return auth;
   const userId = auth.id;
@@ -137,7 +138,34 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 
   const before = await prisma.tenant.findUnique({ where: { id, userId }, select: { roomId: true, moveInDate: true } });
-  const tenant = await prisma.tenant.update({ where: { id, userId }, data });
+
+  // Build raw SQL update so new fields (canSubmitMeterReading, meterReadingAutoAccept, etc.)
+  // work even when the server's Prisma client predates those columns.
+  const fieldSql: Record<string, (v: unknown) => Prisma.Sql> = {
+    name:                 v => Prisma.sql`\`name\` = ${v as string}`,
+    phone:                v => Prisma.sql`\`phone\` = ${v as string | null}`,
+    email:                v => Prisma.sql`\`email\` = ${v as string | null}`,
+    roomId:               v => Prisma.sql`\`roomId\` = ${v as string | null}`,
+    moveInDate:           v => Prisma.sql`\`moveInDate\` = ${v as Date}`,
+    moveOutDate:          v => Prisma.sql`\`moveOutDate\` = ${v as Date | null}`,
+    deposit:              v => Prisma.sql`\`deposit\` = ${v as number}`,
+    notes:                v => Prisma.sql`\`notes\` = ${v as string | null}`,
+    whatsappNotify:           v => Prisma.sql`\`whatsappNotify\` = ${v ? 1 : 0}`,
+    canSubmitMeterReading:    v => Prisma.sql`\`canSubmitMeterReading\` = ${v ? 1 : 0}`,
+    meterReadingAutoAccept:   v => Prisma.sql`\`meterReadingAutoAccept\` = ${v ? 1 : 0}`,
+  };
+  const setParts = Object.entries(data)
+    .filter(([k]) => fieldSql[k])
+    .map(([k, v]) => fieldSql[k](v));
+
+  if (setParts.length > 0) {
+    await prisma.$executeRaw(
+      Prisma.sql`UPDATE \`Tenant\` SET ${Prisma.join(setParts)} WHERE id = ${id} AND userId = ${userId}`
+    );
+  }
+
+  const tenant = await prisma.tenant.findUnique({ where: { id, userId } });
+  if (!tenant) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Regenerate payments if room was just assigned or moveInDate changed
   const roomChanged     = "roomId" in data && data.roomId && data.roomId !== before?.roomId;
@@ -149,6 +177,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 
   return NextResponse.json(tenant);
+  } catch (e: any) {
+    console.error("[tenant PUT]", e);
+    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
