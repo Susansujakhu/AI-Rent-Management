@@ -83,11 +83,18 @@ CREATE TABLE IF NOT EXISTS `GlobalSetting` (
   PRIMARY KEY (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ── Tenant portal columns (add only if missing) ───────────────────────────────
--- Run each ALTER separately if you get "Duplicate column" errors, just skip it.
+-- ── Tenant — add missing columns (safe to run multiple times) ────────────────
 ALTER TABLE `Tenant`
-  ADD COLUMN IF NOT EXISTS `portalEnabled` tinyint(1)   NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS `portalToken`   varchar(191) DEFAULT NULL;
+  ADD COLUMN IF NOT EXISTS `portalEnabled`         tinyint(1)   NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS `portalToken`           varchar(191) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `creditBalance`         double       NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS `canSubmitMeterReading` tinyint(1)   NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS `meterReadingAutoAccept` tinyint(1)  NOT NULL DEFAULT 0;
 
 -- Unique index for portalToken (ignore error if already exists)
 ALTER TABLE `Tenant` ADD UNIQUE INDEX `Tenant_portalToken_key` (`portalToken`);
+
+-- ── MeterReading — add missing columns if table already existed ───────────────
+ALTER TABLE `MeterReading`
+  ADD COLUMN IF NOT EXISTS `submittedByTenant` tinyint(1)   NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS `status`            varchar(191) NOT NULL DEFAULT 'confirmed';
