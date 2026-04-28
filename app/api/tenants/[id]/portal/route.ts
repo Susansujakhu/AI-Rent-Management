@@ -21,12 +21,13 @@ export async function POST(req: Request, { params }: Params) {
 
   const portalToken = randomBytes(32).toString("hex");
 
-  const updated = await prisma.tenant.update({
-    where: { id, userId },
-    data:  { portalEnabled: true, portalToken },
-  });
+  await prisma.$executeRaw`
+    UPDATE \`Tenant\`
+    SET portalEnabled = 1, portalToken = ${portalToken}
+    WHERE id = ${id} AND userId = ${userId}
+  `;
 
-  return NextResponse.json({ portalToken: updated.portalToken, portalEnabled: true });
+  return NextResponse.json({ portalToken, portalEnabled: true });
 }
 
 /** DELETE — disable portal + revoke all active sessions */
@@ -36,17 +37,20 @@ export async function DELETE(req: Request, { params }: Params) {
   const userId = auth.id;
   const { id } = await params;
 
-  // Verify ownership before modifying
-  const tenant = await prisma.tenant.findUnique({ where: { id, userId }, select: { id: true, name: true, phone: true } });
+  const tenant = await prisma.tenant.findUnique({
+    where:  { id, userId },
+    select: { id: true, name: true, phone: true },
+  });
   if (!tenant) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await prisma.tenantSession.deleteMany({ where: { tenantId: id } });
-  await prisma.tenant.update({
-    where: { id, userId },
-    data:  { portalEnabled: false, portalToken: null },
-  });
+  // Delete sessions and revoke portal access via raw SQL (new tables may not be in deployed Prisma client)
+  await prisma.$executeRaw`DELETE FROM \`TenantSession\` WHERE tenantId = ${id}`;
+  await prisma.$executeRaw`
+    UPDATE \`Tenant\`
+    SET portalEnabled = 0, portalToken = NULL
+    WHERE id = ${id} AND userId = ${userId}
+  `;
 
-  // Notify tenant via WhatsApp (non-blocking — don't fail revocation if WA is down)
   if (tenant.phone && getWAStatus(userId) === "ready") {
     sendWhatsAppMessage(
       userId,

@@ -11,10 +11,11 @@ export async function PATCH(
 
   const { id } = await params;
 
-  await prisma.notification.updateMany({
-    where: { id, userId: user.id },
-    data:  { read: true },
-  });
+  await prisma.$executeRaw`
+    UPDATE \`Notification\`
+    SET \`read\` = 1
+    WHERE id = ${id} AND userId = ${user.id}
+  `;
 
   return NextResponse.json({ ok: true });
 }
