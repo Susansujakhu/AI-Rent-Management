@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Globe, Link2, RefreshCw, Trash2, MessageCircle, Copy, Check, Loader2, Lock, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { UpgradeModal } from "@/components/upgrade-modal";
@@ -24,7 +24,8 @@ export function PortalAccessCard({ tenantId, tenantName, tenantPhone, portalEnab
   const [loading, setLoading]   = useState<string | null>(null);
   const [copied,  setCopied]    = useState(false);
 
-  const origin     = typeof window !== "undefined" ? window.location.origin : "";
+  const [origin, setOrigin] = useState("");
+  useEffect(() => { setOrigin(window.location.origin); }, []);
   const portalLink = token ? `${origin}/portal/t/${token}` : null;
 
   const enable = async () => {
