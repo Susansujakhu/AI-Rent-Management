@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS `Notification` (
   `userId`    varchar(191) NOT NULL,
   `type`      varchar(191) NOT NULL,
   `title`     varchar(191) NOT NULL,
-  `message`   longtext     NOT NULL,
+  `body`      longtext     NOT NULL,
   `data`      longtext,
   `read`      tinyint(1)   NOT NULL DEFAULT 0,
   `createdAt` datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
