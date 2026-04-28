@@ -1,7 +1,20 @@
 -- Run this in phpMyAdmin on your production database
--- All statements use IF NOT EXISTS so it's safe to run multiple times
+-- All CREATE TABLE / ADD COLUMN statements use IF NOT EXISTS — safe to run multiple times
+-- If any statement shows an error, skip it and run the rest manually
 
--- ── MaintenanceRequest ────────────────────────────────────────────────────────
+-- ── 1. Tenant — add missing columns ──────────────────────────────────────────
+ALTER TABLE `Tenant`
+  ADD COLUMN IF NOT EXISTS `portalEnabled`          tinyint(1)   NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS `portalToken`            varchar(191) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `creditBalance`          double       NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS `canSubmitMeterReading`  tinyint(1)   NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS `meterReadingAutoAccept` tinyint(1)   NOT NULL DEFAULT 0;
+
+-- ── 2. Unique index for portalToken ──────────────────────────────────────────
+-- Skip this statement if you get "Duplicate key name" — the index already exists
+ALTER TABLE `Tenant` ADD UNIQUE INDEX `Tenant_portalToken_key` (`portalToken`);
+
+-- ── 3. MaintenanceRequest ────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `MaintenanceRequest` (
   `id`          varchar(191) NOT NULL,
   `userId`      varchar(191) NOT NULL,
@@ -22,7 +35,7 @@ CREATE TABLE IF NOT EXISTS `MaintenanceRequest` (
   CONSTRAINT `MaintenanceRequest_tenantId_fkey` FOREIGN KEY (`tenantId`) REFERENCES `Tenant` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ── TenantDocument ────────────────────────────────────────────────────────────
+-- ── 4. TenantDocument ────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `TenantDocument` (
   `id`        varchar(191) NOT NULL,
   `userId`    varchar(191) NOT NULL,
@@ -39,32 +52,39 @@ CREATE TABLE IF NOT EXISTS `TenantDocument` (
   CONSTRAINT `TenantDocument_tenantId_fkey` FOREIGN KEY (`tenantId`) REFERENCES `Tenant` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ── MeterReading ──────────────────────────────────────────────────────────────
+-- ── 5. MeterReading ──────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `MeterReading` (
-  `id`          varchar(191) NOT NULL,
-  `userId`      varchar(191) NOT NULL,
-  `tenantId`    varchar(191) NOT NULL,
-  `month`       varchar(191) NOT NULL,
-  `previous`    double       NOT NULL,
-  `current`     double       NOT NULL,
-  `ratePerUnit` double       NOT NULL,
-  `unitsUsed`   double       NOT NULL,
-  `amount`      double       NOT NULL,
-  `chargeId`    varchar(191) DEFAULT NULL,
-  `photoPath`   varchar(191) DEFAULT NULL,
-  `notes`       longtext,
-  `createdAt`   datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  `updatedAt`   datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  `id`                varchar(191) NOT NULL,
+  `userId`            varchar(191) NOT NULL,
+  `tenantId`          varchar(191) NOT NULL,
+  `month`             varchar(191) NOT NULL,
+  `previous`          double       NOT NULL,
+  `current`           double       NOT NULL,
+  `ratePerUnit`       double       NOT NULL,
+  `unitsUsed`         double       NOT NULL,
+  `amount`            double       NOT NULL,
+  `chargeId`          varchar(191) DEFAULT NULL,
+  `photoPath`         varchar(191) DEFAULT NULL,
+  `notes`             longtext,
+  `submittedByTenant` tinyint(1)   NOT NULL DEFAULT 0,
+  `status`            varchar(191) NOT NULL DEFAULT 'confirmed',
+  `createdAt`         datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt`         datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
   UNIQUE KEY `MeterReading_chargeId_key`        (`chargeId`),
   UNIQUE KEY `MeterReading_tenantId_month_key`  (`tenantId`, `month`),
   KEY          `MeterReading_userId_month_idx`  (`userId`, `month`),
-  CONSTRAINT `MeterReading_userId_fkey`   FOREIGN KEY (`userId`)   REFERENCES `User`         (`id`) ON DELETE CASCADE  ON UPDATE CASCADE,
-  CONSTRAINT `MeterReading_tenantId_fkey` FOREIGN KEY (`tenantId`) REFERENCES `Tenant`       (`id`) ON DELETE CASCADE  ON UPDATE CASCADE,
-  CONSTRAINT `MeterReading_chargeId_fkey` FOREIGN KEY (`chargeId`) REFERENCES `OneTimeCharge`(`id`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `MeterReading_userId_fkey`   FOREIGN KEY (`userId`)   REFERENCES `User`          (`id`) ON DELETE CASCADE  ON UPDATE CASCADE,
+  CONSTRAINT `MeterReading_tenantId_fkey` FOREIGN KEY (`tenantId`) REFERENCES `Tenant`        (`id`) ON DELETE CASCADE  ON UPDATE CASCADE,
+  CONSTRAINT `MeterReading_chargeId_fkey` FOREIGN KEY (`chargeId`) REFERENCES `OneTimeCharge` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ── TenantSession (tenant portal logins) ─────────────────────────────────────
+-- If MeterReading table already existed without these columns, add them:
+ALTER TABLE `MeterReading`
+  ADD COLUMN IF NOT EXISTS `submittedByTenant` tinyint(1)   NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS `status`            varchar(191) NOT NULL DEFAULT 'confirmed';
+
+-- ── 6. TenantSession ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `TenantSession` (
   `id`        varchar(191) NOT NULL,
   `tenantId`  varchar(191) NOT NULL,
@@ -76,26 +96,24 @@ CREATE TABLE IF NOT EXISTS `TenantSession` (
   CONSTRAINT `TenantSession_tenantId_fkey` FOREIGN KEY (`tenantId`) REFERENCES `Tenant` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ── GlobalSetting (app-wide config) ──────────────────────────────────────────
+-- ── 7. GlobalSetting ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `GlobalSetting` (
   `key`   varchar(191) NOT NULL,
   `value` longtext     NOT NULL,
   PRIMARY KEY (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ── Tenant — add missing columns (safe to run multiple times) ────────────────
-ALTER TABLE `Tenant`
-  ADD COLUMN IF NOT EXISTS `portalEnabled`         tinyint(1)   NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS `portalToken`           varchar(191) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS `creditBalance`         double       NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS `canSubmitMeterReading` tinyint(1)   NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS `meterReadingAutoAccept` tinyint(1)  NOT NULL DEFAULT 0;
-
--- Unique index for portalToken (drop first so re-running doesn't error)
-DROP INDEX IF EXISTS `Tenant_portalToken_key` ON `Tenant`;
-ALTER TABLE `Tenant` ADD UNIQUE INDEX `Tenant_portalToken_key` (`portalToken`);
-
--- ── MeterReading — add missing columns if table already existed ───────────────
-ALTER TABLE `MeterReading`
-  ADD COLUMN IF NOT EXISTS `submittedByTenant` tinyint(1)   NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS `status`            varchar(191) NOT NULL DEFAULT 'confirmed';
+-- ── 8. Notification ──────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `Notification` (
+  `id`        varchar(191) NOT NULL,
+  `userId`    varchar(191) NOT NULL,
+  `type`      varchar(191) NOT NULL,
+  `title`     varchar(191) NOT NULL,
+  `message`   longtext     NOT NULL,
+  `data`      longtext,
+  `read`      tinyint(1)   NOT NULL DEFAULT 0,
+  `createdAt` datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `Notification_userId_read_idx` (`userId`, `read`),
+  CONSTRAINT `Notification_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
