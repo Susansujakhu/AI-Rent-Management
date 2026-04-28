@@ -21,7 +21,11 @@ The server runs the committed `.next` folder — it cannot build on the server (
 
 3. On the server (cPanel terminal):
    ```bash
-   git fetch origin && git reset --hard origin/master && touch tmp/restart.txt
+   source ~/nodevenv/easy-rent.xpertthemes.com/20/bin/activate
+   cd ~/easy-rent.xpertthemes.com
+   git fetch origin && git reset --hard origin/master
+   node scripts/sync-prisma.js
+   touch tmp/restart.txt
    ```
 
 4. Wait ~30 seconds for the app to restart.
