@@ -91,7 +91,8 @@ ALTER TABLE `Tenant`
   ADD COLUMN IF NOT EXISTS `canSubmitMeterReading` tinyint(1)   NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS `meterReadingAutoAccept` tinyint(1)  NOT NULL DEFAULT 0;
 
--- Unique index for portalToken (ignore error if already exists)
+-- Unique index for portalToken (drop first so re-running doesn't error)
+DROP INDEX IF EXISTS `Tenant_portalToken_key` ON `Tenant`;
 ALTER TABLE `Tenant` ADD UNIQUE INDEX `Tenant_portalToken_key` (`portalToken`);
 
 -- ── MeterReading — add missing columns if table already existed ───────────────
