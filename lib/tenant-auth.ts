@@ -66,6 +66,16 @@ export async function requireTenantByToken(token: string): Promise<TenantWithRoo
 
   if (!tenant || !tenant.portalEnabled) redirect("/portal");
 
+  // Stale Prisma client may not SELECT newer columns — fetch them via raw SQL
+  const extras = await prisma.$queryRaw<{ canSubmitMeterReading: number | boolean; meterReadingAutoAccept: number | boolean }[]>`
+    SELECT canSubmitMeterReading, meterReadingAutoAccept FROM \`Tenant\` WHERE id = ${tenant.id} LIMIT 1
+  `;
+  const ex = extras[0];
+  if (ex) {
+    (tenant as any).canSubmitMeterReading  = ex.canSubmitMeterReading  === 1 || ex.canSubmitMeterReading  === true;
+    (tenant as any).meterReadingAutoAccept = ex.meterReadingAutoAccept === 1 || ex.meterReadingAutoAccept === true;
+  }
+
   return tenant;
 }
 
@@ -103,6 +113,16 @@ export async function requireTenantAPIByToken(req: Request): Promise<
 
   if (!tenant || !tenant.portalEnabled) {
     return { tenant: null, unauth: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+
+  // Stale Prisma client may not SELECT newer columns — fetch them via raw SQL
+  const extras = await prisma.$queryRaw<{ canSubmitMeterReading: number | boolean; meterReadingAutoAccept: number | boolean }[]>`
+    SELECT canSubmitMeterReading, meterReadingAutoAccept FROM \`Tenant\` WHERE id = ${tenant.id} LIMIT 1
+  `;
+  const ex = extras[0];
+  if (ex) {
+    (tenant as any).canSubmitMeterReading  = ex.canSubmitMeterReading  === 1 || ex.canSubmitMeterReading  === true;
+    (tenant as any).meterReadingAutoAccept = ex.meterReadingAutoAccept === 1 || ex.meterReadingAutoAccept === true;
   }
 
   return { tenant, unauth: null };
