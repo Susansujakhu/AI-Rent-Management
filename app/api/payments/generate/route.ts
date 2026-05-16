@@ -17,6 +17,9 @@ export async function POST(req: Request) {
   // Active tenants = has a room and hasn't moved out before this month
   const [year, m] = month.split("-").map(Number);
   const monthStart = new Date(year, m - 1, 1);
+  const now        = new Date();
+  const isCurrentMonth = year === now.getFullYear() && m === now.getMonth() + 1;
+  const todayDay   = now.getDate();
 
   const tenants = await prisma.tenant.findMany({
     where: {
@@ -50,6 +53,14 @@ export async function POST(req: Request) {
     if (existingSet.has(tenant.id)) {
       skipped++;
       continue;
+    }
+
+    // For the current month, skip tenants whose billing day hasn't arrived yet
+    if (isCurrentMonth && tenant.moveInDate) {
+      const billingDay = new Date(tenant.moveInDate).getDate();
+      const daysInMonth = new Date(year, m, 0).getDate();
+      const effectiveBillingDay = Math.min(billingDay, daysInMonth);
+      if (todayDay < effectiveBillingDay) { skipped++; continue; }
     }
 
     // amountDue = room rent + active recurring charges for this room/tenant
