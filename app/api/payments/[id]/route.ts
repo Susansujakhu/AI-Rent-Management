@@ -163,7 +163,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   // ── Payment distribution ─────────────────────────────────────────────────
   // Rules:
-  //  • Always fully apply to the initiating payment (even partial).
+  //  • Apply to the initiating payment FIRST (the one user clicked Pay on),
+  //    even if it stays partial.
   //  • Only cascade to OTHER unpaid months if remaining >= that month's full balance.
   //    This prevents a small overpayment (e.g. रू100 extra) from creating a confusing
   //    PARTIAL status on the next month — it goes to credit instead.
@@ -176,23 +177,40 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   // Collect updates without applying yet (need credit total first)
   const updates: { paymentId: string; month: string; amountDue: number; apply: number; newPaid: number; newStatus: string }[] = [];
 
+  // 1) Initiating payment first — fully apply (or partial if not enough)
+  const initiating = allUnpaid.find(p => p.id === id);
+  if (initiating && remaining > 0) {
+    const balance = initiating.amountDue - initiating.amountPaid;
+    if (balance > 0) {
+      const apply = Math.min(remaining, balance);
+      remaining  -= apply;
+      updates.push({
+        paymentId: initiating.id,
+        month:     initiating.month,
+        amountDue: initiating.amountDue,
+        apply,
+        newPaid:   initiating.amountPaid + apply,
+        newStatus: resolveStatus(initiating.amountPaid + apply, initiating.amountDue, initiating.status === "OVERDUE"),
+      });
+    }
+  }
+
+  // 2) Cascade to OTHER unpaid months (oldest first) — only full clearance
   for (const p of allUnpaid) {
     if (remaining <= 0) break;
+    if (p.id === id) continue;
     const balance = p.amountDue - p.amountPaid;
     if (balance <= 0) continue;
+    if (remaining < balance) break;
 
-    // For non-initiating months: only cascade if we can cover the full balance
-    if (p.id !== id && remaining < balance) break;
-
-    const apply   = Math.min(remaining, balance);
-    remaining    -= apply;
+    remaining -= balance;
     updates.push({
       paymentId: p.id,
       month:     p.month,
       amountDue: p.amountDue,
-      apply,
-      newPaid:   p.amountPaid + apply,
-      newStatus: resolveStatus(p.amountPaid + apply, p.amountDue, p.status === "OVERDUE"),
+      apply:     balance,
+      newPaid:   p.amountDue,
+      newStatus: "PAID",
     });
   }
 

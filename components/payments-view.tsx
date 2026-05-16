@@ -11,6 +11,7 @@ import {
   AlertCircle, ChevronRight, RotateCcw, ChevronLeft, Calendar,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import { BreakdownLines, type BreakdownData } from "@/components/breakdown-lines";
 
 // ── Paginator ─────────────────────────────────────────────────────────────────
 
@@ -88,6 +89,7 @@ export type OpenBill = {
   status:          string;
   tenantPhone?:    string | null;
   whatsappNotify?: boolean;
+  breakdown?:      BreakdownData;
 };
 
 type BillGroup = {
@@ -758,7 +760,7 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
                           <p className={`text-sm font-semibold text-slate-800 dark:text-slate-200 truncate ${tenant ? "" : "mt-0.5"}`}>
                             {g.periodLabel}
                           </p>
-                          {isMulti && (
+                          {isMulti ? (
                             <button
                               onClick={toggleExpand}
                               className="flex items-center gap-1 mt-0.5 text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
@@ -769,6 +771,13 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
                                 : <ChevronDown size={11} className="transition-transform" />
                               }
                             </button>
+                          ) : (
+                            (() => {
+                              const singlePayment = g.items.find(i => i.type === "payment");
+                              return singlePayment?.breakdown
+                                ? <BreakdownLines breakdown={singlePayment.breakdown} fmt={fmt} />
+                                : null;
+                            })()
                           )}
                         </div>
                       </div>
@@ -813,9 +822,14 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
                           const itemBalance = item.amountDue - item.amountPaid;
                           const itemColor   = STATUS_COLOR[item.status] ?? "text-slate-600 bg-slate-50 border-slate-200";
                           return (
-                            <div key={`${item.type}-${item.id}`} className="px-5 py-2.5 flex items-center gap-3">
-                              <span className="text-slate-300 dark:text-slate-600 text-sm shrink-0">↳</span>
-                              <p className="text-xs text-slate-600 dark:text-slate-400 flex-1 truncate">{item.label}</p>
+                            <div key={`${item.type}-${item.id}`} className="px-5 py-2.5 flex items-start gap-3">
+                              <span className="text-slate-300 dark:text-slate-600 text-sm shrink-0 mt-0.5">↳</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{item.label}</p>
+                                {item.type === "payment" && item.breakdown && (
+                                  <BreakdownLines breakdown={item.breakdown} fmt={fmt} />
+                                )}
+                              </div>
                               <p className="text-xs font-bold text-slate-800 dark:text-slate-200 shrink-0">{fmt(itemBalance)}</p>
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${itemColor}`}>
                                 <span className={`w-1 h-1 rounded-full ${STATUS_DOT[item.status] ?? "bg-slate-400"}`} />

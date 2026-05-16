@@ -137,6 +137,14 @@
       "namedRegex": "^/api/payments/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/api/payments/[id]/breakdown",
+      "regex": "^/api/payments/([^/]+?)/breakdown(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/payments/(?<nxtPid>[^/]+?)/breakdown(?:/)?$"
+    },
+    {
       "page": "/api/payments/[id]/notify",
       "regex": "^/api/payments/([^/]+?)/notify(?:/)?$",
       "routeKeys": {

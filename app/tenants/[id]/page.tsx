@@ -356,6 +356,12 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
             method:    p.method,
             status:    p.status,
             notes:     p.notes,
+            breakdown: tenant.room ? {
+              baseRent: tenant.room.monthlyRent,
+              charges:  tenant.room.recurringCharges
+                .filter(c => (c.tenantId === null || c.tenantId === tenant.id) && (!c.effectiveFrom || c.effectiveFrom <= p.month))
+                .map(c => ({ title: c.title, amount: c.amount })),
+            } : undefined,
           }))}
           currencySymbol={settings.currencySymbol}
           isPro={pro}

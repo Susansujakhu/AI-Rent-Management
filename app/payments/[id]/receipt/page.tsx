@@ -15,9 +15,17 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
 
   const payment = await prisma.payment.findUnique({
     where: { id, userId: user.id },
-    include: { tenant: true, room: true },
+    include: { tenant: true, room: { include: { recurringCharges: true } } },
   });
   if (!payment) notFound();
+
+  // Compute recurring charges active for this payment's month
+  const activeCharges = payment.room.recurringCharges
+    .filter(c =>
+      (c.tenantId === null || c.tenantId === payment.tenantId) &&
+      (!c.effectiveFrom || c.effectiveFrom <= payment.month),
+    )
+    .map(c => ({ title: c.title, amount: c.amount }));
 
   const settings = await getSettings(user.id);
   const fmt = (n: number) => formatCurrency(n, settings.currencySymbol);
@@ -137,11 +145,28 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Payment Details</p>
               <div className="bg-slate-50 dark:bg-slate-800 rounded-xl overflow-hidden">
                 <div className="divide-y divide-white dark:divide-slate-700">
-                  {/* Monthly rent */}
+                  {/* Base rent */}
                   <div className="flex justify-between px-4 py-3 text-sm">
-                    <span className="text-slate-500 dark:text-slate-400">Monthly Rent</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{fmt(payment.amountDue)}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Base Rent</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{fmt(payment.room.monthlyRent)}</span>
                   </div>
+                  {/* Recurring charge lines */}
+                  {activeCharges.map((c, i) => (
+                    <div key={i} className="flex justify-between px-4 py-3 text-sm">
+                      <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                        {c.title}
+                        <span className="text-[10px] font-bold bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded-full leading-none">recurring</span>
+                      </span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{fmt(c.amount)}</span>
+                    </div>
+                  ))}
+                  {/* Total due (shown when there are recurring charges) */}
+                  {activeCharges.length > 0 && (
+                    <div className="flex justify-between px-4 py-2 text-xs bg-slate-100/60 dark:bg-slate-700/40">
+                      <span className="font-semibold text-slate-600 dark:text-slate-300">Total Due</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-200">{fmt(payment.amountDue)}</span>
+                    </div>
+                  )}
                   {/* Rent applied */}
                   <div className="flex justify-between px-4 py-3 text-sm">
                     <span className="text-slate-500 dark:text-slate-400">{hasCharges ? "Applied to Rent" : "Amount Received"}</span>

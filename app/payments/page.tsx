@@ -204,7 +204,7 @@ export default async function PaymentsPage() {
   // ── Open bills (payments not fully paid) ──────────────────────────────────
   const openPayments = await prisma.payment.findMany({
     where:   { userId: user.id, status: { not: "PAID" } },
-    include: { tenant: true, room: true },
+    include: { tenant: true, room: { include: { recurringCharges: true } } },
     orderBy: [{ status: "asc" }, { month: "asc" }],
   });
 
@@ -227,6 +227,12 @@ export default async function PaymentsPage() {
       status:         p.status,
       tenantPhone:    p.tenant.phone,
       whatsappNotify: p.tenant.whatsappNotify,
+      breakdown: {
+        baseRent: p.room.monthlyRent,
+        charges:  p.room.recurringCharges
+          .filter(c => (c.tenantId === null || c.tenantId === p.tenantId) && (!c.effectiveFrom || c.effectiveFrom <= p.month))
+          .map(c => ({ title: c.title, amount: c.amount })),
+      },
     })),
     ...openCharges.map(c => {
       // Map charge date → billing month, accounting for tenant's billing day.

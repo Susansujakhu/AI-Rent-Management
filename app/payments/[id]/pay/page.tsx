@@ -5,6 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import { PAYMENT_METHODS } from "@/lib/utils";
+import { BreakdownLines, type BreakdownData } from "@/components/breakdown-lines";
 
 type Payment = {
   id: string;
@@ -61,6 +62,7 @@ function buildCoveragePreview(
   allUnpaid: UnpaidMonth[],
   unpaidCharges: UnpaidCharge[],
   applyToOneTime: boolean,
+  initiatingId: string,
 ): PreviewItem[] {
   const preview: PreviewItem[] = [];
   let remaining = entered;
@@ -77,13 +79,26 @@ function buildCoveragePreview(
     }
   }
 
+  // 1) Initiating payment first (full or partial)
+  const initiating = allUnpaid.find(u => u.id === initiatingId);
+  if (initiating && remaining > 0) {
+    const bal = initiating.amountDue - initiating.amountPaid;
+    if (bal > 0) {
+      const apply = Math.min(remaining, bal);
+      preview.push({ kind: "payment", label: formatMonth(initiating.month), amount: apply, full: apply >= bal, remainingAfter: bal - apply });
+      remaining -= apply;
+    }
+  }
+
+  // 2) Cascade to other unpaid months — only full clearance
   for (const u of allUnpaid) {
     if (remaining <= 0) break;
+    if (u.id === initiatingId) continue;
     const bal = u.amountDue - u.amountPaid;
     if (bal <= 0) continue;
-    const apply = Math.min(remaining, bal);
-    preview.push({ kind: "payment", label: formatMonth(u.month), amount: apply, full: apply >= bal, remainingAfter: bal - apply });
-    remaining -= apply;
+    if (remaining < bal) break;
+    preview.push({ kind: "payment", label: formatMonth(u.month), amount: bal, full: true, remainingAfter: 0 });
+    remaining -= bal;
   }
 
   return preview;
@@ -98,6 +113,7 @@ export default function PayPage() {
   const [allUnpaid,      setAllUnpaid]      = useState<UnpaidMonth[]>([]);
   const [unpaidCharges,  setUnpaidCharges]  = useState<UnpaidCharge[]>([]);
   const [currencySymbol, setCurrencySymbol] = useState("रू");
+  const [breakdown,      setBreakdown]      = useState<BreakdownData | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -117,11 +133,13 @@ export default function PayPage() {
       .then((data: Payment) => {
         setPayment(data);
 
-        // Fetch unpaid months and charges in parallel, then pre-fill with exact total
+        // Fetch unpaid months, charges, and breakdown in parallel
         Promise.all([
           fetch(`/api/payments?tenantId=${data.tenant.id}&status=unpaid`).then((r) => r.json()),
           fetch(`/api/one-time-charges?tenantId=${data.tenant.id}&status=unpaid`).then((r) => r.json()),
-        ]).then(([unpaidRows, chargeRows]: [UnpaidMonth[], UnpaidCharge[]]) => {
+          fetch(`/api/payments/${id}/breakdown`).then((r) => r.ok ? r.json() : null),
+        ]).then(([unpaidRows, chargeRows, breakdownData]: [UnpaidMonth[], UnpaidCharge[], BreakdownData | null]) => {
+          if (breakdownData && breakdownData.charges.length > 0) setBreakdown(breakdownData);
           setAllUnpaid(unpaidRows ?? []);
           setUnpaidCharges(chargeRows ?? []);
 
@@ -182,7 +200,7 @@ export default function PayPage() {
   const totalOutstanding = allUnpaid.reduce((s, u) => s + (u.amountDue - u.amountPaid), 0)
     + unpaidCharges.reduce((s, c) => s + (c.amount - c.amountPaid), 0);
   const entered  = Number(watchedAmount) || 0;
-  const coverage = entered > 0 ? buildCoveragePreview(entered, allUnpaid, unpaidCharges, !!applyToOneTime) : [];
+  const coverage = entered > 0 ? buildCoveragePreview(entered, allUnpaid, unpaidCharges, !!applyToOneTime, id) : [];
   const showPreview = coverage.length > 1 || (coverage.length === 1 && (coverage[0].kind === "charge" || coverage[0].label !== formatMonth(payment.month)));
 
   const STATUS_STYLES: Record<string, string> = {
@@ -220,6 +238,9 @@ export default function PayPage() {
           <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
             <p className="text-xs text-slate-400 font-medium">Amount Due</p>
             <p className="font-bold text-slate-900 dark:text-white mt-0.5">{formatCurrency(payment.amountDue, currencySymbol)}</p>
+            {breakdown && (
+              <BreakdownLines breakdown={breakdown} fmt={(n) => formatCurrency(n, currencySymbol)} />
+            )}
           </div>
           <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
             <p className="text-xs text-slate-400 font-medium">Already Paid</p>

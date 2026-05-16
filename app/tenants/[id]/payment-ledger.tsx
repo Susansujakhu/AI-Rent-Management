@@ -8,12 +8,14 @@ import { formatCurrency, formatDate, formatRentalPeriod } from "@/lib/utils";
 import { VoidPaymentButton } from "./void-payment-button";
 import { SendReminderButton } from "./send-reminder-button";
 import { ResendNotificationButton } from "./resend-notification-button";
+import { BreakdownLines, type BreakdownData } from "@/components/breakdown-lines";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface SerializedPayment {
   id: string; month: string; amountDue: number; amountPaid: number;
   paidDate: string | null; method: string | null; status: string; notes: string | null;
+  breakdown?: BreakdownData;
 }
 
 interface Transaction {
@@ -287,9 +289,12 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
               </div>
 
               {/* Amounts row */}
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-start justify-between text-xs">
                 <div className="flex items-center gap-3 text-slate-500">
-                  <span>Due <span className="font-medium text-slate-700 dark:text-slate-300">{fmt(p.amountDue)}</span></span>
+                  <div>
+                    <span>Due <span className="font-medium text-slate-700 dark:text-slate-300">{fmt(p.amountDue)}</span></span>
+                    {p.breakdown && <BreakdownLines breakdown={p.breakdown} fmt={fmt} />}
+                  </div>
                   <span>Paid <span className="font-semibold text-slate-900 dark:text-white">{fmt(p.amountPaid)}</span></span>
                   {balance > 0 && (
                     <span className={p.status === "OVERDUE" ? "text-rose-600 font-bold" : "text-amber-600 font-bold"}>
@@ -379,6 +384,11 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
                 <td className="px-3 py-3 text-right whitespace-nowrap">
                   <span className="font-bold text-slate-900 dark:text-white">{fmt(p.amountPaid)}</span>
                   <span className="block text-[11px] text-slate-400">of {fmt(p.amountDue)}</span>
+                  {p.breakdown && (
+                    <div className="flex justify-end">
+                      <BreakdownLines breakdown={p.breakdown} fmt={fmt} />
+                    </div>
+                  )}
                   {p.status === "PARTIAL" && (
                     <div className="mt-1 w-full h-1 bg-slate-100 rounded-full overflow-hidden">
                       <div className="h-full bg-blue-400 rounded-full"
