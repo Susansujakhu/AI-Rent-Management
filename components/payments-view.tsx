@@ -82,12 +82,65 @@ export type OpenBill = {
   tenantId:        string;
   tenantName:      string;
   label:           string;
+  month:           string;
   amountDue:       number;
   amountPaid:      number;
   status:          string;
   tenantPhone?:    string | null;
   whatsappNotify?: boolean;
 };
+
+type BillGroup = {
+  key:            string;
+  tenantId:       string;
+  tenantName:     string;
+  tenantPhone?:   string | null;
+  whatsappNotify?: boolean;
+  month:          string;
+  periodLabel:    string;
+  status:         string;
+  totalDue:       number;
+  totalPaid:      number;
+  items:          OpenBill[];
+  paymentId?:     string;
+};
+
+const STATUS_RANK: Record<string, number> = { OVERDUE: 0, PARTIAL: 1, PENDING: 2 };
+
+function groupOpenBills(bills: OpenBill[]): BillGroup[] {
+  const map = new Map<string, BillGroup>();
+  for (const b of bills) {
+    const key = `${b.tenantId}:${b.month}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        tenantId:       b.tenantId,
+        tenantName:     b.tenantName,
+        tenantPhone:    b.tenantPhone,
+        whatsappNotify: b.whatsappNotify,
+        month:          b.month,
+        periodLabel:    b.label,
+        status:         b.status,
+        totalDue:       0,
+        totalPaid:      0,
+        items:          [],
+        paymentId:      b.type === "payment" ? b.id : undefined,
+      });
+    }
+    const g = map.get(key)!;
+    g.totalDue  += b.amountDue;
+    g.totalPaid += b.amountPaid;
+    g.items.push(b);
+    if (b.type === "payment") {
+      g.paymentId     = b.id;
+      g.periodLabel   = b.label;
+      g.tenantPhone   = b.tenantPhone;
+      g.whatsappNotify = b.whatsappNotify;
+    }
+    if ((STATUS_RANK[b.status] ?? 9) < (STATUS_RANK[g.status] ?? 9)) g.status = b.status;
+  }
+  return Array.from(map.values());
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -459,12 +512,13 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
     ...openBills.map(b => b.tenantName),
   ])).sort();
 
-  const [tenant,      setTenant]      = useState("");
-  const [dateFrom,    setDateFrom]    = useState("");
-  const [dateTo,      setDateTo]      = useState("");
-  const [drawer,      setDrawer]      = useState<ReceivedSession | null>(null);
-  const [sessionPage, setSessionPage] = useState(1);
-  const [billPage,    setBillPage]    = useState(1);
+  const [tenant,         setTenant]         = useState("");
+  const [dateFrom,       setDateFrom]       = useState("");
+  const [dateTo,         setDateTo]         = useState("");
+  const [drawer,         setDrawer]         = useState<ReceivedSession | null>(null);
+  const [sessionPage,    setSessionPage]    = useState(1);
+  const [billPage,       setBillPage]       = useState(1);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const SESSION_PAGE_SIZE = 10;
   const BILL_PAGE_SIZE    = 10;
@@ -483,8 +537,9 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
     return true;
   });
   const visibleBills  = openBills.filter(b => !tenant || b.tenantName === tenant);
+  const billGroups    = groupOpenBills(visibleBills);
   const pagedSessions = visibleSessions.slice((sessionPage - 1) * SESSION_PAGE_SIZE, sessionPage * SESSION_PAGE_SIZE);
-  const pagedBills    = visibleBills.slice((billPage - 1) * BILL_PAGE_SIZE, billPage * BILL_PAGE_SIZE);
+  const pagedGroups   = billGroups.slice((billPage - 1) * BILL_PAGE_SIZE, billPage * BILL_PAGE_SIZE);
 
   // ── Filter-reactive stats ──────────────────────────────────────────────────
   const totalCollected   = visibleSessions.reduce((s, x) => s + x.total, 0);
@@ -668,75 +723,119 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
         </div>
 
         {/* ── OPEN BILLS ──────────────────────────────────────────────────── */}
-        {visibleBills.length > 0 && (
+        {billGroups.length > 0 && (
           <div>
             <div className="px-5 py-3 flex items-center gap-2.5 bg-amber-50/60 dark:bg-amber-500/10 border-b border-amber-100/60 dark:border-amber-500/20">
               <AlertCircle size={14} className="text-amber-500 shrink-0" />
               <p className="text-sm font-bold text-amber-700 dark:text-amber-400">
                 Open Bills
                 <span className="ml-2 bg-amber-200 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-bold px-2 py-0.5 rounded-full">
-                  {visibleBills.length}
+                  {billGroups.length}
                 </span>
               </p>
             </div>
 
             <div className="divide-y divide-slate-50 dark:divide-slate-800">
-              {pagedBills.map(b => {
-                const balance  = b.amountDue - b.amountPaid;
-                const colorCls = STATUS_COLOR[b.status] ?? "text-slate-600 bg-slate-50 border-slate-200";
+              {pagedGroups.map(g => {
+                const balance    = g.totalDue - g.totalPaid;
+                const colorCls   = STATUS_COLOR[g.status] ?? "text-slate-600 bg-slate-50 border-slate-200";
+                const isMulti    = g.items.length > 1;
+                const isExpanded = expandedGroups.has(g.key);
+                const toggleExpand = () => setExpandedGroups(prev => {
+                  const next = new Set(prev);
+                  next.has(g.key) ? next.delete(g.key) : next.add(g.key);
+                  return next;
+                });
+
                 return (
-                  <div key={`${b.type}-${b.id}`}
-                    className={`px-5 py-3.5 flex items-center gap-4 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50 ${b.status === "OVERDUE" ? "border-l-2 border-rose-400" : ""}`}>
-                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                      {!tenant && <TenantAvatar name={b.tenantName} size="sm" />}
-                      <div className="min-w-0">
-                        {!tenant && <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{b.tenantName}</p>}
-                        <p className={`text-sm font-semibold text-slate-800 dark:text-slate-200 truncate ${tenant ? "" : "mt-0.5"}`}>{b.label}</p>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-base font-black text-slate-900 dark:text-white">{fmt(balance)}</p>
-                      {b.amountPaid > 0 && <p className="text-xs text-slate-400">{fmt(b.amountPaid)} paid</p>}
-                    </div>
-                    <span className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shrink-0 ${colorCls}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[b.status] ?? "bg-slate-400"}`} />
-                      {b.status}
-                    </span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {b.type === "payment" && (
-                        <>
-                          <Link href={`/payments/${b.id}/pay`}
-                            className="flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-bold transition-colors">
-                            <CreditCard size={11} />Pay
-                          </Link>
-                          {b.tenantPhone && b.whatsappNotify && isPro && (
+                  <div key={g.key} className={g.status === "OVERDUE" ? "border-l-2 border-rose-400" : ""}>
+                    {/* Main row */}
+                    <div className="px-5 py-3.5 flex items-center gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        {!tenant && <TenantAvatar name={g.tenantName} size="sm" />}
+                        <div className="min-w-0 flex-1">
+                          {!tenant && <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{g.tenantName}</p>}
+                          <p className={`text-sm font-semibold text-slate-800 dark:text-slate-200 truncate ${tenant ? "" : "mt-0.5"}`}>
+                            {g.periodLabel}
+                          </p>
+                          {isMulti && (
                             <button
-                              onClick={async () => {
-                                const res = await fetch("/api/whatsapp/send-reminder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentId: b.id, type: b.status === "OVERDUE" ? "overdue" : "due" }) });
-                                const d = await res.json() as { error?: string };
-                                if (!res.ok) toast.error(d.error ?? "Failed"); else toast.success("Reminder sent ✅");
-                              }}
-                              title="Send WhatsApp reminder"
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                              <Bell size={14} />
+                              onClick={toggleExpand}
+                              className="flex items-center gap-1 mt-0.5 text-[11px] font-semibold text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                            >
+                              {g.items.length} items
+                              {isExpanded
+                                ? <ChevronDown size={11} className="rotate-180 transition-transform" />
+                                : <ChevronDown size={11} className="transition-transform" />
+                              }
                             </button>
                           )}
-                        </>
-                      )}
-                      {b.type === "charge" && (
-                        <Link href={`/tenants/${b.tenantId}`} className="text-xs text-indigo-600 font-semibold hover:underline">View →</Link>
-                      )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-base font-black text-slate-900 dark:text-white">{fmt(balance)}</p>
+                        {g.totalPaid > 0 && <p className="text-xs text-slate-400">{fmt(g.totalPaid)} paid</p>}
+                      </div>
+                      <span className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shrink-0 ${colorCls}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[g.status] ?? "bg-slate-400"}`} />
+                        {g.status}
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {g.paymentId ? (
+                          <>
+                            <Link href={`/payments/${g.paymentId}/pay`}
+                              className="flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-bold transition-colors">
+                              <CreditCard size={11} />Pay
+                            </Link>
+                            {g.tenantPhone && g.whatsappNotify && isPro && (
+                              <button
+                                onClick={async () => {
+                                  const res = await fetch("/api/whatsapp/send-reminder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentId: g.paymentId, type: g.status === "OVERDUE" ? "overdue" : "due" }) });
+                                  const d = await res.json() as { error?: string };
+                                  if (!res.ok) toast.error(d.error ?? "Failed"); else toast.success("Reminder sent ✅");
+                                }}
+                                title="Send WhatsApp reminder"
+                                className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10 rounded-lg transition-colors">
+                                <Bell size={14} />
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <Link href={`/tenants/${g.tenantId}`} className="text-xs text-indigo-600 font-semibold hover:underline">View →</Link>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Breakdown (expanded) */}
+                    {isMulti && isExpanded && (
+                      <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 divide-y divide-slate-100 dark:divide-slate-800">
+                        {g.items.map(item => {
+                          const itemBalance = item.amountDue - item.amountPaid;
+                          const itemColor   = STATUS_COLOR[item.status] ?? "text-slate-600 bg-slate-50 border-slate-200";
+                          return (
+                            <div key={`${item.type}-${item.id}`} className="px-5 py-2.5 flex items-center gap-3">
+                              <span className="text-slate-300 dark:text-slate-600 text-sm shrink-0">↳</span>
+                              <p className="text-xs text-slate-600 dark:text-slate-400 flex-1 truncate">{item.label}</p>
+                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200 shrink-0">{fmt(itemBalance)}</p>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${itemColor}`}>
+                                <span className={`w-1 h-1 rounded-full ${STATUS_DOT[item.status] ?? "bg-slate-400"}`} />
+                                {item.status}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
-            <Paginator page={billPage} total={visibleBills.length} pageSize={BILL_PAGE_SIZE} onChange={setBillPage} />
+            <Paginator page={billPage} total={billGroups.length} pageSize={BILL_PAGE_SIZE} onChange={setBillPage} />
           </div>
         )}
 
         {/* All caught up */}
-        {visibleBills.length === 0 && visibleSessions.length > 0 && (
+        {billGroups.length === 0 && visibleSessions.length > 0 && (
           <div className="px-5 py-4 flex items-center gap-2.5 bg-emerald-50/40 dark:bg-emerald-500/10">
             <CheckCircle2 size={16} className="text-emerald-500" />
             <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
