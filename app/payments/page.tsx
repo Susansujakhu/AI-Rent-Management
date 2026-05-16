@@ -228,17 +228,29 @@ export default async function PaymentsPage() {
       tenantPhone:    p.tenant.phone,
       whatsappNotify: p.tenant.whatsappNotify,
     })),
-    ...openCharges.map(c => ({
-      type:       "charge" as const,
-      id:         c.id,
-      tenantId:   c.tenantId,
-      tenantName: c.tenant.name,
-      label:      c.title,
-      month:      `${c.date.getFullYear()}-${String(c.date.getMonth() + 1).padStart(2, "0")}`,
-      amountDue:  c.amount,
-      amountPaid: c.amountPaid,
-      status:     c.status,
-    })),
+    ...openCharges.map(c => {
+      // Map charge date → billing month, accounting for tenant's billing day.
+      // e.g. billing day 29, charge dated May 1: day 1 < 29 → belongs to April period.
+      const billingDay  = c.tenant.moveInDate ? new Date(c.tenant.moveInDate).getDate() : 1;
+      const chargeDay   = c.date.getDate();
+      let   payMonthNum = c.date.getMonth() + 1;
+      let   payYear     = c.date.getFullYear();
+      if (chargeDay < billingDay) {
+        payMonthNum--;
+        if (payMonthNum < 1) { payMonthNum = 12; payYear--; }
+      }
+      return {
+        type:       "charge" as const,
+        id:         c.id,
+        tenantId:   c.tenantId,
+        tenantName: c.tenant.name,
+        label:      c.title,
+        month:      `${payYear}-${String(payMonthNum).padStart(2, "0")}`,
+        amountDue:  c.amount,
+        amountPaid: c.amountPaid,
+        status:     c.status,
+      };
+    }),
   ];
 
   // Sort: OVERDUE first, then PARTIAL, then PENDING
