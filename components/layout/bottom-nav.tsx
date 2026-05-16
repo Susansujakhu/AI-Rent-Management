@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Receipt, MoreHorizontal, DoorOpen, Hammer, Zap, BarChart3, Settings, X, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Receipt, MoreHorizontal, DoorOpen, Hammer, BarChart3, Settings, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNotifications } from "@/lib/notification-context";
 
@@ -11,12 +11,11 @@ const primary = [
   { href: "/rooms",       label: "Rooms",       icon: DoorOpen },
   { href: "/tenants",     label: "Tenants",     icon: Users },
   { href: "/payments",    label: "Payments",    icon: CreditCard },
-  { href: "/electricity", label: "Electricity", icon: Zap },
+  { href: "/maintenance", label: "Maintenance", icon: Hammer },
 ];
 
 const secondary = [
   { href: "/expenses",    label: "Expenses",    icon: Receipt },
-  { href: "/maintenance", label: "Maintenance", icon: Hammer },
   { href: "/reports",     label: "Reports",     icon: BarChart3 },
   { href: "/settings",    label: "Settings",    icon: Settings },
 ];
