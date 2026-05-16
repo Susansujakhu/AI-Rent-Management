@@ -1,204 +1,91 @@
-import makeWASocket, {
-  DisconnectReason,
-  useMultiFileAuthState,
-  fetchLatestBaileysVersion,
-  makeCacheableSignalKeyStore,
-} from "@whiskeysockets/baileys";
-import type { WASocket, WAVersion } from "@whiskeysockets/baileys";
-import { Boom } from "@hapi/boom";
-import pino from "pino";
-import path from "path";
-import fs from "fs";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const QRCode = require("qrcode") as { toDataURL: (text: string, opts?: object) => Promise<string> };
+const WA_GRAPH_URL = "https://graph.facebook.com/v20.0";
 
-// Absolute path so it resolves the same regardless of CWD (dev vs production)
-const AUTH_BASE = path.join(process.cwd(), ".wwebjs_auth");
+// ── Mode cache (60 s TTL) ─────────────────────────────────────────────────────
+interface WAModeCache { mode: "api" | "direct"; expiresAt: number }
+const gm = globalThis as typeof globalThis & { _waModeCache: WAModeCache | undefined };
 
-// Cache the WA web version so version mismatches don't force QR on every restart
-const FALLBACK_WA_VERSION: WAVersion = [2, 3000, 1023205847];
-let _cachedVersion: WAVersion | null = null;
-async function getVersion(): Promise<WAVersion> {
-  if (!_cachedVersion) {
-    try {
-      const { version } = await fetchLatestBaileysVersion();
-      _cachedVersion = version;
-    } catch {
-      _cachedVersion = FALLBACK_WA_VERSION;
-    }
-  }
-  return _cachedVersion;
-}
-
-// ── Key constants ─────────────────────────────────────────────────────────────
-export const SYSTEM_WA_KEY = "system";
-
-// ── Session state ─────────────────────────────────────────────────────────────
-
-export type WAStatus = "disconnected" | "connecting" | "qr" | "ready";
-
-interface WASession {
-  socket:  WASocket | undefined;
-  status:  WAStatus;
-  qr:      string | null;
-  qrImage: string | null;
-  phone:   string | null;
-}
-
-interface WAGlobal {
-  _waSessions: Map<string, WASession>;
-}
-
-const g = globalThis as typeof globalThis & WAGlobal;
-if (!g._waSessions) g._waSessions = new Map();
-
-function getOrCreate(key: string): WASession {
-  if (!g._waSessions.has(key)) {
-    g._waSessions.set(key, { socket: undefined, status: "disconnected", qr: null, qrImage: null, phone: null });
-  }
-  return g._waSessions.get(key)!;
-}
-
-// ── Public getters ────────────────────────────────────────────────────────────
-
-export function getWAStatus(key: string):  WAStatus      { return getOrCreate(key).status; }
-export function getWAQRImage(key: string): string | null { return getOrCreate(key).qrImage; }
-export function getWAPhone(key: string):   string | null { return getOrCreate(key).phone; }
-
-export function getWASession(key: string) {
-  const s = getOrCreate(key);
-  return { status: s.status, qrImage: s.qrImage, phone: s.phone };
-}
-
-// ── Connect / Disconnect ──────────────────────────────────────────────────────
-
-export async function initWhatsApp(key: string): Promise<void> {
-  const s = getOrCreate(key);
-  if (s.socket || s.status === "connecting" || s.status === "ready") return;
-
-  s.status  = "connecting";
-  s.qr      = null;
-  s.qrImage = null;
-
+export async function getWAMode(): Promise<"api" | "direct"> {
+  const now = Date.now();
+  if (gm._waModeCache && now < gm._waModeCache.expiresAt) return gm._waModeCache.mode;
   try {
-    const { state, saveCreds } = await useMultiFileAuthState(path.join(AUTH_BASE, key));
-    const version = await getVersion();
-
-    // Flush creds on graceful shutdown so the session survives a server restart
-    const onExit = () => { saveCreds().catch(() => {}); };
-    process.once("SIGTERM", onExit);
-    process.once("SIGINT",  onExit);
-    process.once("exit",    onExit);
-
-    const logger = pino({ level: "silent" });
-
-    const sock = makeWASocket({
-      version,
-      auth: {
-        creds: state.creds,
-        keys:  makeCacheableSignalKeyStore(state.keys, logger),
-      },
-      printQRInTerminal: false,
-      logger,
-      browser: ["Rent Manager", "Chrome", "120.0.0.0"],
-    });
-
-    s.socket = sock;
-
-    sock.ev.on("connection.update", async (update) => {
-      const { connection, lastDisconnect, qr } = update;
-
-      if (qr) {
-        s.status = "qr";
-        s.qr     = qr;
-        try { s.qrImage = await QRCode.toDataURL(qr, { width: 300, margin: 2 }); }
-        catch { s.qrImage = null; }
-      }
-
-      if (connection === "open") {
-        s.status  = "ready";
-        s.qr      = null;
-        s.qrImage = null;
-        s.phone   = sock.user?.id?.split(":")[0] ?? null;
-        console.log(`[whatsapp:${key}] Connected as ${s.phone}`);
-      }
-
-      if (connection === "close") {
-        const code = (lastDisconnect?.error as Boom)?.output?.statusCode;
-        const loggedOut          = code === DisconnectReason.loggedOut;
-        const connectionReplaced = code === DisconnectReason.connectionReplaced; // 440
-
-        s.status  = "disconnected";
-        s.qr      = null;
-        s.qrImage = null;
-        s.phone   = null;
-        s.socket  = undefined;
-        g._waSessions.delete(key);
-
-        if (loggedOut || connectionReplaced) {
-          // loggedOut: phone removed the linked device
-          // connectionReplaced (440): another client connected with same credentials — auto-retry would cause a reconnect loop
-          // In both cases, wipe credentials and wait for a manual reconnect via the admin UI
-          console.log(`[whatsapp:${key}] ${connectionReplaced ? "Connection replaced (440) — another session took over" : "Logged out"} — clearing credentials`);
-          try { fs.rmSync(path.join(AUTH_BASE, key), { recursive: true, force: true }); } catch { /* ignore */ }
-          // No auto-reconnect: admin must click "Connect" again in the settings UI
-        } else {
-          console.log(`[whatsapp:${key}] Reconnecting in 5s (code ${code})…`);
-          setTimeout(() => initWhatsApp(key).catch(console.error), 5000);
-        }
-      }
-    });
-
-    sock.ev.on("creds.update", saveCreds);
-
-  } catch (err) {
-    console.error("[whatsapp] initWhatsApp failed:", err);
-    s.status  = "disconnected";
-    s.socket  = undefined;
-    g._waSessions.delete(key);
-    // Retry after 15s — handles transient failures (network down, WA unreachable at startup)
-    console.log(`[whatsapp:${key}] Retrying in 15s…`);
-    setTimeout(() => initWhatsApp(key).catch(console.error), 15_000);
+    const { prisma } = await import("./prisma");
+    const row = await prisma.globalSetting.findUnique({ where: { key: "wa_mode" } });
+    const mode: "api" | "direct" = row?.value === "direct" ? "direct" : "api";
+    gm._waModeCache = { mode, expiresAt: now + 60_000 };
+    return mode;
+  } catch {
+    return "api";
   }
 }
 
-export async function disconnectWhatsApp(key: string): Promise<void> {
-  const s = g._waSessions.get(key);
-  if (!s) return;
-  try { await s.socket?.logout(); } catch { /* ignore */ }
-  s.status  = "disconnected";
-  s.qr      = null;
-  s.qrImage = null;
-  s.phone   = null;
-  s.socket  = undefined;
-  g._waSessions.delete(key);
+export function invalidateWAModeCache() {
+  gm._waModeCache = undefined;
 }
 
-// ── Send message ──────────────────────────────────────────────────────────────
+export function isWhatsAppConfigured(): boolean {
+  return !!(process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_ACCESS_TOKEN);
+}
 
-export function formatWhatsAppJid(phone: string): string {
+export async function isWhatsAppReady(): Promise<boolean> {
+  const mode = await getWAMode();
+  if (mode === "direct") {
+    const { getDirectWASession } = await import("./whatsapp-direct");
+    return getDirectWASession().status === "ready";
+  }
+  return isWhatsAppConfigured();
+}
+
+function formatWhatsAppPhone(phone: string): string {
   let digits = phone.replace(/\D/g, "");
-  // Nepal 10-digit numbers — prepend country code
   if (digits.length === 10 && (digits.startsWith("98") || digits.startsWith("97"))) {
     digits = "977" + digits;
   }
-  return digits + "@s.whatsapp.net";
+  return digits;
 }
 
-/** @deprecated use formatWhatsAppJid */
-export const formatWhatsAppId = formatWhatsAppJid;
-
-export async function sendWhatsAppMessage(key: string, phone: string, message: string): Promise<boolean> {
-  const s = g._waSessions.get(key);
-  if (!s || s.status !== "ready" || !s.socket) return false;
-  try {
-    const jid = formatWhatsAppJid(phone);
-    await s.socket.sendMessage(jid, { text: message });
-    return true;
-  } catch (err) {
-    console.error("[whatsapp] sendMessage failed:", err);
+async function sendViaAPI(phone: string, message: string): Promise<boolean> {
+  if (!isWhatsAppConfigured()) {
+    console.warn("[whatsapp] Not configured — WHATSAPP_PHONE_NUMBER_ID or WHATSAPP_ACCESS_TOKEN missing");
     return false;
   }
+
+  const to  = formatWhatsAppPhone(phone);
+  const url = `${WA_GRAPH_URL}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+
+  try {
+    const res = await fetch(url, {
+      method:  "POST",
+      headers: {
+        Authorization:  `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "text",
+        text: { body: message, preview_url: false },
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error("[whatsapp] Send failed:", JSON.stringify(err));
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[whatsapp] Network error:", err);
+    return false;
+  }
+}
+
+export async function sendWhatsAppMessage(phone: string, message: string): Promise<boolean> {
+  const mode = await getWAMode();
+  if (mode === "direct") {
+    const { sendDirectMessage } = await import("./whatsapp-direct");
+    return sendDirectMessage(phone, message);
+  }
+  return sendViaAPI(phone, message);
 }
 
 // ── Message templates ─────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuthAPI } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { sendWhatsAppMessage, getWAStatus, SYSTEM_WA_KEY } from "@/lib/whatsapp";
+import { sendWhatsAppMessage, isWhatsAppReady } from "@/lib/whatsapp";
 import { isPro } from "@/lib/plan";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -62,10 +62,9 @@ export async function POST(req: Request) {
     select: { phone: true },
   });
 
-  const waReady = getWAStatus(SYSTEM_WA_KEY) === "ready";
   let sent = false;
 
-  if (waReady && admin?.phone) {
+  if (await isWhatsAppReady() && admin?.phone) {
     const userName  = auth.name ?? auth.email;
     const userPhone = (auth as { phone?: string }).phone ?? "—";
 
@@ -88,7 +87,7 @@ export async function POST(req: Request) {
       `Open the admin panel to verify and activate.`,
     ].filter(l => l !== null).join("\n");
 
-    sent = await sendWhatsAppMessage(SYSTEM_WA_KEY, admin.phone, msg);
+    sent = await sendWhatsAppMessage(admin.phone, msg);
   }
 
 

@@ -31,10 +31,10 @@ export async function POST(req: Request, { params }: Params) {
       return NextResponse.json({ error: "Portal access is not enabled for this tenant" }, { status: 400 });
     }
 
-    const { sendWhatsAppMessage, getWAStatus } = await import("@/lib/whatsapp");
+    const { sendWhatsAppMessage, isWhatsAppReady } = await import("@/lib/whatsapp");
 
-    if (getWAStatus(userId) !== "ready") {
-      return NextResponse.json({ error: "WhatsApp not connected" }, { status: 503 });
+    if (!(await isWhatsAppReady())) {
+      return NextResponse.json({ error: "WhatsApp not configured" }, { status: 503 });
     }
 
     const proto   = req.headers.get("x-forwarded-proto") ?? "https";
@@ -44,7 +44,7 @@ export async function POST(req: Request, { params }: Params) {
 
     const msg = `Hi ${tenant.name}, here's your personal tenant portal link to view your rent and payment details:\n\n${link}\n\nBookmark this page for future access. The link is personal — please don't share it with others.`;
 
-    const sent = await sendWhatsAppMessage(userId, tenant.phone, msg);
+    const sent = await sendWhatsAppMessage(tenant.phone, msg);
     if (!sent) return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
 
     return NextResponse.json({ ok: true });

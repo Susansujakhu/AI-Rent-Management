@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuthAPI } from "@/lib/auth";
-import { sendWhatsAppMessage, msgRentOverdue, msgRentDue, getWAStatus } from "@/lib/whatsapp";
+import { sendWhatsAppMessage, msgRentOverdue, msgRentDue, isWhatsAppReady } from "@/lib/whatsapp";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatMonth } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
@@ -13,8 +13,8 @@ export async function POST(req: Request) {
 
   if (!isPro(auth)) return planLimitResponse("WhatsApp messaging requires a Pro plan.");
 
-  if (getWAStatus(userId) !== "ready") {
-    return NextResponse.json({ error: "WhatsApp not connected" }, { status: 503 });
+  if (!(await isWhatsAppReady())) {
+    return NextResponse.json({ error: "WhatsApp not configured" }, { status: 503 });
   }
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     ? msgRentOverdue(payment.tenant.name, fmt(balance), formatMonth(payment.month), payment.room.name, overdueTpl?.value)
     : msgRentDue(payment.tenant.name, fmt(payment.amountDue), formatMonth(payment.month), payment.room.name, dueTpl?.value);
 
-  const sent = await sendWhatsAppMessage(userId, payment.tenant.phone, msg);
+  const sent = await sendWhatsAppMessage(payment.tenant.phone, msg);
   if (!sent) return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
 
   return NextResponse.json({ ok: true });

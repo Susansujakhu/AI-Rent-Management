@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
-import { sendWhatsAppMessage, msgPaymentReceived, getWAStatus } from "@/lib/whatsapp";
+import { sendWhatsAppMessage, msgPaymentReceived, isWhatsAppReady } from "@/lib/whatsapp";
 import { isPro } from "@/lib/plan";
 import { formatCurrency, formatRentalPeriod } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
@@ -16,9 +16,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Pro plan required" }, { status: 403 });
   }
 
-  const waStatus = getWAStatus(userId);
-  if (waStatus !== "ready") {
-    return NextResponse.json({ error: "WhatsApp not connected" }, { status: 400 });
+  if (!(await isWhatsAppReady())) {
+    return NextResponse.json({ error: "WhatsApp not configured" }, { status: 400 });
   }
 
   const payment = await prisma.payment.findUnique({
@@ -89,7 +88,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     breakdownLines.length > 0 ? breakdownLines : undefined,
   );
 
-  const sent = await sendWhatsAppMessage(userId, payment.tenant.phone, msg);
+  const sent = await sendWhatsAppMessage(payment.tenant.phone, msg);
   if (!sent) {
     return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
   }

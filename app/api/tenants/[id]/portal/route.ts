@@ -56,10 +56,9 @@ export async function DELETE(req: Request, { params }: Params) {
     `;
 
     if (tenant.phone) {
-      import("@/lib/whatsapp").then(({ sendWhatsAppMessage, getWAStatus }) => {
-        if (getWAStatus(userId) === "ready") {
+      import("@/lib/whatsapp").then(async ({ sendWhatsAppMessage, isWhatsAppReady }) => {
+        if (await isWhatsAppReady()) {
           sendWhatsAppMessage(
-            userId,
             tenant.phone!,
             `Hi ${tenant.name}, your tenant portal access has been disabled. Please contact your property owner if you need access restored.`
           ).catch(() => null);

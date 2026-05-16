@@ -11,7 +11,7 @@
  */
 
 import { prisma } from "./prisma";
-import { getWAStatus, sendWhatsAppMessage, msgRentOverdue, SYSTEM_WA_KEY } from "./whatsapp";
+import { isWhatsAppReady, sendWhatsAppMessage, msgRentOverdue } from "./whatsapp";
 import { formatCurrency, formatMonth } from "./utils";
 import { isPro } from "./plan";
 import type { AuthUser } from "./auth";
@@ -138,7 +138,7 @@ async function runRemindersForUser(userId: string): Promise<void> {
       payment.room.name,
       tplRow?.value,
     );
-    const ok = await sendWhatsAppMessage(userId, payment.tenant.phone, msg);
+    const ok = await sendWhatsAppMessage(payment.tenant.phone, msg);
     if (ok) sent++;
   }
 
@@ -189,7 +189,7 @@ async function runSubscriptionMaintenance(): Promise<void> {
   }
 
   // ── 2b. Renewal reminders — 7 days and 1 day before expiry ─────────────────
-  if (getWAStatus(SYSTEM_WA_KEY) !== "ready") return; // need system WA to send
+  if (!(await isWhatsAppReady())) return;
 
   const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -224,7 +224,7 @@ async function runSubscriptionMaintenance(): Promise<void> {
       ? `⚠️ *Rent Manager — Subscription Expiring Tomorrow*\n\nYour *${planLabel}* plan expires on *${expiryLabel}*.\n\nRenew now to keep uninterrupted access. Contact admin to renew.`
       : `🔔 *Rent Manager — Subscription Reminder*\n\nYour *${planLabel}* plan expires in *${daysLeft} days* (${expiryLabel}).\n\nContact admin to renew your subscription and avoid any disruption.`;
 
-    const ok = await sendWhatsAppMessage(SYSTEM_WA_KEY, user.phone, msg);
+    const ok = await sendWhatsAppMessage(user.phone, msg);
     if (ok) {
       await prisma.setting.upsert({
         where:  { userId_key: { userId: user.id, key: reminderKey } },
@@ -282,8 +282,8 @@ export function initScheduler(): void {
       if (g._schedulerRunning) return;
       g._schedulerRunning = true;
       try {
+        if (!(await isWhatsAppReady())) return;
         for (const userId of enabledUserIds) {
-          if (getWAStatus(userId) !== "ready") continue;
           await runRemindersForUser(userId);
         }
       } finally {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendWhatsAppMessage, getWAStatus, SYSTEM_WA_KEY } from "@/lib/whatsapp";
+import { sendWhatsAppMessage, isWhatsAppReady } from "@/lib/whatsapp";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const DEV_BYPASS = process.env.NODE_ENV !== "production" && process.env.BYPASS_PHONE_OTP === "true";
@@ -46,9 +46,9 @@ export async function POST(req: Request) {
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  if (getWAStatus(SYSTEM_WA_KEY) !== "ready" || !user.phone) {
+  if (!(await isWhatsAppReady()) || !user.phone) {
     return NextResponse.json(
-      { error: "Password reset requires WhatsApp to be connected. Contact the admin." },
+      { error: "Password reset requires WhatsApp to be configured. Contact the admin." },
       { status: 503 }
     );
   }
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
   await prisma.passwordResetToken.create({ data: { userId: user.id, otp, expiresAt } });
 
   const msg  = `Your Rent Manager password reset code is:\n\n*${otp}*\n\nThis code expires in 15 minutes. If you didn't request this, ignore this message.`;
-  const sent = await sendWhatsAppMessage(SYSTEM_WA_KEY, user.phone, msg);
+  const sent = await sendWhatsAppMessage(user.phone, msg);
 
   if (!sent) {
     return NextResponse.json({ error: "Failed to send WhatsApp message. Please try again." }, { status: 500 });

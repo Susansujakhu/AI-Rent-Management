@@ -7,10 +7,10 @@ export async function register() {
       console.warn("Scheduler init skipped:", err);
     }
     try {
-      const { initWhatsApp, SYSTEM_WA_KEY } = await import("./lib/whatsapp");
-      initWhatsApp(SYSTEM_WA_KEY).catch(console.error);
+      const { autoStartDirectWA } = await import("./lib/whatsapp-direct");
+      autoStartDirectWA().catch(console.error);
     } catch (err) {
-      console.warn("WhatsApp init skipped - not available on this server");
+      console.warn("WhatsApp direct auto-start skipped:", err);
     }
   }
 }

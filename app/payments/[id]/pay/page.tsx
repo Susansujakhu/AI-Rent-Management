@@ -149,7 +149,7 @@ export default function PayPage() {
       });
       if (!res.ok) throw new Error();
       toast.success("Payment recorded successfully");
-      router.back();
+      router.push(`/tenants/${payment!.tenant.id}`);
     } catch {
       toast.error("Failed to record payment");
     }

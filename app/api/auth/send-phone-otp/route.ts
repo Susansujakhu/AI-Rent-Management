@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendWhatsAppMessage, getWAStatus, SYSTEM_WA_KEY } from "@/lib/whatsapp";
+import { sendWhatsAppMessage, isWhatsAppReady } from "@/lib/whatsapp";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 
@@ -68,8 +68,8 @@ export async function POST(req: Request) {
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  if (getWAStatus(SYSTEM_WA_KEY) !== "ready") {
-    return NextResponse.json({ error: "WhatsApp is not connected — contact the admin to complete signup" }, { status: 503 });
+  if (!(await isWhatsAppReady())) {
+    return NextResponse.json({ error: "WhatsApp is not configured — contact the admin to complete signup" }, { status: 503 });
   }
 
   // Invalidate previous tokens for this phone
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
   });
 
   const msg  = `Your Rent Manager verification code is:\n\n*${otp}*\n\nThis code expires in 15 minutes. Don't share it with anyone.`;
-  const sent = await sendWhatsAppMessage(SYSTEM_WA_KEY, normalized, msg);
+  const sent = await sendWhatsAppMessage(normalized, msg);
 
   if (!sent) {
     return NextResponse.json({ error: "Failed to send WhatsApp message. Make sure this number is on WhatsApp." }, { status: 500 });

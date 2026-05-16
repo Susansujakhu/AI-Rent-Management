@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
-import { sendWhatsAppMessage, msgPaymentReceived, getWAStatus } from "@/lib/whatsapp";
+import { sendWhatsAppMessage, msgPaymentReceived, isWhatsAppReady } from "@/lib/whatsapp";
 import { isPro } from "@/lib/plan";
 import { formatCurrency, formatMonth, formatRentalPeriod, PAYMENT_METHODS } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
@@ -127,6 +127,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   let remaining = totalEntered;
 
   // ── One-time charges (applied first if requested) ────────────────────────
+  const appliedCharges: { title: string; amount: number; full: boolean }[] = [];
   if (body.applyToOneTimeCharges) {
     const unpaidCharges = await prisma.oneTimeCharge.findMany({
       where: { userId, tenantId: current.tenantId, status: { not: "PAID" } },
@@ -143,7 +144,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         where: { id: c.id },
         data: { amountPaid: newPaid, status: newPaid >= c.amount ? "PAID" : "PARTIAL" },
       });
-      // Track the charge application in the ledger
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (prisma as any).chargeTransaction.create({
         data: {
@@ -157,6 +157,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           note:        body.notes || null,
         },
       });
+      appliedCharges.push({ title: c.title, amount: apply, full: newPaid >= c.amount });
     }
   }
 
@@ -242,17 +243,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     include: { tenant: true, room: true },
   });
 
-  // Send WhatsApp confirmation if connected and tenant has notifications enabled
-  const waStatus = getWAStatus(userId);
-  console.log("[payments] WA check:", {
-    isPro:           isPro(auth),
-    hasUpdated:      !!updated,
-    waStatus,
-    hasPhone:        !!updated?.tenant.phone,
-    amountPaid:      updated?.amountPaid,
-    whatsappNotify:  updated?.tenant.whatsappNotify,
-  });
-  if (isPro(auth) && updated && waStatus === "ready" && updated.tenant.phone && updated.amountPaid > 0 && updated.tenant.whatsappNotify) {
+  if (isPro(auth) && updated && await isWhatsAppReady() && updated.tenant.phone && updated.amountPaid > 0 && updated.tenant.whatsappNotify) {
     const settings = await getSettings(userId);
     const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
     const tplRow   = await prisma.setting.findUnique({ where: { userId_key: { userId, key: "wa_tpl_payment_received" } } });
@@ -266,16 +257,19 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       receiptUrl     = `${proto}://${host}/portal/t/${updated.tenant.portalToken}?redirect=${redirect}`;
     }
 
-    // Build per-month breakdown lines
+    // Build breakdown: one-time charges first, then rent months, then credit
     const moveInDay = updated.tenant.moveInDate ? new Date(updated.tenant.moveInDate).getDate() : 1;
     const breakdownLines: string[] = [];
+    for (const c of appliedCharges) {
+      breakdownLines.push(c.full ? `✅ ${c.title} — ${fmt(c.amount)}` : `🔸 ${c.title} — ${fmt(c.amount)} (partial)`);
+    }
     for (const u of updates) {
       const label = formatRentalPeriod(u.month, moveInDay);
       if (u.newStatus === "PAID") {
         breakdownLines.push(`✅ ${label} — Fully paid`);
       } else {
-        const remaining = u.amountDue - u.newPaid;
-        breakdownLines.push(`🔸 ${label} — ${fmt(u.apply)} paid (${fmt(remaining)} remaining)`);
+        const bal = u.amountDue - u.newPaid;
+        breakdownLines.push(`🔸 ${label} — ${fmt(u.apply)} paid (${fmt(bal)} remaining)`);
       }
     }
     if (creditGenerated > 0) {
@@ -291,7 +285,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       receiptUrl,
       breakdownLines,
     );
-    sendWhatsAppMessage(userId, updated.tenant.phone, msg).catch(err => console.error("[payments] Failed to send WhatsApp notification:", err));
+    sendWhatsAppMessage(updated.tenant.phone, msg).catch(err => console.error("[payments] Failed to send WhatsApp notification:", err));
   }
 
   return NextResponse.json(updated);

@@ -40,7 +40,6 @@ const PRESETS = [
   { label: "Custom",       code: "CUSTOM", symbol: "",  flag: "✏️" },
 ];
 
-type WAStatus = "disconnected" | "connecting" | "qr" | "ready";
 
 const TABS = [
   { id: "currency",  label: "Currency",  icon: Coins,          accent: "indigo" },
@@ -64,10 +63,7 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
   const [userEmail,    setUserEmail]    = useState("");
 
   // WhatsApp state
-  const [waStatus,   setWaStatus]   = useState<WAStatus>("disconnected");
-  const [waQR,       setWaQR]       = useState<string | null>(null);
-  const [waPhone,    setWaPhone]    = useState<string | null>(null);
-  const [waPolling,  setWaPolling]  = useState(false);
+  const [waConfigured, setWaConfigured] = useState(false);
   const [waTplPayment,  setWaTplPayment]  = useState("");
   const [waTplDue,      setWaTplDue]      = useState("");
   const [waTplOverdue,  setWaTplOverdue]  = useState("");
@@ -135,8 +131,8 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
     // Initial WhatsApp status + templates
     fetch("/api/whatsapp/status")
       .then(r => r.ok ? r.json() : null)
-      .then((d: { status: WAStatus; qrImage: string | null; phone: string | null } | null) => {
-        if (d) { setWaStatus(d.status); setWaQR(d.qrImage); setWaPhone(d.phone); }
+      .then((d: { configured: boolean } | null) => {
+        if (d) setWaConfigured(d.configured);
       });
     fetch("/api/settings")
       .then(r => r.json())
@@ -148,28 +144,6 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
   }, []);
 
   // Poll WhatsApp status while connecting or waiting for QR scan
-  useEffect(() => {
-    if (waStatus !== "connecting" && waStatus !== "qr") { setWaPolling(false); return; }
-    setWaPolling(true);
-    const interval = setInterval(async () => {
-      const res = await fetch("/api/whatsapp/status");
-      if (!res.ok) return;
-      const d = await res.json() as { status: WAStatus; qrImage: string | null; phone: string | null };
-      setWaStatus(d.status); setWaQR(d.qrImage); setWaPhone(d.phone);
-      if (d.status === "ready" || d.status === "disconnected") {
-        clearInterval(interval);
-        setWaPolling(false);
-        if (d.status === "ready") toast.success("WhatsApp connected! 🎉");
-      }
-    }, 2500);
-    return () => clearInterval(interval);
-  }, [waStatus]);
-
-  const handleConnectWA = async () => {
-    setWaStatus("connecting");
-    await fetch("/api/whatsapp/connect", { method: "POST" });
-  };
-
   const handleSaveTemplates = async () => {
     setSavingTpl(true);
     try {
@@ -188,12 +162,6 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
     } finally {
       setSavingTpl(false);
     }
-  };
-
-  const handleDisconnectWA = async () => {
-    await fetch("/api/whatsapp/connect", { method: "DELETE" });
-    setWaStatus("disconnected"); setWaQR(null); setWaPhone(null);
-    toast.success("WhatsApp disconnected");
   };
 
   const handleSavePayments = async () => {
@@ -586,61 +554,28 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
         )}
         {activeTab === "whatsapp" && isPro && (
           <div className="divide-y divide-slate-50 dark:divide-slate-800">
-            {/* Connection */}
+            {/* Status */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-5 md:px-8 py-6 md:py-7">
               <div className="pt-0.5">
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="w-6 h-6 rounded-md bg-green-100 flex items-center justify-center"><MessageCircle size={12} className="text-green-600" /></div>
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Connection</h2>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">WhatsApp Notifications</h2>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">Link your personal WhatsApp via QR code. Messages are sent from your account — free, no API key needed.</p>
+                <p className="text-xs text-slate-400 leading-relaxed">Messages are sent from the platform&apos;s WhatsApp Business number — no personal connection needed.</p>
                 <div className="mt-3">
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${waStatus === "ready" ? "bg-green-50 text-green-700 border-green-200" : waStatus === "qr" || waStatus === "connecting" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}>
-                    {waStatus === "ready" ? <Wifi size={10} /> : <WifiOff size={10} />}
-                    {waStatus === "ready" ? "Connected" : waStatus === "qr" ? "Awaiting scan" : waStatus === "connecting" ? "Connecting…" : "Disconnected"}
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${waConfigured ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}>
+                    {waConfigured ? <Wifi size={10} /> : <WifiOff size={10} />}
+                    {waConfigured ? "Active" : "Not configured"}
                   </span>
                 </div>
               </div>
               <div className="md:col-span-2">
-                {waStatus === "ready" && (
-                  <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-500/10 rounded-xl border border-green-100 dark:border-green-500/20">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center"><Smartphone size={18} className="text-green-600" /></div>
-                      <div><p className="text-sm font-bold text-green-900 dark:text-green-300">WhatsApp Active</p><p className="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">+{waPhone}</p></div>
-                    </div>
-                    <button onClick={handleDisconnectWA} className="text-xs text-rose-500 hover:text-rose-600 font-semibold border border-rose-200 hover:border-rose-300 bg-white px-3 py-1.5 rounded-lg transition-colors">Disconnect</button>
-                  </div>
-                )}
-                {waStatus === "qr" && waQR && (
-                  <div className="flex flex-col items-center gap-3 py-2">
-                    <p className="text-sm font-semibold text-slate-700">Scan with WhatsApp</p>
-                    <p className="text-xs text-slate-400 text-center">Open WhatsApp → tap ⋮ → Linked devices → Link a device → scan this code</p>
-                    <div className="p-3 bg-white border-2 border-green-200 rounded-2xl shadow-sm">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={waQR} alt="WhatsApp QR Code" className="w-40 h-40 sm:w-52 sm:h-52" />
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-amber-600 font-medium"><RefreshCw size={12} className="animate-spin" />Waiting for scan…</div>
-                  </div>
-                )}
-                {waStatus === "connecting" && (
-                  <div className="flex flex-col items-center gap-3 py-8">
-                    <div className="w-10 h-10 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
-                    <p className="text-sm text-slate-500">Starting WhatsApp… this may take 15–30 seconds</p>
-                  </div>
-                )}
-                {waStatus === "disconnected" && (
-                  <div className="space-y-3">
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-1.5 text-xs text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700">
-                      <p className="font-semibold text-slate-700 dark:text-slate-300 text-sm mb-2">What gets sent automatically</p>
-                      <p>✅ Payment confirmation when rent is recorded</p>
-                      <p>✅ Daily overdue reminders (if enabled in Reminders tab)</p>
-                      <p>⚠️ Manual reminders from each tenant&apos;s payment ledger</p>
-                    </div>
-                    <button onClick={handleConnectWA} className="w-full bg-green-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-green-700 transition-all shadow-md shadow-green-200/60 flex items-center justify-center gap-2">
-                      <MessageCircle size={15} />Connect WhatsApp
-                    </button>
-                  </div>
-                )}
+                <div className={`rounded-xl p-4 space-y-1.5 text-xs border ${waConfigured ? "bg-green-50 dark:bg-green-500/10 border-green-100 dark:border-green-500/20 text-slate-500" : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400"}`}>
+                  <p className="font-semibold text-slate-700 dark:text-slate-300 text-sm mb-2">What gets sent automatically</p>
+                  <p>✅ Payment confirmation when rent is recorded</p>
+                  <p>✅ Daily overdue reminders (if enabled in Reminders tab)</p>
+                  <p>⚠️ Manual reminders from each tenant&apos;s payment ledger</p>
+                </div>
               </div>
             </div>
 
@@ -703,7 +638,7 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
                   <p>✅ Only tenants with WhatsApp on</p>
                   <p>✅ Only OVERDUE payments</p>
                   <p>✅ At most once per day</p>
-                  <p>⚠️ Requires WhatsApp connected</p>
+                  <p>✅ Uses platform WhatsApp Business number</p>
                 </div>
               </div>
               <div className="md:col-span-2 space-y-5">

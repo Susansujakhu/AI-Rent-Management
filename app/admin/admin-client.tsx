@@ -11,16 +11,19 @@ import {
   Trash2, CheckCircle, XCircle, Crown, CalendarDays,
   ChevronUp, History, Zap, TrendingUp, ArrowLeft,
   Search, ChevronLeft, ChevronRight, AlertTriangle,
-  CreditCard, UserCheck, Clock,
+  CreditCard, UserCheck, Clock, Smartphone, QrCode,
 } from "lucide-react";
 import { toast } from "sonner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Tab = "overview" | "users" | "wa";
-type WAStatus = "disconnected" | "connecting" | "qr" | "ready";
-
-interface WAState { status: WAStatus; qrImage: string | null; phone: string | null }
+type DirectStatus = "disconnected" | "connecting" | "qr" | "ready";
+interface WAState {
+  mode:   "api" | "direct";
+  api:    { configured: boolean; phoneNumberId: string | null };
+  direct: { status: DirectStatus; phone: string | null; qrImage: string | null };
+}
 
 interface AdminUser {
   id: string; email: string; name: string | null; phone: string | null;
@@ -97,9 +100,8 @@ export default function AdminClient() {
   const [tab, setTab] = useState<Tab>("overview");
 
   // WA
-  const [wa, setWa]               = useState<WAState>({ status: "disconnected", qrImage: null, phone: null });
-  const [waLoading, setWaLoading] = useState(false);
-  const [waConnectError, setWaConnectError] = useState("");
+  const [wa,         setWa]         = useState<WAState>({ mode: "api", api: { configured: false, phoneNumberId: null }, direct: { status: "disconnected", phone: null, qrImage: null } });
+  const [waActing,   setWaActing]   = useState(false);
 
   // Stats
   const [stats, setStats]             = useState<Stats | null>(null);
@@ -119,7 +121,6 @@ export default function AdminClient() {
   const [betaMode,        setBetaMode]        = useState(true);
   const [adminWhatsapp,   setAdminWhatsapp]   = useState("");
   const [savingAppConfig, setSavingAppConfig] = useState(false);
-  const [waConnectingAt,  setWaConnectingAt]  = useState<number | null>(null);
 
   // Subscription panel
   const [expandedSub, setExpandedSub]   = useState<string | null>(null);
@@ -132,14 +133,42 @@ export default function AdminClient() {
   const fetchWA = useCallback(async () => {
     const r = await fetch("/api/admin/whatsapp");
     if (r.ok) {
-      const d = await r.json() as WAState;
-      setWa(prev => {
-        if (prev.status !== "connecting" && d.status === "connecting") setWaConnectingAt(Date.now());
-        if (d.status !== "connecting") setWaConnectingAt(null);
-        return d;
-      });
+      setWa(await r.json() as WAState);
     }
   }, []);
+
+  const switchWAMode = async (newMode: "api" | "direct") => {
+    if (wa.mode === newMode || waActing) return;
+    setWaActing(true);
+    const r = await fetch("/api/admin/whatsapp", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "set_mode", mode: newMode }),
+    });
+    if (r.ok) { await fetchWA(); toast.success(`Switched to ${newMode === "api" ? "Meta Business API" : "Direct Connection"}`); }
+    else toast.error("Failed to switch mode");
+    setWaActing(false);
+  };
+
+  const connectDirect = async () => {
+    setWaActing(true);
+    await fetch("/api/admin/whatsapp", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "connect_direct" }),
+    });
+    setTimeout(fetchWA, 800);
+    setWaActing(false);
+  };
+
+  const disconnectDirect = async () => {
+    setWaActing(true);
+    await fetch("/api/admin/whatsapp", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "disconnect_direct" }),
+    });
+    await fetchWA();
+    toast.success("WhatsApp disconnected");
+    setWaActing(false);
+  };
 
   const fetchAppConfig = useCallback(async () => {
     const r = await fetch("/api/admin/app-settings");
@@ -177,11 +206,12 @@ export default function AdminClient() {
 
   useEffect(() => { fetchWA(); fetchStats(); fetchUsers(); fetchAppConfig(); }, [fetchWA, fetchStats, fetchUsers, fetchAppConfig]);
 
+  // Poll WA status every 3 s while direct connection is pending / QR shown
   useEffect(() => {
-    if (wa.status !== "connecting" && wa.status !== "qr") return;
-    const t = setInterval(fetchWA, 3000);
+    if (wa.mode !== "direct" || (wa.direct.status !== "connecting" && wa.direct.status !== "qr")) return;
+    const t = setInterval(fetchWA, 3_000);
     return () => clearInterval(t);
-  }, [wa.status, fetchWA]);
+  }, [wa.mode, wa.direct.status, fetchWA]);
 
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [search, filterPlan, filterStatus]);
@@ -206,23 +236,6 @@ export default function AdminClient() {
 
   const paginated   = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const totalPages  = Math.ceil(filtered.length / PAGE_SIZE);
-
-  // ── WA actions ────────────────────────────────────────────────────────────
-  const connectWA = async () => {
-    setWaLoading(true);
-    setWaConnectError("");
-    setWaConnectingAt(Date.now());
-    await fetch("/api/admin/whatsapp", { method: "POST" });
-    // Optimistically mark as connecting so the polling effect starts immediately
-    setWa(prev => prev.status === "disconnected" ? { ...prev, status: "connecting" } : prev);
-    setWaLoading(false);
-  };
-  const disconnectWA = async () => {
-    setWaLoading(true);
-    await fetch("/api/admin/whatsapp", { method: "DELETE" });
-    setWa({ status: "disconnected", qrImage: null, phone: null });
-    setWaLoading(false); toast.success("System WhatsApp disconnected");
-  };
 
   // ── User actions ──────────────────────────────────────────────────────────
   const patchUser = async (id: string, data: Record<string, unknown>, label: string) => {
@@ -847,87 +860,149 @@ export default function AdminClient() {
         {/* ════════════════ WHATSAPP TAB ════════════════ */}
         {tab === "wa" && (
           <div className="max-w-xl space-y-4">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wifi className="w-5 h-5 text-green-600" />
-                  <h2 className="font-semibold text-slate-800">System WhatsApp</h2>
-                </div>
-                <span className={`text-sm font-medium ${wa.status === "ready" ? "text-green-500" : wa.status === "connecting" || wa.status === "qr" ? "text-amber-500" : "text-slate-400"}`}>
-                  {wa.status === "ready" ? "Connected" : wa.status === "connecting" ? "Connecting…" : wa.status === "qr" ? "Scan QR" : "Disconnected"}
-                </span>
-              </div>
-              <div className="px-6 py-5 space-y-4">
-                <p className="text-sm text-slate-500">
-                  Sends OTP codes for signup, login, and password reset. Also sends subscription renewal reminders (7 days and 1 day before expiry). Use a dedicated number — not your personal one.
-                </p>
 
-                {wa.status === "ready" && wa.phone && (
-                  <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl border border-green-200">
-                    <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
-                    <span className="text-sm text-green-700 font-medium">Connected as +{wa.phone}</span>
+            {/* Mode selector */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">WhatsApp Mode</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => switchWAMode("api")}
+                  disabled={waActing}
+                  className={`flex flex-col gap-1.5 p-4 rounded-xl border-2 transition-colors text-left disabled:opacity-60 ${wa.mode === "api" ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Wifi className={`w-4 h-4 ${wa.mode === "api" ? "text-indigo-600" : "text-slate-400"}`} />
+                    <span className={`text-sm font-semibold ${wa.mode === "api" ? "text-indigo-700" : "text-slate-600"}`}>Meta Business API</span>
+                    {wa.mode === "api" && <CheckCircle className="w-3.5 h-3.5 text-indigo-500 ml-auto" />}
                   </div>
-                )}
-                {wa.status === "qr" && wa.qrImage && (
-                  <div className="flex flex-col items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                    <p className="text-sm text-blue-700 font-medium text-center">Open WhatsApp → Linked Devices → Link a Device → Scan</p>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={wa.qrImage} alt="WhatsApp QR" className="rounded-xl w-52 h-52" />
+                  <p className="text-xs text-slate-400 leading-relaxed">Official Meta API. Requires phone number ID &amp; access token.</p>
+                </button>
+
+                <button
+                  onClick={() => switchWAMode("direct")}
+                  disabled={waActing}
+                  className={`flex flex-col gap-1.5 p-4 rounded-xl border-2 transition-colors text-left disabled:opacity-60 ${wa.mode === "direct" ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Smartphone className={`w-4 h-4 ${wa.mode === "direct" ? "text-indigo-600" : "text-slate-400"}`} />
+                    <span className={`text-sm font-semibold ${wa.mode === "direct" ? "text-indigo-700" : "text-slate-600"}`}>Direct (QR)</span>
+                    {wa.mode === "direct" && <CheckCircle className="w-3.5 h-3.5 text-indigo-500 ml-auto" />}
                   </div>
-                )}
-                {wa.status === "connecting" && (() => {
-                  const timedOut = waConnectingAt && Date.now() - waConnectingAt > 45_000;
-                  return timedOut ? (
-                    <div className="flex items-start gap-2 p-3 bg-rose-50 rounded-xl border border-rose-200">
-                      <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-slate-400 leading-relaxed">Scan QR with your phone. Works without a business account.</p>
+                </button>
+              </div>
+            </div>
+
+            {/* ── API mode card ── */}
+            {wa.mode === "api" && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wifi className="w-5 h-5 text-green-600" />
+                    <h2 className="font-semibold text-slate-800">WhatsApp Business API</h2>
+                  </div>
+                  <span className={`text-sm font-medium ${wa.api.configured ? "text-green-500" : "text-slate-400"}`}>
+                    {wa.api.configured ? "Active" : "Not configured"}
+                  </span>
+                </div>
+                <div className="px-6 py-5 space-y-4">
+                  <p className="text-sm text-slate-500">
+                    Sends OTP codes, payment receipts, and overdue reminders via Meta&apos;s official cloud API.
+                  </p>
+                  {wa.api.configured ? (
+                    <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl border border-green-200">
+                      <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
                       <div>
-                        <p className="text-sm text-rose-700 font-medium">Browser could not launch</p>
-                        <p className="text-xs text-rose-500 mt-0.5">WhatsApp requires Chromium/Puppeteer which is not available on shared hosting. Use OTP bypass mode instead.</p>
+                        <p className="text-sm text-green-700 font-medium">Connected via Business API</p>
+                        {wa.api.phoneNumberId && <p className="text-xs text-green-600 mt-0.5">Phone Number ID: {wa.api.phoneNumberId}</p>}
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200">
-                      <Loader2 className="w-4 h-4 text-amber-600 animate-spin shrink-0" />
-                      <span className="text-sm text-amber-700">Launching browser… 10–20 seconds</span>
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-amber-700 font-medium">API credentials not set</p>
+                        <p className="text-xs text-amber-600 mt-1">Add these to your <code className="bg-amber-100 px-1 rounded">.env</code> file and restart:</p>
+                        <pre className="mt-2 text-xs bg-slate-100 rounded-lg p-2 text-slate-700 leading-relaxed">{`WHATSAPP_PHONE_NUMBER_ID=your_id\nWHATSAPP_ACCESS_TOKEN=your_token`}</pre>
+                      </div>
                     </div>
-                  );
-                })()}
-
-                {waConnectError && (
-                  <div className="flex items-start gap-2 p-3 bg-rose-50 rounded-xl border border-rose-200">
-                    <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                    <p className="text-sm text-rose-700">{waConnectError}</p>
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  {wa.status === "disconnected" && (
-                    <button onClick={connectWA} disabled={waLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50">
-                      {waLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wifi className="w-4 h-4" />} {waLoading ? "Connecting…" : "Connect"}
-                    </button>
-                  )}
-                  {wa.status === "ready" && (
-                    <button onClick={disconnectWA} disabled={waLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-xl text-sm font-medium hover:bg-red-200 disabled:opacity-50">
-                      {waLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <WifiOff className="w-4 h-4" />} Disconnect
-                    </button>
-                  )}
-                  {(wa.status === "connecting" || wa.status === "qr") && (
-                    <>
-                      <button onClick={fetchWA} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200">
-                        <RefreshCw className="w-4 h-4" /> Refresh
-                      </button>
-                      {waConnectingAt && Date.now() - waConnectingAt > 45_000 && (
-                        <button onClick={disconnectWA} disabled={waLoading} className="flex items-center gap-2 px-4 py-2 bg-rose-100 text-rose-700 rounded-xl text-sm font-medium hover:bg-rose-200 disabled:opacity-50">
-                          <WifiOff className="w-4 h-4" /> Force Reset
-                        </button>
-                      )}
-                    </>
                   )}
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* ── Direct mode card ── */}
+            {wa.mode === "direct" && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="w-5 h-5 text-indigo-600" />
+                    <h2 className="font-semibold text-slate-800">Direct WhatsApp Connection</h2>
+                  </div>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    wa.direct.status === "ready"      ? "bg-green-100 text-green-700"   :
+                    wa.direct.status === "qr"         ? "bg-blue-100 text-blue-700"     :
+                    wa.direct.status === "connecting" ? "bg-amber-100 text-amber-700"   :
+                                                       "bg-slate-100 text-slate-500"
+                  }`}>
+                    {wa.direct.status === "ready" ? "Connected" : wa.direct.status === "qr" ? "Scan QR" : wa.direct.status === "connecting" ? "Connecting…" : "Disconnected"}
+                  </span>
+                </div>
+                <div className="px-6 py-5 space-y-4">
+
+                  {wa.direct.status === "disconnected" && (
+                    <>
+                      <p className="text-sm text-slate-500">Connect by scanning a QR code with the WhatsApp on your phone. The session persists across server restarts.</p>
+                      <button onClick={connectDirect} disabled={waActing}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                        {waActing ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                        Connect WhatsApp
+                      </button>
+                    </>
+                  )}
+
+                  {wa.direct.status === "connecting" && (
+                    <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                      <Loader2 className="w-5 h-5 text-amber-500 animate-spin shrink-0" />
+                      <div>
+                        <p className="text-sm text-amber-700 font-medium">Initialising connection…</p>
+                        <p className="text-xs text-amber-600 mt-0.5">QR code will appear in a moment.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {wa.direct.status === "qr" && wa.direct.qrImage && (
+                    <div className="flex flex-col items-center gap-3">
+                      <p className="text-sm text-slate-600 text-center">Open WhatsApp on your phone → <strong>Linked Devices</strong> → <strong>Link a Device</strong> and scan:</p>
+                      <div className="p-3 bg-white border-2 border-slate-200 rounded-2xl inline-block">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={wa.direct.qrImage} alt="WhatsApp QR Code" className="w-56 h-56" />
+                      </div>
+                      <p className="text-xs text-slate-400">QR code refreshes automatically. This page polls every 3 s.</p>
+                    </div>
+                  )}
+
+                  {wa.direct.status === "ready" && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
+                        <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+                        <div>
+                          <p className="text-sm text-green-700 font-medium">WhatsApp connected</p>
+                          {wa.direct.phone && <p className="text-xs text-green-600 mt-0.5">+{wa.direct.phone}</p>}
+                        </div>
+                      </div>
+                      <button onClick={disconnectDirect} disabled={waActing}
+                        className="flex items-center gap-2 px-4 py-2 border border-rose-200 text-rose-600 text-sm font-medium rounded-xl hover:bg-rose-50 disabled:opacity-50 transition-colors">
+                        {waActing ? <Loader2 className="w-4 h-4 animate-spin" /> : <WifiOff className="w-4 h-4" />}
+                        Disconnect
+                      </button>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            )}
+
           </div>
         )}
 
