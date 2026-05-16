@@ -14,6 +14,7 @@ import { OneTimeChargesPanel } from "./one-time-charges-panel";
 import { getSettings } from "@/lib/settings";
 import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, Sparkles, MessageCircle } from "lucide-react";
 import { TenantDocumentsPanel } from "./tenant-documents";
+import { TenantElectricityPanel } from "./tenant-electricity-panel";
 
 function monthString(year: number, month: number) {
   return `${year}-${String(month).padStart(2, "0")}`;
@@ -145,8 +146,10 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
   if (!tenant) notFound();
 
-  const settings = await getSettings(user.id);
-  const fmt = (n: number) => formatCurrency(n, settings.currencySymbol);
+  const settings     = await getSettings(user.id);
+  const fmt          = (n: number) => formatCurrency(n, settings.currencySymbol);
+  const rateSetting  = await prisma.setting.findUnique({ where: { userId_key: { userId: user.id, key: "electricityRate" } } });
+  const electricityRate = parseFloat(rateSetting?.value ?? "0") || 0;
 
   const isActive         = !tenant.moveOutDate;
   const totalCollected   = tenant.payments.reduce((sum, p) => sum + p.amountPaid, 0) + tenant.oneTimeCharges.reduce((sum, c) => sum + c.amountPaid, 0);
@@ -376,6 +379,13 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         }))}
         currencySymbol={settings.currencySymbol}
         isActive={isActive}
+      />
+
+      {/* Electricity meter readings */}
+      <TenantElectricityPanel
+        tenantId={id}
+        defaultRate={electricityRate}
+        currencySymbol={settings.currencySymbol}
       />
 
       {/* Documents */}
