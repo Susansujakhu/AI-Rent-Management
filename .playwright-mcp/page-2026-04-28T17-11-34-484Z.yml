@@ -1,0 +1,81 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e13]: EasyRent
+      - heading "Welcome back. Your properties are waiting." [level=2] [ref=e14]:
+        - text: Welcome back.
+        - text: Your properties
+        - text: are waiting.
+      - paragraph [ref=e15]: Everything you need to collect rent on time — in one place.
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - img [ref=e19]
+          - generic [ref=e21]: Track rent & utility payments
+        - generic [ref=e22]:
+          - img [ref=e24]
+          - generic [ref=e26]: Send WhatsApp reminders instantly
+        - generic [ref=e27]:
+          - img [ref=e29]
+          - generic [ref=e31]: Tenant self-service portal
+        - generic [ref=e32]:
+          - img [ref=e34]
+          - generic [ref=e36]: 6-month collection reports
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]: 140+
+          - generic [ref=e40]: Landlords
+        - generic [ref=e41]:
+          - generic [ref=e42]: ₹18L+
+          - generic [ref=e43]: Collected
+        - generic [ref=e44]:
+          - generic [ref=e45]: 2,400+
+          - generic [ref=e46]: Bills sent
+    - generic [ref=e47]:
+      - link "Back to home" [ref=e48] [cursor=pointer]:
+        - /url: /
+        - img [ref=e49]
+        - text: Back to home
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - heading "Sign in" [level=1] [ref=e53]
+          - paragraph [ref=e54]: Enter your phone number and password
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - generic [ref=e57]: Phone Number
+            - generic [ref=e58]:
+              - combobox [ref=e59] [cursor=pointer]:
+                - option "+977" [selected]
+                - option "+91"
+                - option "+1"
+                - option "+44"
+                - option "+61"
+                - option "+971"
+                - option "+974"
+                - option "+966"
+                - option "+65"
+                - option "+60"
+                - option "+63"
+                - option "+49"
+                - option "+81"
+                - option "+82"
+                - option "+86"
+              - textbox "9866XXXXXX" [active] [ref=e60]
+          - generic [ref=e61]:
+            - generic [ref=e62]: Password
+            - generic [ref=e63]:
+              - textbox "Enter your password" [ref=e64]
+              - button [ref=e65]:
+                - img [ref=e66]
+          - button "Sign in" [ref=e69]:
+            - generic [ref=e70]: Sign in
+            - img [ref=e71]
+        - generic [ref=e73]:
+          - link "Forgot password?" [ref=e74] [cursor=pointer]:
+            - /url: /forgot-password
+          - generic [ref=e75]: ·
+          - link "Create account" [ref=e76] [cursor=pointer]:
+            - /url: /signup
+  - region "Notifications alt+T"
+  - alert [ref=e77]

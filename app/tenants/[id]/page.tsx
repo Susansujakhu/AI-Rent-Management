@@ -73,11 +73,22 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   if (!tenantBase) notFound();
 
   if (!tenantBase.moveOutDate && tenantBase.room && tenantBase.roomId) {
-    const today        = new Date();
-    const currentMonth = monthString(today.getFullYear(), today.getMonth() + 1);
-    const moveInDate   = tenantBase.moveInDate;
-    const moveInMonth  = monthString(moveInDate.getFullYear(), moveInDate.getMonth() + 1);
-    for (const m of monthRange(moveInMonth, currentMonth)) {
+    const today       = new Date();
+    const todayDay    = today.getDate();
+    const moveInDate  = tenantBase.moveInDate;
+    const moveInDay   = moveInDate.getDate();
+    const daysInCurMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const effectiveBillingDay = Math.min(moveInDay, daysInCurMonth);
+    let lastYear  = today.getFullYear();
+    let lastMonth = today.getMonth() + 1;
+    if (todayDay < effectiveBillingDay) {
+      lastMonth--;
+      if (lastMonth < 1) { lastMonth = 12; lastYear--; }
+    }
+    const lastMonthStr    = monthString(lastYear, lastMonth);
+    const calCurrentMonth = monthString(today.getFullYear(), today.getMonth() + 1);
+    const moveInMonth     = monthString(moveInDate.getFullYear(), moveInDate.getMonth() + 1);
+    for (const m of monthRange(moveInMonth, lastMonthStr)) {
       const chargesForMonth = tenantBase.room.recurringCharges
         .filter(c => (c.tenantId === null || c.tenantId === tenantBase.id) && (!c.effectiveFrom || c.effectiveFrom <= m))
         .reduce((s, c) => s + c.amount, 0);
@@ -92,7 +103,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
       if (!existing) {
         await prisma.payment.create({
-          data: { userId: user.id, tenantId: tenantBase.id, roomId: tenantBase.roomId, month: m, amountDue, amountPaid: 0, status: m < currentMonth ? "OVERDUE" : "PENDING" },
+          data: { userId: user.id, tenantId: tenantBase.id, roomId: tenantBase.roomId, month: m, amountDue, amountPaid: 0, status: m < calCurrentMonth ? "OVERDUE" : "PENDING" },
         });
       } else if (existing.status !== "PAID") {
         await prisma.payment.update({ where: { id: existing.id }, data: { amountDue } });
