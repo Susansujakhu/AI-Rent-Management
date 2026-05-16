@@ -1,34 +1,14 @@
-import makeWASocket, {
-  DisconnectReason,
-  useMultiFileAuthState,
-  fetchLatestBaileysVersion,
-  makeCacheableSignalKeyStore,
-} from "@whiskeysockets/baileys";
-import type { WASocket, WAVersion } from "@whiskeysockets/baileys";
-import { Boom } from "@hapi/boom";
-import pino from "pino";
 import path from "path";
 import fs from "fs";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const QRCode = require("qrcode") as { toDataURL: (text: string, opts?: object) => Promise<string> };
 
-const AUTH_BASE   = path.join(process.cwd(), ".wwebjs_auth");
-const SYSTEM_KEY  = "system";
-const FALLBACK_WA_VERSION: WAVersion = [2, 3000, 1023205847];
-
-let _cachedVersion: WAVersion | null = null;
-async function getVersion(): Promise<WAVersion> {
-  if (!_cachedVersion) {
-    try { const { version } = await fetchLatestBaileysVersion(); _cachedVersion = version; }
-    catch { _cachedVersion = FALLBACK_WA_VERSION; }
-  }
-  return _cachedVersion;
-}
+const AUTH_BASE  = path.join(process.cwd(), ".wwebjs_auth");
+const SYSTEM_KEY = "system";
 
 export type DirectWAStatus = "disconnected" | "connecting" | "qr" | "ready";
 
 interface DirectWASession {
-  socket:  WASocket | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  socket:  any;
   status:  DirectWAStatus;
   qrImage: string | null;
   phone:   string | null;
@@ -52,8 +32,22 @@ export async function initDirectWA(): Promise<void> {
   s.qrImage = null;
 
   try {
+    // Lazy-load Baileys — safe to import even if packages aren't installed yet
+    const baileys = await import("@whiskeysockets/baileys");
+    const makeWASocket               = baileys.default;
+    const { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = baileys;
+    const { Boom }  = await import("@hapi/boom");
+    const pino      = (await import("pino")).default;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const QRCode    = require("qrcode") as { toDataURL: (text: string, opts?: object) => Promise<string> };
+
+    type WAVersion = [number, number, number];
+    const FALLBACK: WAVersion = [2, 3000, 1023205847];
+    let version: WAVersion;
+    try { const r = await fetchLatestBaileysVersion(); version = r.version as WAVersion; }
+    catch { version = FALLBACK; }
+
     const { state, saveCreds } = await useMultiFileAuthState(path.join(AUTH_BASE, SYSTEM_KEY));
-    const version = await getVersion();
 
     const onExit = () => { saveCreds().catch(() => {}); };
     process.once("SIGTERM", onExit);
@@ -73,7 +67,7 @@ export async function initDirectWA(): Promise<void> {
 
     s.socket = sock;
 
-    sock.ev.on("connection.update", async (update) => {
+    sock.ev.on("connection.update", async (update: { connection?: string; lastDisconnect?: { error?: unknown }; qr?: string }) => {
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
@@ -90,9 +84,9 @@ export async function initDirectWA(): Promise<void> {
       }
 
       if (connection === "close") {
-        const code             = (lastDisconnect?.error as Boom)?.output?.statusCode;
-        const loggedOut        = code === DisconnectReason.loggedOut;
-        const connReplaced     = code === DisconnectReason.connectionReplaced;
+        const code         = (lastDisconnect?.error as InstanceType<typeof Boom>)?.output?.statusCode;
+        const loggedOut    = code === DisconnectReason.loggedOut;
+        const connReplaced = code === DisconnectReason.connectionReplaced;
 
         s.status  = "disconnected";
         s.qrImage = null;
@@ -112,17 +106,21 @@ export async function initDirectWA(): Promise<void> {
     sock.ev.on("creds.update", saveCreds);
 
   } catch (err) {
-    console.error("[whatsapp:direct] init failed:", err);
     const s2 = g._directWASession;
     s2.status = "disconnected";
     s2.socket = undefined;
-    setTimeout(() => initDirectWA().catch(console.error), 15_000);
+    if ((err as NodeJS.ErrnoException).code === "MODULE_NOT_FOUND") {
+      console.error("[whatsapp:direct] Required packages not installed. Run npm install on the server.");
+    } else {
+      console.error("[whatsapp:direct] init failed:", err);
+      setTimeout(() => initDirectWA().catch(console.error), 15_000);
+    }
   }
 }
 
 export async function disconnectDirectWA(): Promise<void> {
   const s = g._directWASession;
-  try { await s.socket?.logout(); } catch { /* ignore */ }
+  try { await s.socket?.logout?.(); } catch { /* ignore */ }
   s.status  = "disconnected";
   s.qrImage = null;
   s.phone   = null;
