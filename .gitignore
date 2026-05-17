@@ -63,6 +63,7 @@ app-settings.json
 # WhatsApp session & Puppeteer cache (runtime data, regenerated on each login)
 .wwebjs_auth/
 .wwebjs_cache/
+.wa-runtime/
 
 # MySQL data export (generated file, contains real data)
 export.sql
