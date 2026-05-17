@@ -203,8 +203,12 @@ export async function initDirectWA(): Promise<void> {
     s2.socket = undefined;
     writeState();
     stopHeartbeat();
-    if ((err as NodeJS.ErrnoException).code === "MODULE_NOT_FOUND") {
-      console.error("[whatsapp:direct] Required packages not installed. Run npm install on the server.");
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "MODULE_NOT_FOUND" || code === "ERR_MODULE_NOT_FOUND") {
+      // Don't retry — the package is missing and reconnecting won't fix that.
+      console.error("[whatsapp:direct] Required package missing on this server. Run on cPanel:");
+      console.error("[whatsapp:direct]   npm install --ignore-scripts @whiskeysockets/baileys @hapi/boom pino qrcode");
+      console.error("[whatsapp:direct] then `touch tmp/restart.txt`. Original error:", (err as Error).message);
     } else {
       console.error("[whatsapp:direct] init failed:", err);
       setTimeout(() => initDirectWA().catch(console.error), 15_000);
