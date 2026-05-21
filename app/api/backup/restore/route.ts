@@ -2,14 +2,27 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 
+// 10 MB ceiling on backup payloads. Enough for thousands of payment rows,
+// nowhere near enough to OOM the cPanel worker on a malicious request.
+const MAX_BODY_BYTES = 10 * 1024 * 1024;
+
 export async function POST(req: Request) {
   const auth = await requireAuthAPI();
   if (auth instanceof NextResponse) return auth;
   const userId = auth.id;
 
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (declared && declared > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Backup file is too large (max 10 MB)." }, { status: 413 });
+  }
+
   let backup: Record<string, unknown>;
   try {
-    backup = await req.json();
+    const raw = await req.text();
+    if (raw.length > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Backup file is too large (max 10 MB)." }, { status: 413 });
+    }
+    backup = JSON.parse(raw);
   } catch {
     return NextResponse.json({ error: "Invalid JSON file" }, { status: 400 });
   }

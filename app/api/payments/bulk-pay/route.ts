@@ -17,17 +17,39 @@ export async function POST(req: Request) {
 
   const unpaid = await prisma.payment.findMany({
     where: { id: { in: paymentIds }, userId, status: { not: "PAID" } },
-    select: { id: true, amountDue: true },
+    select: { id: true, amountDue: true, amountPaid: true },
   });
 
-  await Promise.all(
-    unpaid.map(p =>
+  if (unpaid.length === 0) {
+    return NextResponse.json({ ok: true, count: 0 });
+  }
+
+  // Run as one transaction so a partial failure rolls back — and write matching
+  // paymentTransaction ledger rows so void/refund flows can reverse these the
+  // same way they reverse single-payment PUTs.
+  await prisma.$transaction([
+    ...unpaid.map(p =>
       prisma.payment.update({
         where: { id: p.id, userId },
-        data: { amountPaid: p.amountDue, status: "PAID", method, paidDate: today },
+        data:  { amountPaid: p.amountDue, status: "PAID", method, paidDate: today },
       })
-    )
-  );
+    ),
+    ...unpaid.map(p => {
+      const delta = p.amountDue - p.amountPaid;
+      return prisma.paymentTransaction.create({
+        data: {
+          userId,
+          paymentId:    p.id,
+          amount:       delta,
+          creditAmount: 0,
+          totalEntered: delta,
+          method,
+          paidAt:       today,
+          note:         "Bulk pay",
+        },
+      });
+    }),
+  ]);
 
   return NextResponse.json({ ok: true, count: unpaid.length });
 }

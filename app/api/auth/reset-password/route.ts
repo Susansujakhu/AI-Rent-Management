@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { checkRateLimit, clearRateLimit } from "@/lib/rate-limit";
+
+const PASSWORD_MAX_BYTES = 72;
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
@@ -11,6 +14,15 @@ export async function POST(req: Request) {
   }
   if (newPassword.length < 8) {
     return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+  }
+  if (Buffer.byteLength(newPassword, "utf8") > PASSWORD_MAX_BYTES) {
+    return NextResponse.json({ error: `Password is too long (max ${PASSWORD_MAX_BYTES} bytes)` }, { status: 400 });
+  }
+
+  // Cap OTP verification attempts per phone — same rationale as signup.
+  const verifyKey = `verify-reset:${phone}`;
+  if (!checkRateLimit(verifyKey, 5, 15 * 60 * 1000)) {
+    return NextResponse.json({ error: "Too many incorrect codes. Please request a new code." }, { status: 429 });
   }
 
   const user = await prisma.user.findUnique({ where: { phone } });
@@ -31,6 +43,8 @@ export async function POST(req: Request) {
   if (!token) {
     return NextResponse.json({ error: "Invalid or expired code" }, { status: 400 });
   }
+
+  clearRateLimit(verifyKey);
 
   const passwordHash = await bcrypt.hash(newPassword, 12);
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomInt } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppMessage, isWhatsAppReady } from "@/lib/whatsapp";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -7,7 +8,8 @@ const DEV_BYPASS = process.env.NODE_ENV !== "production" && process.env.BYPASS_P
 const DEV_OTP    = "000000";
 
 function generateOTP(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  // CSPRNG — see send-phone-otp/route.ts for rationale.
+  return String(randomInt(100000, 1000000));
 }
 
 function maskPhone(phone: string): string {

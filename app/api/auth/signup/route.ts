@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, clearRateLimit } from "@/lib/rate-limit";
+
+const PASSWORD_MAX_BYTES = 72;
 
 function normalizePhone(raw: string): string {
   const plus = raw.trimStart().startsWith("+") ? "+" : "";
@@ -27,6 +29,9 @@ export async function POST(req: Request) {
   if (password.length < 8) {
     return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
   }
+  if (Buffer.byteLength(password, "utf8") > PASSWORD_MAX_BYTES) {
+    return NextResponse.json({ error: `Password is too long (max ${PASSWORD_MAX_BYTES} bytes)` }, { status: 400 });
+  }
   if (typeof phone !== "string" || !phone.trim()) {
     return NextResponse.json({ error: "Contact number is required" }, { status: 400 });
   }
@@ -35,6 +40,13 @@ export async function POST(req: Request) {
   }
 
   const normalizedPhone = normalizePhone(phone.trim());
+
+  // Cap verification attempts per phone so an attacker can't grind through the
+  // 10^6 OTP keyspace by re-submitting different codes after one /send-phone-otp.
+  const verifyKey = `verify-signup:${normalizedPhone}`;
+  if (!checkRateLimit(verifyKey, 5, 15 * 60 * 1000)) {
+    return NextResponse.json({ error: "Too many incorrect codes. Please request a new code." }, { status: 429 });
+  }
 
   // Verify OTP
   const token = await prisma.phoneVerificationToken.findFirst({
@@ -50,6 +62,10 @@ export async function POST(req: Request) {
   if (!token) {
     return NextResponse.json({ error: "Invalid or expired verification code" }, { status: 400 });
   }
+
+  // OTP was correct — clear the failed-attempt counter so legitimate retries
+  // (typo on first try) don't punish the user.
+  clearRateLimit(verifyKey);
 
   // Check duplicates
   const normalizedEmail = typeof email === "string" && email.trim() ? email.trim().toLowerCase() : null;

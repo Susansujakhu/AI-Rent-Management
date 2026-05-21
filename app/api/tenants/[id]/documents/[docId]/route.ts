@@ -19,17 +19,28 @@ export async function GET(
   });
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const inline = new URL(req.url).searchParams.get("view") === "1";
+  // Only let the browser render the file inline if it's a type the browser
+  // can safely display. For anything else (Office docs, unknown types) force a
+  // download so a malicious/mislabelled file can't run as HTML/script on the
+  // same origin.
+  const INLINE_SAFE = new Set([
+    "application/pdf",
+    "image/jpeg", "image/jpg", "image/png", "image/webp",
+  ]);
+  const inlineRequested = new URL(req.url).searchParams.get("view") === "1";
+  const inline = inlineRequested && INLINE_SAFE.has(doc.mimeType);
 
   try {
     const data = await readFile(join(STORAGE_DIR, doc.fileName));
     return new NextResponse(data, {
       headers: {
-        "Content-Type": doc.mimeType,
-        "Content-Disposition": inline
-          ? `inline; filename="${encodeURIComponent(doc.name)}"`
-          : `attachment; filename="${encodeURIComponent(doc.name)}"`,
+        // Keep the original mime type only for inline-safe formats; otherwise
+        // serve as opaque bytes so the browser never tries to execute them.
+        "Content-Type": inline ? doc.mimeType : "application/octet-stream",
+        "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${encodeURIComponent(doc.name)}"`,
         "Content-Length": String(data.length),
+        // Belt-and-suspenders: explicitly forbid the browser from sniffing.
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch {

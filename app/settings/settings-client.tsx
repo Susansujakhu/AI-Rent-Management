@@ -255,7 +255,7 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
     let valid = true;
     if (!currentPassword) { setCurrentPassErr("Current password is required"); valid = false; }
     if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { setNewEmailErr("Enter a valid email address"); valid = false; }
-    if (newPassword && newPassword.length < 6) { setNewPasswordErr("Password must be at least 6 characters"); valid = false; }
+    if (newPassword && newPassword.length < 8) { setNewPasswordErr("Password must be at least 8 characters"); valid = false; }
     if (newPassword && newPassword !== confirmPassword) { setNewPasswordErr("Passwords do not match"); valid = false; }
     if (!valid) return;
     setSavingAccount(true);
@@ -414,7 +414,7 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
                     <label className={labelCls}>New Password <span className="text-slate-300 normal-case font-normal">optional</span></label>
                     <input type={showPass ? "text" : "password"} value={newPassword}
                       onChange={e => { setNewPassword(e.target.value); if (newPasswordErr) setNewPasswordErr(""); }}
-                      placeholder="Min. 6 characters" autoComplete="new-password"
+                      placeholder="Min. 8 characters" autoComplete="new-password"
                       className={`${fieldCls} ${newPasswordErr ? "border-rose-300 focus:ring-rose-400" : ""}`} />
                   </div>
                   <div>

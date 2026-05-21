@@ -18,8 +18,10 @@ export async function PATCH(
   const t   = tenant!;
   const { id } = await params;
 
-  const reading = await prisma.meterReading.findUnique({ where: { id } });
-  if (!reading || reading.tenantId !== t.id) {
+  // Scope by tenantId in the WHERE clause itself — defense in depth: a future
+  // refactor can't silently drop the ownership check.
+  const reading = await prisma.meterReading.findFirst({ where: { id, tenantId: t.id } });
+  if (!reading) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (reading.status !== "pending_review") {
@@ -65,8 +67,8 @@ export async function DELETE(
   const t      = tenant!;
   const { id } = await params;
 
-  const reading = await prisma.meterReading.findUnique({ where: { id } });
-  if (!reading || reading.tenantId !== t.id) {
+  const reading = await prisma.meterReading.findFirst({ where: { id, tenantId: t.id } });
+  if (!reading) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (reading.status !== "pending_review") {

@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireAuthAPI } from "@/lib/auth";
+import { requireAdminAPI } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const ALLOWED_KEYS = new Set(["beta_mode", "admin_whatsapp"]);
 
 export async function GET() {
-  const auth = await requireAuthAPI();
+  const auth = await requireAdminAPI();
   if (auth instanceof NextResponse) return auth;
-  if (auth.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const rows = await prisma.$queryRaw<{ key: string; value: string }[]>`
     SELECT \`key\`, \`value\` FROM \`GlobalSetting\`
@@ -18,9 +17,8 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  const auth = await requireAuthAPI();
+  const auth = await requireAdminAPI();
   if (auth instanceof NextResponse) return auth;
-  if (auth.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json() as Record<string, string>;
   const entries = Object.entries(body).filter(([k]) => ALLOWED_KEYS.has(k));

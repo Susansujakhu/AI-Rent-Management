@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomInt } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppMessage, isWhatsAppReady } from "@/lib/whatsapp";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -8,7 +9,9 @@ const DEV_BYPASS = process.env.NODE_ENV !== "production" && process.env.BYPASS_P
 const DEV_OTP    = "000000"; // fixed code used in bypass mode
 
 function generateOTP(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  // Use a CSPRNG so the 6-digit code can't be predicted from a Math.random()
+  // seed leak. randomInt's upper bound is exclusive.
+  return String(randomInt(100000, 1000000));
 }
 
 function normalizePhone(raw: string): string {
