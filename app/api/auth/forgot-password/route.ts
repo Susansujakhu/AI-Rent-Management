@@ -32,25 +32,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { phone } });
-  if (!user) {
-    return NextResponse.json({ error: "No account found with that phone number." }, { status: 404 });
-  }
-
-  // ── Dev bypass ───────────────────────────────────────────────────────────
-  if (DEV_BYPASS) {
-    await prisma.passwordResetToken.updateMany({ where: { userId: user.id, used: false }, data: { used: true } });
-    await prisma.passwordResetToken.create({ data: { userId: user.id, otp: DEV_OTP, expiresAt: new Date(Date.now() + 15 * 60 * 1000) } });
-    console.log(`[DEV] Password reset bypass — code is ${DEV_OTP} for ${phone}`);
-    return NextResponse.json({ ok: true, sent: true, masked: user.phone ? maskPhone(user.phone) : "bypass" });
-  }
-  // ─────────────────────────────────────────────────────────────────────────
-
-  if (!(await isWhatsAppReady()) || !user.phone) {
+  // Server-state gate (not user-existence dependent — safe to fail early).
+  if (!DEV_BYPASS && !(await isWhatsAppReady())) {
     return NextResponse.json(
       { error: "Password reset requires WhatsApp to be configured. Contact the admin." },
       { status: 503 }
     );
+  }
+
+  // Always return the same response shape regardless of whether the user exists,
+  // to avoid handing attackers a phone-number enumeration oracle.
+  const okResponse = NextResponse.json({ ok: true, sent: true, masked: maskPhone(phone) });
+
+  const user = await prisma.user.findUnique({ where: { phone } });
+  if (!user || !user.phone) return okResponse;
+
+  if (DEV_BYPASS) {
+    await prisma.passwordResetToken.updateMany({ where: { userId: user.id, used: false }, data: { used: true } });
+    await prisma.passwordResetToken.create({ data: { userId: user.id, otp: DEV_OTP, expiresAt: new Date(Date.now() + 15 * 60 * 1000) } });
+    console.log(`[DEV] Password reset bypass — code is ${DEV_OTP} for ${phone}`);
+    return okResponse;
   }
 
   const otp       = generateOTP();
@@ -61,10 +62,11 @@ export async function POST(req: Request) {
 
   const msg  = `Your Rent Manager password reset code is:\n\n*${otp}*\n\nThis code expires in 15 minutes. If you didn't request this, ignore this message.`;
   const sent = await sendWhatsAppMessage(user.phone, msg);
-
   if (!sent) {
-    return NextResponse.json({ error: "Failed to send WhatsApp message. Please try again." }, { status: 500 });
+    // Don't surface the failure to the client — that would leak user existence.
+    // Log server-side so the admin can investigate.
+    console.error(`[forgot-password] WhatsApp send failed for user ${user.id}`);
   }
 
-  return NextResponse.json({ ok: true, sent: true, masked: maskPhone(user.phone) });
+  return okResponse;
 }

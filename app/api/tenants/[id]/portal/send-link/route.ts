@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 import { isPro, planLimitResponse } from "@/lib/plan";
 
 type Params = { params: Promise<{ id: string }> };
 
-type TenantRow = { id: string; name: string; phone: string; portalEnabled: number | boolean; portalToken: string | null };
+type TenantRow = { id: string; name: string; phone: string; portalEnabled: number | boolean };
 
 export async function POST(req: Request, { params }: Params) {
   try {
@@ -18,7 +19,7 @@ export async function POST(req: Request, { params }: Params) {
     const { id } = await params;
 
     const rows = await prisma.$queryRaw<TenantRow[]>`
-      SELECT id, name, phone, portalEnabled, portalToken
+      SELECT id, name, phone, portalEnabled
       FROM \`Tenant\`
       WHERE id = ${id} AND userId = ${userId}
       LIMIT 1
@@ -27,7 +28,7 @@ export async function POST(req: Request, { params }: Params) {
     if (!tenant) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const enabled = tenant.portalEnabled === 1 || tenant.portalEnabled === true;
-    if (!enabled || !tenant.portalToken) {
+    if (!enabled) {
       return NextResponse.json({ error: "Portal access is not enabled for this tenant" }, { status: 400 });
     }
 
@@ -37,10 +38,19 @@ export async function POST(req: Request, { params }: Params) {
       return NextResponse.json({ error: "WhatsApp not configured" }, { status: 503 });
     }
 
+    // Rotate the portal token on every send so any previously-leaked URL
+    // (browser history, shared screenshot, Referer leak) becomes invalid.
+    const newPortalToken = randomBytes(32).toString("hex");
+    await prisma.$executeRaw`
+      UPDATE \`Tenant\`
+      SET portalToken = ${newPortalToken}
+      WHERE id = ${id} AND userId = ${userId}
+    `;
+
     const proto   = req.headers.get("x-forwarded-proto") ?? "https";
     const host    = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3000";
     const baseUrl = `${proto}://${host}`;
-    const link    = `${baseUrl}/portal/t/${tenant.portalToken}`;
+    const link    = `${baseUrl}/portal/t/${newPortalToken}`;
 
     const msg = `Hi ${tenant.name}, here's your personal tenant portal link to view your rent and payment details:\n\n${link}\n\nBookmark this page for future access. The link is personal — please don't share it with others.`;
 
