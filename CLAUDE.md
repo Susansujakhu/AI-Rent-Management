@@ -24,6 +24,7 @@ The server runs the committed `.next` folder — it cannot build on the server (
    source ~/nodevenv/easy-rent.xpertthemes.com/20/bin/activate
    cd ~/easy-rent.xpertthemes.com
    git fetch origin && git reset --hard origin/master
+   node scripts/check-deps.js     # restores node_modules symlink + WA stack if needed
    node scripts/sync-prisma.js
    touch tmp/restart.txt
    ```
@@ -36,3 +37,4 @@ The server runs the committed `.next` folder — it cannot build on the server (
 - Never run `prisma generate` on the server — it crashes (OpenSSL/EAGAIN on cPanel).
 - Never `npm run build` on the server — not enough memory.
 - `BYPASS_PHONE_OTP` must be `false` in production `.env` for real WhatsApp OTP sending.
+- `node scripts/check-deps.js` is idempotent and safe to re-run. It heals two recurring failure modes: CloudLinux turning `node_modules` from a symlink into a real folder, and the WhatsApp Direct stack (Baileys + deps) vanishing from the nodevenv.
