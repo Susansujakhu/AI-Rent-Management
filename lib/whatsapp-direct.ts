@@ -70,7 +70,18 @@ function isOtherWorkerOwner(): boolean {
   if (!persisted) return false;
   if (persisted.pid === process.pid) return false;
   const fresh = Date.now() - persisted.ts < STATE_TTL_MS;
-  return fresh && persisted.status !== "disconnected";
+  if (!fresh || persisted.status === "disconnected") return false;
+
+  // The heartbeat could be a fresh write from a process Passenger already
+  // killed (restart, OOM, redeploy). Verify the recorded pid is actually
+  // alive; if not, clear the stale lock so this worker can take over.
+  try {
+    process.kill(persisted.pid, 0);
+    return true;
+  } catch {
+    try { fs.rmSync(STATE_FILE, { force: true }); } catch { /* ignore */ }
+    return false;
+  }
 }
 
 function startHeartbeat() {
@@ -90,10 +101,17 @@ export function getDirectWASession() {
   // Owner worker: trust in-memory state.
   if (s.socket) return { status: s.status, qrImage: s.qrImage, phone: s.phone };
 
-  // Non-owner worker: fall back to the persisted state, but only if it's fresh.
+  // Non-owner worker: fall back to the persisted state, but only if it's fresh
+  // AND its recorded pid is still a live process (otherwise it's leftover from
+  // a process Passenger killed across a restart/redeploy).
   const persisted = readState();
-  if (persisted && Date.now() - persisted.ts < STATE_TTL_MS) {
-    return { status: persisted.status, qrImage: persisted.qrImage, phone: persisted.phone };
+  if (persisted && Date.now() - persisted.ts < STATE_TTL_MS && persisted.pid !== process.pid) {
+    try {
+      process.kill(persisted.pid, 0);
+      return { status: persisted.status, qrImage: persisted.qrImage, phone: persisted.phone };
+    } catch {
+      // owner died — ignore the file
+    }
   }
   return { status: s.status, qrImage: s.qrImage, phone: s.phone };
 }
