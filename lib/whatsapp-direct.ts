@@ -20,20 +20,22 @@ interface DirectWASession {
   status:         DirectWAStatus;
   qrImage:        string | null;
   phone:          string | null;
+  lastError:      string | null;
   heartbeatTimer: NodeJS.Timeout | undefined;
 }
 
 interface PersistedState {
-  status:  DirectWAStatus;
-  qrImage: string | null;
-  phone:   string | null;
-  pid:     number;
-  ts:      number;
+  status:    DirectWAStatus;
+  qrImage:   string | null;
+  phone:     string | null;
+  lastError: string | null;
+  pid:       number;
+  ts:        number;
 }
 
 const g = globalThis as typeof globalThis & { _directWASession: DirectWASession };
 if (!g._directWASession) {
-  g._directWASession = { socket: undefined, status: "disconnected", qrImage: null, phone: null, heartbeatTimer: undefined };
+  g._directWASession = { socket: undefined, status: "disconnected", qrImage: null, phone: null, lastError: null, heartbeatTimer: undefined };
 }
 
 function ensureRuntimeDir() {
@@ -44,11 +46,12 @@ function writeState() {
   const s = g._directWASession;
   ensureRuntimeDir();
   const payload: PersistedState = {
-    status:  s.status,
-    qrImage: s.qrImage,
-    phone:   s.phone,
-    pid:     process.pid,
-    ts:      Date.now(),
+    status:    s.status,
+    qrImage:   s.qrImage,
+    phone:     s.phone,
+    lastError: s.lastError,
+    pid:       process.pid,
+    ts:        Date.now(),
   };
   try { fs.writeFileSync(STATE_FILE, JSON.stringify(payload)); } catch { /* ignore */ }
 }
@@ -99,7 +102,7 @@ function stopHeartbeat() {
 export function getDirectWASession() {
   const s = g._directWASession;
   // Owner worker: trust in-memory state.
-  if (s.socket) return { status: s.status, qrImage: s.qrImage, phone: s.phone };
+  if (s.socket) return { status: s.status, qrImage: s.qrImage, phone: s.phone, lastError: s.lastError };
 
   // Non-owner worker: fall back to the persisted state, but only if it's fresh
   // AND its recorded pid is still a live process (otherwise it's leftover from
@@ -108,12 +111,12 @@ export function getDirectWASession() {
   if (persisted && Date.now() - persisted.ts < STATE_TTL_MS && persisted.pid !== process.pid) {
     try {
       process.kill(persisted.pid, 0);
-      return { status: persisted.status, qrImage: persisted.qrImage, phone: persisted.phone };
+      return { status: persisted.status, qrImage: persisted.qrImage, phone: persisted.phone, lastError: persisted.lastError ?? null };
     } catch {
       // owner died — ignore the file
     }
   }
-  return { status: s.status, qrImage: s.qrImage, phone: s.phone };
+  return { status: s.status, qrImage: s.qrImage, phone: s.phone, lastError: s.lastError };
 }
 
 export async function initDirectWA(): Promise<void> {
@@ -128,8 +131,9 @@ export async function initDirectWA(): Promise<void> {
     return;
   }
 
-  s.status  = "connecting";
-  s.qrImage = null;
+  s.status    = "connecting";
+  s.qrImage   = null;
+  s.lastError = null;
   writeState();
   startHeartbeat();
 
@@ -219,16 +223,20 @@ export async function initDirectWA(): Promise<void> {
     const s2 = g._directWASession;
     s2.status = "disconnected";
     s2.socket = undefined;
-    writeState();
-    stopHeartbeat();
     const code = (err as NodeJS.ErrnoException).code;
+    const msg  = (err as Error).message ?? String(err);
     if (code === "MODULE_NOT_FOUND" || code === "ERR_MODULE_NOT_FOUND") {
-      // Don't retry — the package is missing and reconnecting won't fix that.
+      s2.lastError = `Missing npm package on server: ${msg}. Run \`npm install --ignore-scripts @whiskeysockets/baileys @hapi/boom pino qrcode\` and restart.`;
       console.error("[whatsapp:direct] Required package missing on this server. Run on cPanel:");
       console.error("[whatsapp:direct]   npm install --ignore-scripts @whiskeysockets/baileys @hapi/boom pino qrcode");
-      console.error("[whatsapp:direct] then `touch tmp/restart.txt`. Original error:", (err as Error).message);
+      console.error("[whatsapp:direct] then `touch tmp/restart.txt`. Original error:", msg);
+      writeState();
+      stopHeartbeat();
     } else {
+      s2.lastError = `Init failed: ${msg}`;
       console.error("[whatsapp:direct] init failed:", err);
+      writeState();
+      stopHeartbeat();
       setTimeout(() => initDirectWA().catch(console.error), 15_000);
     }
   }

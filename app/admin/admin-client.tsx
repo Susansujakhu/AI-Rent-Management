@@ -22,7 +22,7 @@ type DirectStatus = "disconnected" | "connecting" | "qr" | "ready";
 interface WAState {
   mode:   "api" | "direct";
   api:    { configured: boolean; phoneNumberId: string | null };
-  direct: { status: DirectStatus; phone: string | null; qrImage: string | null };
+  direct: { status: DirectStatus; phone: string | null; qrImage: string | null; lastError?: string | null };
 }
 
 interface AdminUser {
@@ -102,6 +102,7 @@ export default function AdminClient() {
   // WA
   const [wa,         setWa]         = useState<WAState>({ mode: "api", api: { configured: false, phoneNumberId: null }, direct: { status: "disconnected", phone: null, qrImage: null } });
   const [waActing,   setWaActing]   = useState(false);
+  const [forcePoll,  setForcePoll]  = useState(false);
 
   // Stats
   const [stats, setStats]             = useState<Stats | null>(null);
@@ -151,12 +152,27 @@ export default function AdminClient() {
 
   const connectDirect = async () => {
     setWaActing(true);
-    await fetch("/api/admin/whatsapp", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "connect_direct" }),
-    });
-    setTimeout(fetchWA, 800);
-    setWaActing(false);
+    try {
+      const r = await fetch("/api/admin/whatsapp", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "connect_direct" }),
+      });
+      if (!r.ok) {
+        toast.error(`Connect failed (HTTP ${r.status}). Check the server logs.`);
+        return;
+      }
+    } catch {
+      toast.error("Connect failed — network error. Check the server logs.");
+      return;
+    } finally {
+      setWaActing(false);
+    }
+    // Init runs as a fire-and-forget background task on the server; status
+    // can take several seconds to transition from "disconnected" to
+    // "connecting" then "qr". Force a poll window so we don't miss it.
+    setForcePoll(true);
+    setTimeout(() => setForcePoll(false), 30_000);
+    fetchWA();
   };
 
   const disconnectDirect = async () => {
@@ -206,12 +222,17 @@ export default function AdminClient() {
 
   useEffect(() => { fetchWA(); fetchStats(); fetchUsers(); fetchAppConfig(); }, [fetchWA, fetchStats, fetchUsers, fetchAppConfig]);
 
-  // Poll WA status every 3 s while direct connection is pending / QR shown
+  // Poll WA status every 3 s while:
+  // - we're mid-handshake (status "connecting"/"qr"), OR
+  // - the user just clicked Connect (30 s grace window) — covers the gap
+  //   where init hasn't yet flipped status away from "disconnected".
   useEffect(() => {
-    if (wa.mode !== "direct" || (wa.direct.status !== "connecting" && wa.direct.status !== "qr")) return;
+    const pollMidHandshake =
+      wa.mode === "direct" && (wa.direct.status === "connecting" || wa.direct.status === "qr");
+    if (!pollMidHandshake && !forcePoll) return;
     const t = setInterval(fetchWA, 3_000);
     return () => clearInterval(t);
-  }, [wa.mode, wa.direct.status, fetchWA]);
+  }, [wa.mode, wa.direct.status, forcePoll, fetchWA]);
 
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [search, filterPlan, filterStatus]);
@@ -953,6 +974,12 @@ export default function AdminClient() {
                   {wa.direct.status === "disconnected" && (
                     <>
                       <p className="text-sm text-slate-500">Connect by scanning a QR code with the WhatsApp on your phone. The session persists across server restarts.</p>
+                      {wa.direct.lastError && (
+                        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                          <p className="font-semibold mb-1">Last connection attempt failed:</p>
+                          <p className="break-words">{wa.direct.lastError}</p>
+                        </div>
+                      )}
                       <button onClick={connectDirect} disabled={waActing}
                         className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors">
                         {waActing ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
