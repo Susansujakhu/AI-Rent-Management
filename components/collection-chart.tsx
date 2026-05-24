@@ -6,6 +6,27 @@ import {
 
 type DataPoint = { month: string; due: number; collected: number };
 
+interface TooltipPayloadItem { name?: string; value?: number; color?: string; stroke?: string }
+function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipPayloadItem[]; label?: string }) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 shadow-lg dark:shadow-black/40 px-3.5 py-2.5 text-xs">
+      <p className="font-bold mb-1.5">{label}</p>
+      <div className="space-y-1">
+        {payload.map((p, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full" style={{ background: p.color ?? p.stroke }} />
+            <span className="text-slate-500 dark:text-slate-400">{p.name}:</span>
+            <span className="font-semibold tabular-nums ml-auto">
+              {new Intl.NumberFormat("en").format(p.value ?? 0)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function CollectionChart({ data }: { data: DataPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -20,7 +41,7 @@ export function CollectionChart({ data }: { data: DataPoint[] }) {
             <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}    />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-slate-200 dark:text-slate-700" vertical={false} />
         <XAxis
           dataKey="month"
           tick={{ fontSize: 11, fill: "#94a3b8" }}
@@ -34,14 +55,8 @@ export function CollectionChart({ data }: { data: DataPoint[] }) {
           width={48}
         />
         <Tooltip
-          contentStyle={{
-            borderRadius: "12px",
-            border: "1px solid #f1f5f9",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.10)",
-            fontSize: "12px",
-            padding: "10px 14px",
-          }}
-          cursor={{ stroke: "#e2e8f0", strokeWidth: 1 }}
+          cursor={{ stroke: "rgba(99, 102, 241, 0.45)", strokeWidth: 1 }}
+          content={<ChartTooltip />}
         />
         <Legend
           wrapperStyle={{ fontSize: "11px", paddingTop: "12px", color: "#94a3b8" }}

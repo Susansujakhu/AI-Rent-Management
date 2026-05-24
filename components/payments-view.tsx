@@ -321,6 +321,7 @@ function DateRangeChip({ dateFrom, dateTo, onDateFrom, onDateTo }: {
                 { label: "This month", from: () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-01`; }, to: () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`; } },
                 { label: "Last month", from: () => { const n = new Date(); n.setMonth(n.getMonth()-1); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-01`; }, to: () => { const n = new Date(); const y = n.getMonth()===0?n.getFullYear()-1:n.getFullYear(); const m = n.getMonth()===0?12:n.getMonth(); return `${y}-${String(m).padStart(2,"0")}-${String(new Date(y,m,0).getDate()).padStart(2,"0")}`; } },
                 { label: "Last 30 days", from: () => { const n = new Date(); n.setDate(n.getDate()-30); return n.toISOString().slice(0,10); }, to: () => new Date().toISOString().slice(0,10) },
+                { label: "This year", from: () => `${new Date().getFullYear()}-01-01`, to: () => `${new Date().getFullYear()}-12-31` },
               ].map(p => (
                 <button key={p.label}
                   onClick={() => { onDateFrom(p.from()); onDateTo(p.to()); }}
@@ -514,9 +515,12 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
     ...openBills.map(b => b.tenantName),
   ])).sort();
 
-  const [tenant,         setTenant]         = useState("");
-  const [dateFrom,       setDateFrom]       = useState("");
-  const [dateTo,         setDateTo]         = useState("");
+  // Default filters: first tenant alphabetically + current calendar year.
+  // The user can clear either via "Clear all" or the per-chip clear actions.
+  const currentYear = new Date().getFullYear();
+  const [tenant,   setTenant]   = useState<string>(() => tenantNames[0] ?? "");
+  const [dateFrom, setDateFrom] = useState<string>(`${currentYear}-01-01`);
+  const [dateTo,   setDateTo]   = useState<string>(`${currentYear}-12-31`);
   const [drawer,         setDrawer]         = useState<ReceivedSession | null>(null);
   const [sessionPage,    setSessionPage]    = useState(1);
   const [billPage,       setBillPage]       = useState(1);

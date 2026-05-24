@@ -55,7 +55,8 @@ function formatMonth(month: string) {
 // Distributes the entered amount across ALL unpaid months oldest-first
 type PreviewItem =
   | { kind: "payment"; label: string; amount: number; full: boolean; remainingAfter: number }
-  | { kind: "charge";  label: string; amount: number; full: boolean; remainingAfter: number };
+  | { kind: "charge";  label: string; amount: number; full: boolean; remainingAfter: number }
+  | { kind: "credit";  amount: number };
 
 function buildCoveragePreview(
   entered: number,
@@ -90,7 +91,8 @@ function buildCoveragePreview(
     }
   }
 
-  // 2) Cascade to other unpaid months — only full clearance
+  // 2) Cascade to other unpaid months — only full clearance (mirrors the
+  //    backend in app/api/payments/[id]/route.ts)
   for (const u of allUnpaid) {
     if (remaining <= 0) break;
     if (u.id === initiatingId) continue;
@@ -99,6 +101,12 @@ function buildCoveragePreview(
     if (remaining < bal) break;
     preview.push({ kind: "payment", label: formatMonth(u.month), amount: bal, full: true, remainingAfter: 0 });
     remaining -= bal;
+  }
+
+  // 3) Whatever's left after that goes to the tenant's credit balance —
+  //    the backend does this and the user should see it before submitting.
+  if (remaining > 0) {
+    preview.push({ kind: "credit", amount: remaining });
   }
 
   return preview;
@@ -201,7 +209,13 @@ export default function PayPage() {
     + unpaidCharges.reduce((s, c) => s + (c.amount - c.amountPaid), 0);
   const entered  = Number(watchedAmount) || 0;
   const coverage = entered > 0 ? buildCoveragePreview(entered, allUnpaid, unpaidCharges, !!applyToOneTime, id) : [];
-  const showPreview = coverage.length > 1 || (coverage.length === 1 && (coverage[0].kind === "charge" || coverage[0].label !== formatMonth(payment.month)));
+  // Show the preview whenever it carries information beyond "you're paying this
+  // month's bill" — extra months, one-time charges, OR a credit-balance bump.
+  const showPreview = coverage.some(c =>
+    c.kind === "charge" ||
+    c.kind === "credit" ||
+    (c.kind === "payment" && c.label !== formatMonth(payment.month))
+  );
 
   const STATUS_STYLES: Record<string, string> = {
     PAID:    "bg-emerald-50 text-emerald-700 border border-emerald-100",
@@ -282,19 +296,31 @@ export default function PayPage() {
           {showPreview && (
             <div className="mt-3 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 px-4 py-3 text-xs space-y-2">
               <p className="font-semibold text-indigo-800 dark:text-indigo-300">This payment will cover:</p>
-              {coverage.map((item, i) => (
-                <div key={i} className="flex justify-between items-start gap-2">
-                  <span className={`font-medium ${item.kind === "charge" ? "text-orange-700 dark:text-orange-400" : "text-indigo-700 dark:text-indigo-300"}`}>
-                    {item.kind === "charge" ? `📋 ${item.label}` : item.label}
-                  </span>
-                  <span className="text-right shrink-0">
-                    {item.full
-                      ? <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Full payment</span>
-                      : <><span className="text-indigo-700 dark:text-indigo-300">Partial — {formatCurrency(item.amount, currencySymbol)}</span><br /><span className="text-rose-400">Remaining: {formatCurrency(item.remainingAfter, currencySymbol)}</span></>
-                    }
-                  </span>
-                </div>
-              ))}
+              {coverage.map((item, i) => {
+                if (item.kind === "credit") {
+                  return (
+                    <div key={i} className="flex justify-between items-start gap-2 pt-2 border-t border-indigo-200/40 dark:border-indigo-500/20">
+                      <span className="font-medium text-teal-700 dark:text-teal-400">💰 Advance credit</span>
+                      <span className="text-teal-700 dark:text-teal-400 font-semibold text-right shrink-0">
+                        +{formatCurrency(item.amount, currencySymbol)}
+                      </span>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={i} className="flex justify-between items-start gap-2">
+                    <span className={`font-medium ${item.kind === "charge" ? "text-orange-700 dark:text-orange-400" : "text-indigo-700 dark:text-indigo-300"}`}>
+                      {item.kind === "charge" ? `📋 ${item.label}` : item.label}
+                    </span>
+                    <span className="text-right shrink-0">
+                      {item.full
+                        ? <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Full payment</span>
+                        : <><span className="text-indigo-700 dark:text-indigo-300">Partial — {formatCurrency(item.amount, currencySymbol)}</span><br /><span className="text-rose-400">Remaining: {formatCurrency(item.remainingAfter, currencySymbol)}</span></>
+                      }
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
