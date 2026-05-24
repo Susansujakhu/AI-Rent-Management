@@ -7,6 +7,8 @@ import { getSettings } from "@/lib/settings";
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, Download, ArrowUpRight, ArrowDownRight, Lock } from "lucide-react";
 import { ReportsChart } from "@/components/reports-chart";
 import { YearPicker } from "@/components/year-picker";
+import { TenantPicker } from "@/components/tenant-picker";
+import { RoomPicker } from "@/components/room-picker";
 import { isPro } from "@/lib/plan";
 
 function formatMonthLabel(month: string): string {
@@ -19,7 +21,7 @@ function shortMonth(month: string): string {
   return new Date(parseInt(year), parseInt(m) - 1).toLocaleDateString("en", { month: "short" });
 }
 
-export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
+export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ year?: string; tenantId?: string; roomId?: string }> }) {
   const { requireAuth } = await import("@/lib/auth");
   const user = await requireAuth();
 
@@ -38,26 +40,58 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const expYear = earliestExpense ? earliestExpense.date.getFullYear() : maxYear;
   const minYear = Math.min(payYear, expYear);
 
-  const { year: yearParam } = await searchParams;
+  const { year: yearParam, tenantId: tenantParam, roomId: roomParam } = await searchParams;
   const year = Math.min(maxYear, Math.max(minYear, parseInt(yearParam ?? String(maxYear)) || maxYear));
+
+  // Validate tenant/room ownership before applying filters so the user can't
+  // probe another landlord's data by guessing IDs.
+  const [tenantList, roomList] = await Promise.all([
+    prisma.tenant.findMany({ where: { userId: user.id }, select: { id: true, name: true, roomId: true }, orderBy: { name: "asc" } }),
+    prisma.room.findMany({ where: { userId: user.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+  ]);
+  const tenantId = tenantParam && tenantList.some(t => t.id === tenantParam) ? tenantParam : null;
+  const roomId   = roomParam   && roomList.some(r => r.id === roomParam)     ? roomParam   : null;
+  const tenantForFilter = tenantId ? tenantList.find(t => t.id === tenantId) ?? null : null;
+
+  // Expenses are room-scoped, not tenant-scoped. When a tenant is selected,
+  // narrow expenses to that tenant's current room. If a roomId is also set,
+  // that takes precedence.
+  const expenseRoomId = roomId ?? tenantForFilter?.roomId ?? null;
 
   const months: string[] = [];
   for (let m = 1; m <= 12; m++) months.push(`${year}-${String(m).padStart(2, "0")}`);
 
+  const paymentFilter   = (yr: number) => ({
+    userId: user.id,
+    month:  { gte: `${yr}-01`, lte: `${yr}-12` },
+    ...(tenantId ? { tenantId } : {}),
+    ...(roomId   ? { roomId   } : {}),
+  });
+  const oneTimeFilter   = (yr: number) => ({
+    userId: user.id,
+    date:   { gte: new Date(`${yr}-01-01`), lte: new Date(`${yr}-12-31`) },
+    ...(tenantId ? { tenantId } : {}),
+  });
+  const expenseFilter   = (yr: number) => ({
+    userId: user.id,
+    date:   { gte: new Date(`${yr}-01-01`), lte: new Date(`${yr}-12-31`) },
+    ...(expenseRoomId ? { roomId: expenseRoomId } : {}),
+  });
+
   const prevYear = year - 1;
   const [payments, expenses, oneTimeCharges, prevPayments, prevExpenses, prevOneTime, rooms] = await Promise.all([
-    prisma.payment.findMany({ where: { userId: user.id, month: { gte: `${year}-01`, lte: `${year}-12` } } }),
-    prisma.expense.findMany({ where: { userId: user.id, date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
-    prisma.oneTimeCharge.findMany({ where: { userId: user.id, date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
-    prisma.payment.findMany({ where: { userId: user.id, month: { gte: `${prevYear}-01`, lte: `${prevYear}-12` } } }),
-    prisma.expense.findMany({ where: { userId: user.id, date: { gte: new Date(`${prevYear}-01-01`), lte: new Date(`${prevYear}-12-31`) } }, select: { amount: true } }),
-    prisma.oneTimeCharge.findMany({ where: { userId: user.id, date: { gte: new Date(`${prevYear}-01-01`), lte: new Date(`${prevYear}-12-31`) } }, select: { amountPaid: true } }),
+    prisma.payment.findMany({ where: paymentFilter(year) }),
+    prisma.expense.findMany({ where: expenseFilter(year) }),
+    prisma.oneTimeCharge.findMany({ where: oneTimeFilter(year) }),
+    prisma.payment.findMany({ where: paymentFilter(prevYear) }),
+    prisma.expense.findMany({ where: expenseFilter(prevYear), select: { amount: true } }),
+    prisma.oneTimeCharge.findMany({ where: oneTimeFilter(prevYear), select: { amountPaid: true } }),
     prisma.room.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, ...(roomId ? { id: roomId } : (expenseRoomId ? { id: expenseRoomId } : {})) },
       include: {
-        payments: { where: { month: { gte: `${year}-01`, lte: `${year}-12` } }, select: { amountDue: true, amountPaid: true } },
-        expenses: { where: { date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } }, select: { amount: true } },
-        tenants: { where: { moveOutDate: null }, select: { id: true } },
+        payments: { where: { month: { gte: `${year}-01`, lte: `${year}-12` }, ...(tenantId ? { tenantId } : {}) }, select: { amountDue: true, amountPaid: true } },
+        expenses: { where: { date:  { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } }, select: { amount: true } },
+        tenants:  { where: { moveOutDate: null }, select: { id: true } },
       },
     }),
   ]);
@@ -124,46 +158,70 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Reports</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Financial summary for {year}</p>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Financial summary for {year}
+            {tenantForFilter && <span className="text-indigo-600 dark:text-indigo-400 font-semibold"> · {tenantForFilter.name}</span>}
+            {roomId && <span className="text-indigo-600 dark:text-indigo-400 font-semibold"> · {roomList.find(r => r.id === roomId)?.name}</span>}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          {pro ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              <a href={`/api/reports/export?type=summary&year=${year}`} download
-                className="inline-flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <Download size={14} /> Summary
-              </a>
-              <a href={`/api/reports/export?type=payments&year=${year}`} download
-                className="inline-flex items-center gap-1.5 border border-indigo-200 text-indigo-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-colors">
-                <Download size={14} /> Payments
-              </a>
-              <a href={`/api/reports/export?type=expenses&year=${year}`} download
-                className="inline-flex items-center gap-1.5 border border-rose-200 text-rose-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-rose-50 transition-colors">
-                <Download size={14} /> Expenses
-              </a>
-              <a href="/api/reports/export?type=tenants" download
-                className="inline-flex items-center gap-1.5 border border-emerald-200 text-emerald-700 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-50 transition-colors">
-                <Download size={14} /> Tenants
-              </a>
-            </div>
-          ) : (
-            <span
-              title="Upgrade to Pro to export reports"
-              className="inline-flex items-center gap-1.5 border border-slate-200 text-slate-400 px-3 py-2 rounded-xl text-sm font-semibold cursor-not-allowed select-none"
-            >
-              <Lock size={14} />
-              Export CSV
-              <span className="ml-1 text-[10px] font-bold bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">PRO</span>
-            </span>
-          )}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <Suspense>
+            <TenantPicker tenants={tenantList.map(t => ({ id: t.id, name: t.name }))} value={tenantId} />
+          </Suspense>
+          <Suspense>
+            <RoomPicker rooms={roomList} value={roomId} />
+          </Suspense>
           <Suspense>
             <YearPicker year={year} minYear={minYear} maxYear={maxYear} />
           </Suspense>
         </div>
       </div>
+
+      {/* Download row — exports respect the current tenant/room/year filters */}
+      {(() => {
+        const qs = (extras: Record<string, string>) => {
+          const p = new URLSearchParams({ year: String(year), ...extras });
+          if (tenantId) p.set("tenantId", tenantId);
+          if (roomId)   p.set("roomId",   roomId);
+          return p.toString();
+        };
+        return (
+          <div className="flex items-center gap-2 flex-wrap">
+            {pro ? (
+              <>
+                <a href={`/api/reports/export?${qs({ type: "summary" })}`} download
+                  className="inline-flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <Download size={14} /> Summary
+                </a>
+                <a href={`/api/reports/export?${qs({ type: "payments" })}`} download
+                  className="inline-flex items-center gap-1.5 border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors">
+                  <Download size={14} /> Payments
+                </a>
+                <a href={`/api/reports/export?${qs({ type: "expenses" })}`} download
+                  className="inline-flex items-center gap-1.5 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors">
+                  <Download size={14} /> Expenses
+                </a>
+                <a href={`/api/reports/export?${qs({ type: "tenants" })}`} download
+                  className="inline-flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
+                  <Download size={14} /> Tenants
+                </a>
+              </>
+            ) : (
+              <span
+                title="Upgrade to Pro to export reports"
+                className="inline-flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 text-slate-400 px-3 py-2 rounded-xl text-sm font-semibold cursor-not-allowed select-none"
+              >
+                <Lock size={14} />
+                Export CSV
+                <span className="ml-1 text-[10px] font-bold bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">PRO</span>
+              </span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Year-over-Year comparison */}
       {(yoyCollected !== null || yoyExpenses !== null) && (

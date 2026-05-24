@@ -25,13 +25,27 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "year must be a valid 4-digit year" }, { status: 400 });
   }
 
+  // Validate tenant/room belong to this user before honouring the filter.
+  const tenantParam = searchParams.get("tenantId");
+  const roomParam   = searchParams.get("roomId");
+  const tenantOwned = tenantParam ? await prisma.tenant.findFirst({ where: { id: tenantParam, userId }, select: { id: true, roomId: true } }) : null;
+  const roomOwned   = roomParam   ? await prisma.room.findFirst({   where: { id: roomParam,   userId }, select: { id: true                  } }) : null;
+  const tenantId    = tenantOwned?.id ?? null;
+  const roomId      = roomOwned?.id   ?? null;
+  // Expenses are room-scoped — when a tenant is selected, narrow expenses to
+  // that tenant's current room. roomId takes precedence if both are set.
+  const expenseRoomId = roomId ?? tenantOwned?.roomId ?? null;
+
+  const slug = [tenantId ? "t" : null, roomId ? "r" : null].filter(Boolean).join("-");
+  const namePart = slug ? `-${slug}` : "";
+
   const settings = await getSettings(userId);
   const sym      = settings.currencySymbol;
 
   // ── Tenants export ──────────────────────────────────────────────────────────
   if (type === "tenants") {
     const tenants = await prisma.tenant.findMany({
-      where:   { userId },
+      where:   { userId, ...(tenantId ? { id: tenantId } : {}), ...(roomId ? { roomId } : {}) },
       include: { room: { select: { name: true } } },
       orderBy: { createdAt: "asc" },
     });
@@ -46,7 +60,7 @@ export async function GET(req: Request) {
     return new NextResponse([header, ...rows].join("\n"), {
       headers: {
         "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="tenants-${year}.csv"`,
+        "Content-Disposition": `attachment; filename="tenants-${year}${namePart}.csv"`,
       },
     });
   }
@@ -54,7 +68,7 @@ export async function GET(req: Request) {
   // ── Payments export ─────────────────────────────────────────────────────────
   if (type === "payments") {
     const payments = await prisma.payment.findMany({
-      where:   { userId, month: { gte: `${year}-01`, lte: `${year}-12` } },
+      where:   { userId, month: { gte: `${year}-01`, lte: `${year}-12` }, ...(tenantId ? { tenantId } : {}), ...(roomId ? { roomId } : {}) },
       include: { tenant: { select: { name: true } }, room: { select: { name: true } } },
       orderBy: [{ month: "desc" }, { tenant: { name: "asc" } }],
     });
@@ -69,7 +83,7 @@ export async function GET(req: Request) {
     return new NextResponse([header, ...rows].join("\n"), {
       headers: {
         "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="payments-${year}.csv"`,
+        "Content-Disposition": `attachment; filename="payments-${year}${namePart}.csv"`,
       },
     });
   }
@@ -77,7 +91,7 @@ export async function GET(req: Request) {
   // ── Expenses export ─────────────────────────────────────────────────────────
   if (type === "expenses") {
     const expenses = await prisma.expense.findMany({
-      where:   { userId, date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } },
+      where:   { userId, date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) }, ...(expenseRoomId ? { roomId: expenseRoomId } : {}) },
       include: { room: { select: { name: true } } },
       orderBy: { date: "desc" },
     });
@@ -89,7 +103,7 @@ export async function GET(req: Request) {
     return new NextResponse([header, ...rows].join("\n"), {
       headers: {
         "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="expenses-${year}.csv"`,
+        "Content-Disposition": `attachment; filename="expenses-${year}${namePart}.csv"`,
       },
     });
   }
@@ -99,9 +113,9 @@ export async function GET(req: Request) {
   for (let m = 1; m <= 12; m++) months.push(`${year}-${String(m).padStart(2, "0")}`);
 
   const [payments, expenses, oneTimeCharges] = await Promise.all([
-    prisma.payment.findMany({ where: { userId, month: { gte: `${year}-01`, lte: `${year}-12` } } }),
-    prisma.expense.findMany({ where: { userId, date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
-    prisma.oneTimeCharge.findMany({ where: { userId, date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } } }),
+    prisma.payment.findMany({ where: { userId, month: { gte: `${year}-01`, lte: `${year}-12` }, ...(tenantId ? { tenantId } : {}), ...(roomId ? { roomId } : {}) } }),
+    prisma.expense.findMany({ where: { userId, date:  { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) }, ...(expenseRoomId ? { roomId: expenseRoomId } : {}) } }),
+    prisma.oneTimeCharge.findMany({ where: { userId, date: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) }, ...(tenantId ? { tenantId } : {}) } }),
   ]);
 
   const payByMonth: Record<string, { due: number; col: number }> = {};
@@ -138,7 +152,7 @@ export async function GET(req: Request) {
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv",
-      "Content-Disposition": `attachment; filename="rent-report-${year}.csv"`,
+      "Content-Disposition": `attachment; filename="rent-report-${year}${namePart}.csv"`,
     },
   });
 }
