@@ -76,3 +76,6 @@ prisma/schema.sqlite.prisma
 
 # Tenant document uploads (uploaded at runtime — must exist on server but not in git)
 /storage/
+
+# Playwright MCP runtime page captures
+/.playwright-mcp/

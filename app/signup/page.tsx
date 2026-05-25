@@ -4,12 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { SignupForm } from "./signup-form";
 
 export default async function SignupPage() {
-  // If already logged in, go to dashboard
+  // If already logged in, skip signup and land in the actual app rather than
+  // bouncing back to the marketing page (which would send them right back here
+  // via "Get Started Free").
   const cookieStore = await cookies();
   const token = cookieStore.get("rms_session")?.value;
   if (token) {
     const session = await prisma.session.findUnique({ where: { token } });
-    if (session && session.expiresAt > new Date()) redirect("/");
+    if (session && session.expiresAt > new Date()) redirect("/dashboard");
   }
 
   return <SignupForm />;

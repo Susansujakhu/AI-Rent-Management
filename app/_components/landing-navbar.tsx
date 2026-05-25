@@ -45,6 +45,7 @@ export function LandingNavbar() {
           <a href="#features"     className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">Features</a>
           <a href="#how-it-works" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">How it works</a>
           <a href="#pricing"      className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">Pricing</a>
+          <a href="#faq"          className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">FAQ</a>
         </div>
 
         {/* Desktop CTAs + theme toggle */}
@@ -96,10 +97,10 @@ export function LandingNavbar() {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-4 py-4 space-y-1 shadow-lg">
-          {["#features", "#how-it-works", "#pricing"].map((href, i) => (
+          {["#features", "#how-it-works", "#pricing", "#faq"].map((href, i) => (
             <a key={href} href={href} onClick={() => setOpen(false)}
               className="block text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white py-2.5 px-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium">
-              {["Features", "How it works", "Pricing"][i]}
+              {["Features", "How it works", "Pricing", "FAQ"][i]}
             </a>
           ))}
           <div className="flex flex-col gap-2 pt-3 mt-2 border-t border-slate-100 dark:border-slate-800">

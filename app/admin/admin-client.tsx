@@ -121,6 +121,12 @@ export default function AdminClient() {
   // App settings (global)
   const [betaMode,        setBetaMode]        = useState(true);
   const [adminWhatsapp,   setAdminWhatsapp]   = useState("");
+  const [statLandlords,   setStatLandlords]   = useState("");
+  const [statCollected,   setStatCollected]   = useState("");
+  const [statBills,       setStatBills]       = useState("");
+  const [statRating,      setStatRating]      = useState("");
+  const [computedStats,   setComputedStats]   = useState<{ landlords: string; collected: string; bills: string; rating: string }>(
+    { landlords: "", collected: "", bills: "", rating: "" });
   const [savingAppConfig, setSavingAppConfig] = useState(false);
 
   // Subscription panel
@@ -189,9 +195,14 @@ export default function AdminClient() {
   const fetchAppConfig = useCallback(async () => {
     const r = await fetch("/api/admin/app-settings");
     if (r.ok) {
-      const d = await r.json() as Record<string, string>;
+      const d = await r.json() as Record<string, string> & { _computed?: { landlords: string; collected: string; bills: string; rating: string } };
       setBetaMode(d["beta_mode"] !== "false");
       setAdminWhatsapp(d["admin_whatsapp"] ?? "");
+      setStatLandlords(d["landing_stat_landlords"] ?? "");
+      setStatCollected(d["landing_stat_collected"] ?? "");
+      setStatBills(d["landing_stat_bills"] ?? "");
+      setStatRating(d["landing_stat_rating"] ?? "");
+      if (d._computed) setComputedStats(d._computed);
     }
   }, []);
 
@@ -200,7 +211,14 @@ export default function AdminClient() {
     await fetch("/api/admin/app-settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ beta_mode: betaMode ? "true" : "false", admin_whatsapp: adminWhatsapp }),
+      body: JSON.stringify({
+        beta_mode:              betaMode ? "true" : "false",
+        admin_whatsapp:         adminWhatsapp,
+        landing_stat_landlords: statLandlords,
+        landing_stat_collected: statCollected,
+        landing_stat_bills:     statBills,
+        landing_stat_rating:    statRating,
+      }),
     });
     toast.success("App settings saved");
     setSavingAppConfig(false);
@@ -561,6 +579,57 @@ export default function AdminClient() {
                       className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white"
                     />
                     <p className="text-xs text-slate-400">Shown in the app as a contact number for support or OTP assistance.</p>
+                  </div>
+
+                  {/* Landing-page hero stats */}
+                  <div className="space-y-3 pt-2 border-t border-slate-100">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">Landing-page stats</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Override the four numbers shown above the &ldquo;Built for landlords&hellip;&rdquo; section. Leave a field blank to show the actual figure.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Landlords using EasyRent</label>
+                        <input
+                          type="text"
+                          value={statLandlords}
+                          onChange={e => setStatLandlords(e.target.value)}
+                          placeholder={computedStats.landlords ? `Actual: ${computedStats.landlords}` : "e.g. 140+"}
+                          className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Rent collected via app</label>
+                        <input
+                          type="text"
+                          value={statCollected}
+                          onChange={e => setStatCollected(e.target.value)}
+                          placeholder={computedStats.collected ? `Actual: ${computedStats.collected}` : "e.g. रू18L+"}
+                          className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Bills auto-generated</label>
+                        <input
+                          type="text"
+                          value={statBills}
+                          onChange={e => setStatBills(e.target.value)}
+                          placeholder={computedStats.bills ? `Actual: ${computedStats.bills}` : "e.g. 2,400+"}
+                          className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Rating from beta users</label>
+                        <input
+                          type="text"
+                          value={statRating}
+                          onChange={e => setStatRating(e.target.value)}
+                          placeholder={computedStats.rating ? `Actual: ${computedStats.rating}` : "e.g. 4.9/5"}
+                          className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <button onClick={saveAppConfig} disabled={savingAppConfig}
