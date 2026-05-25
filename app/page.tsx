@@ -17,10 +17,14 @@ const mono  = DM_Mono({ weight: ["400", "500"], subsets: ["latin"] });
 
 // ─── Hero app preview ────────────────────────────────────────────────────────
 
+// Full hero preview — static dashboard mockup with browser chrome, stat row,
+// payment list, and three floating atmosphere cards. Restored because the
+// dense composition reads better as a hero element than a smaller animated
+// demo. The animated demos still live in the "How it works" section.
 function HeroPreview() {
   return (
     <div className="relative">
-      <div className="absolute -inset-6 bg-gradient-to-br from-amber-100/60 via-indigo-100/30 to-transparent blur-3xl rounded-[50px]" />
+      <div className="absolute -inset-6 bg-gradient-to-br from-amber-100/60 via-slate-100/30 to-transparent blur-3xl rounded-[50px]" />
 
       {/* Floating notification — top right */}
       <div className="absolute -top-5 -right-5 z-10 animate-float bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-300/40 px-3.5 py-2.5 flex items-center gap-2.5">
@@ -29,7 +33,7 @@ function HeroPreview() {
         </div>
         <div>
           <p className="text-[11px] font-bold text-slate-800 leading-none">Payment received</p>
-          <p className="text-[9px] text-slate-400 mt-0.5">Rs 8,000 · Room 101</p>
+          <p className="text-[9px] text-slate-400 mt-0.5">रू 8,000 · Room 101</p>
         </div>
       </div>
 
@@ -44,10 +48,10 @@ function HeroPreview() {
         </div>
       </div>
 
-      {/* Floating stat — right mid */}
-      <div className="absolute top-1/2 -translate-y-1/2 -right-8 z-10 animate-float-3 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-500/30 px-3 py-2 text-center">
+      {/* Floating stat — right mid (navy, brand-aligned) */}
+      <div className="absolute top-1/2 -translate-y-1/2 -right-8 z-10 animate-float-3 bg-slate-900 rounded-xl shadow-lg shadow-slate-900/30 px-3 py-2 text-center">
         <p className={`${mono.className} text-sm font-medium text-white leading-none`}>3/5</p>
-        <p className="text-[8px] text-indigo-200 mt-0.5">Paid</p>
+        <p className="text-[8px] text-slate-400 mt-0.5">Paid</p>
       </div>
 
       <div className="relative bg-white rounded-2xl shadow-2xl shadow-slate-300/50 border border-slate-200 overflow-hidden">
@@ -69,13 +73,13 @@ function HeroPreview() {
             <span className="font-bold text-slate-800 text-[13px]">Dashboard</span>
             <span className="text-[10px] bg-white border border-slate-200 text-slate-500 px-2.5 py-1 rounded-lg shadow-sm">April 2026</span>
           </div>
-          {/* Stat row */}
+          {/* Stat row — semantic colors stay (PAID emerald, Overdue rose) for app authenticity */}
           <div className="grid grid-cols-4 gap-2 mb-3">
             {[
-              { v: "8",    l: "Rooms",     tc: "text-indigo-600" },
-              { v: "6",    l: "Tenants",   tc: "text-violet-600" },
-              { v: "₹46k", l: "Collected", tc: "text-emerald-600" },
-              { v: "2",    l: "Overdue",   tc: "text-rose-600"   },
+              { v: "8",      l: "Rooms",     tc: "text-slate-800" },
+              { v: "6",      l: "Tenants",   tc: "text-slate-800" },
+              { v: "रू46k", l: "Collected", tc: "text-emerald-600" },
+              { v: "2",      l: "Overdue",   tc: "text-rose-600"   },
             ].map(s => (
               <div key={s.l} className="bg-white rounded-xl border border-slate-100 p-2.5 shadow-sm">
                 <p className={`font-black text-sm ${s.tc}`}>{s.v}</p>
@@ -96,8 +100,8 @@ function HeroPreview() {
             ].map(([name, room, status, cls]) => (
               <div key={String(name)} className="flex items-center justify-between px-3 py-2 border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
-                    <span className="text-indigo-500 text-[8px] font-black">{(name as string)[0]}</span>
+                  <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                    <span className="text-slate-700 text-[8px] font-black">{(name as string)[0]}</span>
                   </div>
                   <div>
                     <p className="text-slate-700 text-[10px] font-semibold leading-none">{name}</p>
@@ -124,14 +128,14 @@ function BillingVisual() {
         <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full font-semibold">3 / 5 paid</span>
       </div>
       {[
-        ["Ravi Sharma",   "Rs 8,000",  "PAID",    "bg-emerald-50 text-emerald-700 border-emerald-100"],
-        ["Priya Nair",    "Rs 7,500",  "PARTIAL", "bg-blue-50 text-blue-700 border-blue-100"],
-        ["Amit Joshi",    "Rs 9,000",  "OVERDUE", "bg-rose-50 text-rose-700 border-rose-100"],
-        ["Sunita Thapa",  "Rs 6,500",  "PAID",    "bg-emerald-50 text-emerald-700 border-emerald-100"],
+        ["Ravi Sharma",   "रू 8,000",  "PAID",    "bg-emerald-50 text-emerald-700 border-emerald-100"],
+        ["Priya Nair",    "रू 7,500",  "PARTIAL", "bg-blue-50 text-blue-700 border-blue-100"],
+        ["Amit Joshi",    "रू 9,000",  "OVERDUE", "bg-rose-50 text-rose-700 border-rose-100"],
+        ["Sunita Thapa",  "रू 6,500",  "PAID",    "bg-emerald-50 text-emerald-700 border-emerald-100"],
       ].map(([n, a, s, c]) => (
         <div key={String(n)} className="flex items-center justify-between px-4 py-2.5 border-b border-slate-50 last:border-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-black shrink-0">
+            <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 text-[10px] font-black shrink-0">
               {(n as string)[0]}
             </div>
             <span className="text-sm font-medium text-slate-700">{n}</span>
@@ -163,7 +167,7 @@ function WhatsAppVisual() {
           <p className="font-bold text-[#075e54] mb-1.5">Rent Due — April 2026</p>
           Dear Ravi,<br /><br />
           Your rent is due this month.<br />
-          <span className="font-semibold">Amount: Rs 8,000</span><br />
+          <span className="font-semibold">Amount: रू 8,000</span><br />
           <span className="font-semibold">Due: April 1, 2026</span><br /><br />
           View your portal:<br />
           <span className="text-[#075e54] underline">easyrent.app/portal/…</span>
@@ -188,23 +192,23 @@ function WhatsAppVisual() {
 function PortalVisual() {
   return (
     <div className="w-full max-w-[280px] bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden">
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3.5">
-        <p className="text-indigo-200 text-[9px] font-bold uppercase tracking-widest mb-0.5">Your portal</p>
+      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 px-4 py-3.5">
+        <p className="text-amber-300/90 text-[9px] font-bold uppercase tracking-widest mb-0.5">Your portal</p>
         <p className="text-white font-bold text-sm">Priya Nair</p>
-        <p className="text-indigo-200 text-[10px]">Room 102 · Move-in Jan 2025</p>
+        <p className="text-slate-300 text-[10px]">Room 102 · Move-in Jan 2025</p>
       </div>
       <div className="p-4 space-y-3">
         <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
           <p className="text-[10px] text-amber-600 font-semibold uppercase tracking-wider mb-1">Current bill — April 2026</p>
-          <p className="text-2xl font-black text-slate-900">Rs 7,500</p>
+          <p className="text-2xl font-black text-slate-900">रू 7,500</p>
           <span className="inline-block mt-1 text-[9px] bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full font-semibold">
-            PARTIAL · Rs 3,000 paid
+            PARTIAL · रू 3,000 paid
           </span>
         </div>
         <div>
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Payment history</p>
           <div className="space-y-1.5">
-            {[["March 2026", "Rs 7,500", "PAID"], ["Feb 2026", "Rs 7,500", "PAID"], ["Jan 2026", "Rs 7,500", "PAID"]].map(([m, a, s]) => (
+            {[["March 2026", "रू 7,500", "PAID"], ["Feb 2026", "रू 7,500", "PAID"], ["Jan 2026", "रू 7,500", "PAID"]].map(([m, a, s]) => (
               <div key={m} className="flex justify-between text-[10px] py-1 border-b border-slate-50 last:border-0">
                 <span className="text-slate-400">{m}</span>
                 <div className="flex items-center gap-2">
@@ -236,7 +240,7 @@ function ReportsVisual() {
       </div>
       <div className="px-4 pt-3 pb-2 flex flex-wrap gap-1.5">
         {["All Tenants", "All Rooms", "2026"].map(chip => (
-          <span key={chip} className="text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-full">{chip}</span>
+          <span key={chip} className="text-[9px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded-full">{chip}</span>
         ))}
       </div>
       <div className="px-4 pb-3">
@@ -244,8 +248,8 @@ function ReportsVisual() {
           {months.map(({ m, c, e }) => (
             <div key={m} className="flex-1 flex flex-col items-center gap-1">
               <div className="w-full flex items-end gap-0.5 h-12">
-                <div className="flex-1 bg-gradient-to-t from-indigo-700 to-indigo-500 rounded-t" style={{ height: `${(c / max) * 100}%` }} />
-                <div className="flex-1 bg-gradient-to-t from-orange-500 to-amber-400 rounded-t" style={{ height: `${(e / max) * 100}%` }} />
+                <div className="flex-1 bg-gradient-to-t from-slate-900 to-slate-700 rounded-t" style={{ height: `${(c / max) * 100}%` }} />
+                <div className="flex-1 bg-gradient-to-t from-amber-500 to-amber-300 rounded-t" style={{ height: `${(e / max) * 100}%` }} />
               </div>
               <span className="text-[9px] text-slate-400 font-medium">{m}</span>
             </div>
@@ -255,9 +259,9 @@ function ReportsVisual() {
       <div className="px-4 pt-2 pb-3 border-t border-slate-100 flex flex-wrap gap-1.5">
         {[
           { label: "Summary",  cls: "border-slate-200 text-slate-600" },
-          { label: "Payments", cls: "border-indigo-200 text-indigo-600 bg-indigo-50/40" },
-          { label: "Expenses", cls: "border-rose-200 text-rose-600" },
-          { label: "Tenants",  cls: "border-emerald-200 text-emerald-700" },
+          { label: "Payments", cls: "border-slate-300 text-slate-800 bg-slate-50" },
+          { label: "Expenses", cls: "border-amber-200 text-amber-700 bg-amber-50/50" },
+          { label: "Tenants",  cls: "border-slate-200 text-slate-600" },
         ].map(b => (
           <span key={b.label} className={`inline-flex items-center gap-1 text-[9px] font-bold border ${b.cls} px-2 py-1 rounded-lg`}>
             <Download size={9} /> {b.label}
@@ -277,21 +281,21 @@ function SmartPaymentVisual() {
       </div>
       <div className="px-4 pt-3 pb-2">
         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Amount paid</p>
-        <p className="text-2xl font-black text-slate-900 mt-0.5">Rs 10,000</p>
+        <p className="text-2xl font-black text-slate-900 mt-0.5">रू 10,000</p>
       </div>
-      <div className="mx-4 mb-3 rounded-xl bg-indigo-50 border border-indigo-100 px-3 py-2.5 text-[10px] space-y-1.5">
-        <p className="font-bold text-indigo-700">This payment will cover:</p>
+      <div className="mx-4 mb-3 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5 text-[10px] space-y-1.5">
+        <p className="font-bold text-slate-800">This payment will cover:</p>
         <div className="flex justify-between">
-          <span className="text-indigo-700 font-medium">April 2026</span>
+          <span className="text-slate-700 font-medium">April 2026</span>
           <span className="text-emerald-600 font-bold">Full payment</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-indigo-700 font-medium">May 2026</span>
+          <span className="text-slate-700 font-medium">May 2026</span>
           <span className="text-emerald-600 font-bold">Full payment</span>
         </div>
-        <div className="flex justify-between pt-1.5 border-t border-indigo-200/60">
-          <span className="text-teal-700 font-semibold">💰 Advance credit</span>
-          <span className="text-teal-700 font-bold">+Rs 300</span>
+        <div className="flex justify-between pt-1.5 border-t border-slate-200">
+          <span className="text-amber-700 font-semibold">💰 Advance credit</span>
+          <span className="text-amber-700 font-bold">+रू 300</span>
         </div>
       </div>
     </div>
@@ -324,12 +328,12 @@ function ElectricityVisual() {
             <span>Current</span><span className="font-mono tabular-nums">04287</span>
           </div>
           <div className="flex justify-between pt-1.5 border-t border-slate-100">
-            <span className="text-slate-700 font-semibold">Units × Rs 15</span>
+            <span className="text-slate-700 font-semibold">Units × रू 15</span>
             <span className="font-bold text-slate-900">157 × 15</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-indigo-600 font-bold">Bill amount</span>
-            <span className="text-indigo-700 font-black text-sm">Rs 2,355</span>
+            <span className="text-slate-900 font-bold">Bill amount</span>
+            <span className="text-slate-900 font-black text-sm">रू 2,355</span>
           </div>
         </div>
       </div>
@@ -425,7 +429,7 @@ const features: { tag: string; title: string; desc: string; points: string[]; Vi
   {
     tag: "Smart payments",
     title: "One payment, cascades across months.",
-    desc: "Enter Rs 10,000 on a Rs 5,000 invoice — EasyRent clears this month, applies the next, and turns any leftover into advance credit. No mental math, no spreadsheets.",
+    desc: "Enter रू 10,000 on a रू 5,000 invoice — EasyRent clears this month, applies the next, and turns any leftover into advance credit. No mental math, no spreadsheets.",
     points: [
       "Oldest-first month distribution",
       "Advance credit auto-applies to next bill",
@@ -508,13 +512,21 @@ export default async function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-14 items-center">
 
             {/* Left — copy */}
-            <div>
-              <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold tracking-[0.15em] uppercase px-3.5 py-1.5 rounded-full mb-7 animate-fade-in">
+            <div className="relative">
+              {/* Devanagari watermark — tasteful low-opacity 'नमस्ते' behind the eyebrow */}
+              <span
+                aria-hidden="true"
+                className={`${serif.className} pointer-events-none select-none absolute -top-10 -left-2 sm:-top-12 sm:-left-4 text-[88px] sm:text-[110px] leading-none text-slate-900/[0.04] dark:text-white/[0.05] font-bold tracking-tight`}
+              >
+                नमस्ते
+              </span>
+
+              <div className="relative inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold tracking-[0.15em] uppercase px-3.5 py-1.5 rounded-full mb-7 animate-fade-in">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse" />
                 Now in beta — free founding member access
               </div>
 
-              <h1 className={`${serif.className} text-5xl sm:text-6xl lg:text-[66px] leading-[1.07] text-slate-900 dark:text-white mb-6 animate-fade-up`}>
+              <h1 className={`${serif.className} relative text-5xl sm:text-6xl lg:text-[66px] leading-[1.07] text-slate-900 dark:text-white mb-6 animate-fade-up`}>
                 Rent collection,<br />
                 <span className="relative inline-block">
                   <em className="not-italic text-amber-600">finally</em>
@@ -523,13 +535,13 @@ export default async function LandingPage() {
                 under control.
               </h1>
 
-              <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 leading-relaxed max-w-lg mb-10 animate-fade-up stagger-1">
+              <p className="relative text-lg sm:text-xl text-slate-500 dark:text-slate-400 leading-relaxed max-w-lg mb-10 animate-fade-up stagger-1">
                 EasyRent handles billing, payment tracking, WhatsApp reminders, and tenant portals — all in one place. Stop managing rent in notebooks.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 mb-10 animate-fade-up stagger-2">
+              <div className="relative flex flex-col sm:flex-row gap-3 mb-10 animate-fade-up stagger-2">
                 <Link href={ctaHref}
-                  className="btn-shimmer inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold px-7 py-3.5 rounded-xl text-sm shadow-lg shadow-slate-900/20 transition-all duration-200 active:scale-[0.98]">
+                  className="btn-shimmer inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-7 py-3.5 rounded-xl text-sm shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 transition-all duration-200 active:scale-[0.98]">
                   {loggedIn && <LayoutDashboard size={15} />}
                   {ctaLabel}
                   {!loggedIn && <ArrowRight size={15} />}
@@ -540,7 +552,7 @@ export default async function LandingPage() {
                 </a>
               </div>
 
-              <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-400 animate-fade-up stagger-3">
+              <div className="relative flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-400 animate-fade-up stagger-3">
                 {["Free for up to 3 rooms", "No credit card", "Set up in 5 minutes"].map(t => (
                   <span key={t} className="flex items-center gap-1.5">
                     <Check size={13} className="text-emerald-500 shrink-0" /> {t}
@@ -549,7 +561,7 @@ export default async function LandingPage() {
               </div>
             </div>
 
-            {/* Right — preview */}
+            {/* Right — rich dashboard mockup with floating atmosphere cards */}
             <div className="hidden lg:block animate-fade-up stagger-2">
               <HeroPreview />
             </div>
@@ -572,32 +584,29 @@ export default async function LandingPage() {
       </div>
 
       {/* ── Pain points ──────────────────────────────────────────── */}
-      <section className="py-24 bg-slate-950 text-white relative overflow-hidden">
-        <div className="bg-dot-grid pointer-events-none absolute inset-0 opacity-25" />
-        <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full bg-amber-500/5 blur-3xl" />
-
+      <section className="py-24 bg-amber-50/30 dark:bg-slate-900 relative overflow-hidden border-b border-slate-100 dark:border-slate-800">
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
-            <p className="text-amber-400 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">The old way</p>
-            <h2 className={`${serif.className} text-4xl sm:text-5xl text-white mb-4`}>Sound familiar?</h2>
-            <p className="text-white/40 text-lg max-w-sm mx-auto">Every landlord we spoke to said the same things.</p>
+            <p className="text-amber-600 dark:text-amber-400 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">The old way</p>
+            <h2 className={`${serif.className} text-4xl sm:text-5xl text-slate-900 dark:text-white mb-4`}>Sound familiar?</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-lg max-w-sm mx-auto">Every landlord we spoke to said the same things.</p>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3 mb-14">
             {painPoints.map(p => (
-              <div key={p.title} className="scroll-reveal flex gap-4 bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 hover:bg-white/[0.06] transition-colors">
+              <div key={p.title} className="scroll-reveal flex gap-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md hover:shadow-slate-200/60 dark:hover:shadow-slate-900/60 transition-all">
                 <span className="text-2xl shrink-0 mt-0.5">{p.icon}</span>
                 <div>
-                  <p className="font-semibold text-white text-[15px] mb-1.5 leading-snug">{p.title}</p>
-                  <p className="text-white/40 text-sm leading-relaxed">{p.desc}</p>
+                  <p className="font-semibold text-slate-900 dark:text-white text-[15px] mb-1.5 leading-snug">{p.title}</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{p.desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
           <div className="text-center">
-            <p className={`${serif.className} text-2xl sm:text-3xl text-white/60 italic`}>
-              There's a better way.
+            <p className={`${serif.className} text-2xl sm:text-3xl text-slate-600 dark:text-slate-300 italic`}>
+              There&apos;s a better way.
             </p>
           </div>
         </div>
@@ -607,8 +616,8 @@ export default async function LandingPage() {
       <section id="features" className="py-24 sm:py-32 bg-[#faf9f6] dark:bg-slate-950">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
-            <p className="text-indigo-600 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">Features</p>
-            <h2 className={`${serif.className} text-4xl sm:text-5xl text-slate-900 dark:text-white dark:text-white mb-5`}>
+            <p className="text-amber-600 dark:text-amber-400 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">Features</p>
+            <h2 className={`${serif.className} text-4xl sm:text-5xl text-slate-900 dark:text-white mb-5`}>
               Everything in one place.
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-lg max-w-md mx-auto">
@@ -623,9 +632,9 @@ export default async function LandingPage() {
                 {/* Text — alternate sides */}
                 <div className={`p-8 sm:p-10 ${i % 2 === 1 ? "md:order-2" : ""}`}>
                   <span className={`inline-block text-[10px] font-bold tracking-[0.18em] uppercase px-3 py-1.5 rounded-full mb-5 ${
-                    i % 3 === 0 ? "bg-amber-100 text-amber-700" :
-                    i % 3 === 1 ? "bg-emerald-100 text-emerald-700" :
-                                  "bg-indigo-100 text-indigo-700"
+                    i % 2 === 0
+                      ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                      : "bg-slate-900 text-amber-200 dark:bg-slate-800 dark:text-amber-300"
                   }`}>
                     {tag}
                   </span>
@@ -637,7 +646,7 @@ export default async function LandingPage() {
                     {points.map(pt => (
                       <li key={pt} className="flex items-center gap-2.5 text-sm text-slate-600 dark:text-slate-400">
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          i % 3 === 0 ? "bg-amber-500" : i % 3 === 1 ? "bg-emerald-500" : "bg-indigo-500"
+                          i % 2 === 0 ? "bg-amber-500" : "bg-slate-900 dark:bg-amber-400"
                         }`} />
                         {pt}
                       </li>
@@ -648,9 +657,9 @@ export default async function LandingPage() {
                 <div className={`flex items-center justify-center p-8 sm:p-10 min-h-[260px] ${
                   i % 2 === 1 ? "md:order-1" : ""
                 } bg-gradient-to-br ${
-                  i % 3 === 0 ? "from-slate-50 to-amber-50/30 border-t md:border-t-0 md:border-l border-slate-100" :
-                  i % 3 === 1 ? "from-slate-50 to-emerald-50/30 border-t md:border-t-0 md:border-r border-slate-100" :
-                                "from-slate-50 to-indigo-50/30 border-t md:border-t-0 md:border-l border-slate-100"
+                  i % 2 === 0
+                    ? "from-slate-50 to-amber-50/40 border-t md:border-t-0 md:border-l border-slate-100 dark:from-slate-900 dark:to-slate-800/50"
+                    : "from-slate-50 to-slate-100/60 border-t md:border-t-0 md:border-r border-slate-100 dark:from-slate-900 dark:to-slate-800/50"
                 }`}>
                   <Visual />
                 </div>
@@ -664,7 +673,7 @@ export default async function LandingPage() {
       <section className="py-24 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
-            <p className="text-rose-500 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">See it in action</p>
+            <p className="text-amber-600 dark:text-amber-400 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">See it in action</p>
             <h2 className={`${serif.className} text-4xl sm:text-5xl text-slate-900 dark:text-white mb-5`}>A peek inside.</h2>
             <p className="text-slate-500 dark:text-slate-400 text-lg max-w-md mx-auto">
               Three of the screens you&apos;ll spend the most time on.
@@ -696,8 +705,8 @@ export default async function LandingPage() {
       <section id="how-it-works" className="py-24 sm:py-32 bg-[#faf9f6] dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
-            <p className="text-violet-600 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">How it works</p>
-            <h2 className={`${serif.className} text-4xl sm:text-5xl text-slate-900 dark:text-white dark:text-white mb-5`}>
+            <p className="text-amber-600 dark:text-amber-400 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">How it works</p>
+            <h2 className={`${serif.className} text-4xl sm:text-5xl text-slate-900 dark:text-white mb-5`}>
               Up and running in minutes.
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-lg max-w-md mx-auto">
@@ -706,7 +715,7 @@ export default async function LandingPage() {
           </div>
 
           <div className="relative">
-            <div className="hidden md:block absolute left-8 top-8 bottom-8 w-px bg-gradient-to-b from-amber-300 via-indigo-300 to-violet-300" />
+            <div className="hidden md:block absolute left-8 top-8 bottom-8 w-px bg-gradient-to-b from-amber-300 via-amber-200 to-slate-900/30 dark:to-slate-700" />
             <div className="space-y-10">
               {[
                 { num: "01", Icon: DoorOpen,  title: "Add your rooms",   desc: "Create a room for each unit with monthly rent and recurring charges (electricity, water). Done once — applied every month forever.", Demo: AddRoomDemo },
@@ -743,8 +752,8 @@ export default async function LandingPage() {
       <section id="pricing" className="py-24 sm:py-32 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
-            <p className="text-emerald-600 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">Pricing</p>
-            <h2 className={`${serif.className} text-4xl sm:text-5xl text-slate-900 dark:text-white dark:text-white mb-4`}>Simple, honest pricing.</h2>
+            <p className="text-amber-600 dark:text-amber-400 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">Pricing</p>
+            <h2 className={`${serif.className} text-4xl sm:text-5xl text-slate-900 dark:text-white mb-4`}>Simple, honest pricing.</h2>
             <p className="text-slate-500 dark:text-slate-400 text-lg">Start free. Upgrade when you have more rooms.</p>
           </div>
 
@@ -753,7 +762,7 @@ export default async function LandingPage() {
             <div className="scroll-reveal bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-8 flex flex-col hover:shadow-md transition-shadow">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-5">Free</p>
               <div className="flex items-end gap-1.5 mb-1">
-                <span className={`${serif.className} text-5xl text-slate-900 dark:text-white`}>Rs 0</span>
+                <span className={`${serif.className} text-5xl text-slate-900 dark:text-white`}>रू 0</span>
                 <span className="text-slate-400 text-sm mb-2">/month</span>
               </div>
               <p className="text-slate-400 text-sm mb-7">Forever, for up to 3 rooms</p>
@@ -789,7 +798,7 @@ export default async function LandingPage() {
               <ul className="space-y-3 flex-1">
                 {["Unlimited rooms", "Everything in Free", "PDF receipt generation", "WhatsApp reminders", "Advanced analytics", "CSV / Excel export", "Priority support"].map(f => (
                   <li key={f} className="flex items-center gap-2.5 text-sm text-slate-400">
-                    <Check size={13} className="text-indigo-400 shrink-0" /> {f}
+                    <Check size={13} className="text-amber-400 shrink-0" /> {f}
                   </li>
                 ))}
               </ul>
@@ -815,7 +824,7 @@ export default async function LandingPage() {
       <section id="faq" className="py-24 sm:py-32 bg-[#faf9f6] dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <p className="text-amber-600 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">Questions?</p>
+            <p className="text-amber-600 dark:text-amber-400 text-[11px] font-bold tracking-[0.22em] uppercase mb-4">Questions?</p>
             <h2 className={`${serif.className} text-4xl sm:text-5xl text-slate-900 dark:text-white mb-5`}>
               Frequently asked.
             </h2>
@@ -844,8 +853,8 @@ export default async function LandingPage() {
       {/* ── Final CTA ────────────────────────────────────────────── */}
       <section className="bg-slate-950 py-28 relative overflow-hidden">
         <div className="bg-dot-grid pointer-events-none absolute inset-0 opacity-20" />
-        <div className="pointer-events-none absolute top-0 left-1/3 w-[500px] h-[400px] rounded-full bg-amber-500/6 blur-[100px]" />
-        <div className="pointer-events-none absolute bottom-0 right-1/4 w-[400px] h-[300px] rounded-full bg-indigo-600/8 blur-[100px]" />
+        <div className="pointer-events-none absolute top-0 left-1/3 w-[500px] h-[400px] rounded-full bg-amber-500/10 blur-[100px]" />
+        <div className="pointer-events-none absolute bottom-0 right-1/4 w-[400px] h-[300px] rounded-full bg-amber-400/5 blur-[100px]" />
 
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-amber-400 text-[11px] font-bold tracking-[0.22em] uppercase mb-6">{loggedIn ? "Welcome back" : "Get started today"}</p>
@@ -858,7 +867,7 @@ export default async function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href={ctaHref}
-              className="btn-shimmer inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white font-bold px-10 py-4 rounded-xl text-sm shadow-[0_4px_28px_rgba(245,158,11,0.3)] hover:shadow-[0_6px_36px_rgba(245,158,11,0.5)] transition-all duration-200 active:scale-[0.97]">
+              className="btn-shimmer inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-10 py-4 rounded-xl text-sm shadow-[0_4px_28px_rgba(245,158,11,0.3)] hover:shadow-[0_6px_36px_rgba(245,158,11,0.5)] transition-all duration-200 active:scale-[0.97]">
               {loggedIn && <LayoutDashboard size={16} />}
               {ctaLabel}
               {!loggedIn && <ArrowRight size={16} />}
@@ -878,7 +887,10 @@ export default async function LandingPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center gap-3.5">
               <LogoMark size={52} tone="dark" />
-              <p className="text-white/30 text-xs">by XpertThemes</p>
+              <div className="flex flex-col">
+                <p className="text-white/30 text-xs">by XpertThemes</p>
+                <p className="text-white/20 text-[10px] mt-0.5">Made in Kathmandu <span aria-hidden="true">·</span> <span className="text-amber-400/70">काठमाडौंमा बनेको</span></p>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/30">
               <a href="#features"     className="hover:text-white/65 transition-colors">Features</a>
