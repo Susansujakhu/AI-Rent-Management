@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.xpertthemes.easyrent",
+      "sha256_cert_fingerprints": [
+        "EA:56:7A:52:5B:08:8A:FE:E4:B5:62:54:B4:11:DB:6F:84:1E:59:84:32:86:6E:33:0C:C6:EC:48:1D:1E:BA:45"
+      ]
+    }
+  }
+]
