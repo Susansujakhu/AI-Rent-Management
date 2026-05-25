@@ -10,8 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#6366f1",
-    theme_color: "#6366f1",
+    background_color: "#ffffff",   // PWA splash backdrop — matches the white-backed icon
+    theme_color: "#1B2F5C",        // Browser chrome (address bar) — navy from the logo
     categories: ["business", "finance", "productivity"],
     lang: "en",
     icons: [

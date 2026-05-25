@@ -66,10 +66,9 @@ function Form() {
         <div className="pointer-events-none absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-amber-500/6 blur-[100px]" />
 
         <div className="relative z-10 max-w-md">
-          {/* Brand */}
-          <div className="flex items-center gap-3 mb-14">
-            <LogoMark size={38} />
-            <span className="text-lg font-bold text-white tracking-tight">EasyRent</span>
+          {/* Brand — transparent with a thin white stroke so it floats on the gradient */}
+          <div className="mb-14">
+            <LogoMark size={56} tone="dark" />
           </div>
 
           <h2 className={`${serif.className} text-5xl text-white leading-[1.1] mb-5`}>
@@ -125,9 +124,9 @@ function Form() {
 
         <div className="animate-scale-in relative z-10 w-full max-w-[400px]">
           <div className="text-center mb-8">
-            {/* Logo visible on mobile only */}
+            {/* Logo visible on mobile only — sits on the white card */}
             <div className="flex justify-center mb-5 lg:hidden">
-              <LogoMark size={56} />
+              <LogoMark size={56} tone="light" />
             </div>
             <h1 className={`${serif.className} text-[2rem] text-slate-900 mb-1`}>Sign in</h1>
             <p className="text-sm text-slate-400">Enter your phone number and password</p>

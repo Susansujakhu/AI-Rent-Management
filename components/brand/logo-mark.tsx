@@ -1,30 +1,89 @@
+import Image from "next/image";
+
 interface LogoMarkProps {
-  size?: number;
+  /** Height in px. Width is derived from the chosen variant's aspect ratio. */
+  size?:    number;
+  /** `full` = icon + "easyrent" wordmark. `mark` = icon only. */
+  variant?: "full" | "mark";
+  /**
+   * `light`     = transparent. Navy artwork reads on white / light surfaces.
+   * `dark`      = transparent + a white drop-shadow halo around the artwork.
+   *               Elegant for minimal dark surfaces (footer, navbar dark mode).
+   * `dark-card` = wraps the same artwork in a white rounded badge. Use when
+   *               the surrounding surface is already busy (gradient panels,
+   *               sidebars with lots of chrome) and a clean card sits well.
+   */
+  tone?:    "light" | "dark" | "dark-card";
   className?: string;
 }
 
-export function LogoMark({ size = 32, className = "" }: LogoMarkProps) {
-  const r = Math.round(size * 0.26);
-  const icon = Math.round(size * 0.58);
+const FULL_RATIO = 1.5;   // logo-transparentbg.png
+const MARK_RATIO = 1.0;   // logo-E-only.png
 
-  return (
-    <div
-      className={`shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-400 via-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/30 ${className}`}
-      style={{ width: size, height: size, borderRadius: r }}
-    >
-      <svg width={icon} height={icon} viewBox="0 0 24 24" fill="none">
-        <path
-          d="M2.5 10.5L12 3.5L21.5 10.5"
-          stroke="white"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <rect x="3.5" y="10" width="17" height="11.5" rx="1.5" fill="white" fillOpacity="0.95" />
-        <rect x="9" y="15" width="6" height="6.5" rx="1" fill="#6366f1" />
-        <rect x="5" y="12" width="4.5" height="3.5" rx="0.5" fill="#818cf8" fillOpacity="0.8" />
-        <rect x="14.5" y="12" width="4.5" height="3.5" rx="0.5" fill="#818cf8" fillOpacity="0.8" />
-      </svg>
-    </div>
+// Visible white stroke for tone="dark" — 4 cardinal + 4 diagonal drop-shadows
+// at 1px give a solid uniform outline that traces the artwork. The final
+// soft shadow adds a touch of separation from the dark surface without
+// reading as a halo.
+const DARK_STROKE_FILTER =
+  "drop-shadow(1px 0 0 rgba(255,255,255,0.95)) " +
+  "drop-shadow(-1px 0 0 rgba(255,255,255,0.95)) " +
+  "drop-shadow(0 1px 0 rgba(255,255,255,0.95)) " +
+  "drop-shadow(0 -1px 0 rgba(255,255,255,0.95)) " +
+  "drop-shadow(0.7px 0.7px 0 rgba(255,255,255,0.95)) " +
+  "drop-shadow(-0.7px 0.7px 0 rgba(255,255,255,0.95)) " +
+  "drop-shadow(0.7px -0.7px 0 rgba(255,255,255,0.95)) " +
+  "drop-shadow(-0.7px -0.7px 0 rgba(255,255,255,0.95)) " +
+  "drop-shadow(0 0 5px rgba(255,255,255,0.2))";
+
+// A very subtle dark stroke on light surfaces — barely visible.
+const LIGHT_STROKE_FILTER =
+  "drop-shadow(0 0 0.4px rgba(15, 23, 42, 0.35))";
+
+export function LogoMark({
+  size      = 32,
+  variant   = "full",
+  tone      = "light",
+  className = "",
+}: LogoMarkProps) {
+  const src    = variant === "mark" ? "/logo-E-only.png" : "/logo-transparentbg.png";
+  const ratio  = variant === "mark" ? MARK_RATIO : FULL_RATIO;
+  const height = size;
+  const width  = Math.round(size * ratio);
+
+  // tone="dark" gets a crisp 4-direction white outline so navy reads on dark
+  // without a card; tone="light" gets a barely-there dark stroke;
+  // tone="dark-card" is the white-badge fallback (rarely needed now).
+  const filter =
+    tone === "dark"      ? DARK_STROKE_FILTER :
+    tone === "dark-card" ? undefined :
+                           LIGHT_STROKE_FILTER;
+
+  const img = (
+    <Image
+      src={src}
+      alt="EasyRent"
+      width={width}
+      height={height}
+      priority
+      sizes={`${width}px`}
+      className="shrink-0"
+      style={filter ? { filter } : undefined}
+    />
   );
+
+  if (tone === "dark-card") {
+    // Tight padding so the badge reads as part of the logo, not as a card
+    // wrapping it. A whisper of a slate border softens the hard white edge.
+    const pad = Math.max(3, Math.round(size * 0.10));
+    return (
+      <div
+        className={`shrink-0 inline-flex items-center justify-center bg-white rounded-lg border border-slate-200/60 ${className}`}
+        style={{ padding: `${pad}px ${pad * 1.5}px` }}
+      >
+        {img}
+      </div>
+    );
+  }
+
+  return <div className={`shrink-0 inline-flex ${className}`}>{img}</div>;
 }

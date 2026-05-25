@@ -62,10 +62,11 @@ export function Sidebar() {
       {/* Brand + user */}
       <div className="px-4 pt-5 pb-4 border-b border-slate-800/40">
         <div className="flex items-center gap-2.5 mb-4">
-          <LogoMark size={32} />
-          <div className="flex-1">
-            <p className="font-bold text-white text-[13px] tracking-tight leading-none">EasyRent</p>
-            <p className="text-[10px] text-slate-600 font-medium">Property Manager</p>
+          {/* Icon-only on the sidebar — tight horizontal space, thin white stroke on dark slate */}
+          <LogoMark size={36} variant="mark" tone="dark" />
+          <div className="flex-1 leading-tight">
+            <p className="text-[13px] font-bold text-white tracking-tight">EasyRent</p>
+            <p className="text-[10px] text-slate-500 font-medium">Property Manager</p>
           </div>
           <NotificationBell />
         </div>

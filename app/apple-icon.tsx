@@ -1,4 +1,14 @@
 import { ImageResponse } from "next/og";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+// iOS home-screen icon — Apple displays this on the springboard and as
+// the bookmark icon. Apple guidelines: solid background (no transparency).
+// White rounded square + navy icon mirrors the favicon for brand continuity.
+
+const iconDataUri = `data:image/png;base64,${readFileSync(
+  join(process.cwd(), "public", "logo-E-only.png")
+).toString("base64")}`;
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
@@ -10,20 +20,15 @@ export default function AppleIcon() {
         style={{
           width: 180,
           height: 180,
+          background: "white",
           borderRadius: 40,
-          background: "linear-gradient(145deg, #818cf8 0%, #6366f1 55%, #4f46e5 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <svg width="108" height="108" viewBox="0 0 108 108" fill="none">
-          <path d="M8 52L54 16L100 52" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-          <rect x="12" y="49" width="84" height="51" rx="8" fill="white" fillOpacity="0.95" />
-          <rect x="40" y="73" width="28" height="27" rx="4" fill="#6366f1" />
-          <rect x="16" y="57" width="24" height="18" rx="3" fill="#818cf8" fillOpacity="0.75" />
-          <rect x="68" y="57" width="24" height="18" rx="3" fill="#818cf8" fillOpacity="0.75" />
-        </svg>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={iconDataUri} alt="" width={148} height={148} style={{ objectFit: "contain" }} />
       </div>
     ),
     { ...size }

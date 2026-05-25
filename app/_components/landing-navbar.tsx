@@ -35,9 +35,15 @@ export function LandingNavbar() {
     }`}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <LogoMark size={30} />
-          <span className="font-bold text-slate-900 dark:text-white text-[16px] tracking-tight">EasyRent</span>
+        <Link href="/" className="shrink-0">
+          {/* Light mode: navy lockup with a whisper of dark stroke on the warm bg.
+              Dark mode: same lockup, crisp white outline so it floats on slate-950. */}
+          <span className="block dark:hidden">
+            <LogoMark size={52} tone="light" />
+          </span>
+          <span className="hidden dark:block">
+            <LogoMark size={52} tone="dark" />
+          </span>
         </Link>
 
         {/* Desktop nav */}

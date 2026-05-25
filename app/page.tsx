@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Download, Camera, Plug, HelpCircle,
 } from "lucide-react";
 import { LandingNavbar } from "./_components/landing-navbar";
+import { AddRoomDemo, AddTenantDemo, TrackCollectDemo } from "./_components/how-it-works-demos";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { prisma } from "@/lib/prisma";
 
@@ -705,21 +706,31 @@ export default async function LandingPage() {
           </div>
 
           <div className="relative">
-            <div className="hidden sm:block absolute left-8 top-8 bottom-8 w-px bg-gradient-to-b from-amber-300 via-indigo-300 to-violet-300" />
-            <div className="space-y-6">
+            <div className="hidden md:block absolute left-8 top-8 bottom-8 w-px bg-gradient-to-b from-amber-300 via-indigo-300 to-violet-300" />
+            <div className="space-y-10">
               {[
-                { num: "01", Icon: DoorOpen,  title: "Add your rooms",   desc: "Create a room for each unit with monthly rent and recurring charges (electricity, water). Done once — applied every month forever." },
-                { num: "02", Icon: Users,      title: "Add your tenants", desc: "Enter move-in dates and contact details. Billing starts automatically from their first month. No manual invoice creation, ever." },
-                { num: "03", Icon: CreditCard, title: "Track & collect",  desc: "Record payments as they arrive. Send WhatsApp reminders, share receipt links, and see at a glance exactly who owes what." },
-              ].map(({ num, Icon, title, desc }) => (
-                <div key={num} className="scroll-reveal flex gap-5 sm:gap-7 items-start">
-                  <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center shrink-0 shadow-sm z-10">
-                    <span className="text-[9px] font-black text-slate-300 leading-none tracking-widest">{num}</span>
-                    <Icon size={20} className="text-slate-700 dark:text-slate-300 mt-1" />
+                { num: "01", Icon: DoorOpen,  title: "Add your rooms",   desc: "Create a room for each unit with monthly rent and recurring charges (electricity, water). Done once — applied every month forever.", Demo: AddRoomDemo },
+                { num: "02", Icon: Users,      title: "Add your tenants", desc: "Enter move-in dates and contact details. Billing starts automatically from their first month. No manual invoice creation, ever.",   Demo: AddTenantDemo },
+                { num: "03", Icon: CreditCard, title: "Track & collect",  desc: "Record payments as they arrive. Send WhatsApp reminders, share receipt links, and see at a glance exactly who owes what.",         Demo: TrackCollectDemo },
+              ].map(({ num, Icon, title, desc, Demo }, i) => (
+                <div key={num} className="scroll-reveal grid md:grid-cols-[auto_1fr] gap-5 md:gap-7 items-start">
+                  {/* Number badge + connector dot */}
+                  <div className="flex md:flex-col items-center md:items-start gap-3 md:gap-0">
+                    <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center shrink-0 shadow-sm z-10">
+                      <span className="text-[9px] font-black text-slate-300 leading-none tracking-widest">{num}</span>
+                      <Icon size={20} className="text-slate-700 dark:text-slate-300 mt-1" />
+                    </div>
                   </div>
-                  <div className="pt-3">
-                    <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-2">{title}</h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-[15px] leading-relaxed">{desc}</p>
+
+                  {/* Copy + demo: alternate sides on md+ */}
+                  <div className={`grid md:grid-cols-2 gap-6 md:gap-10 items-center ${i % 2 === 1 ? "md:[&>*:first-child]:order-2" : ""}`}>
+                    <div>
+                      <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-2">{title}</h3>
+                      <p className="text-slate-500 dark:text-slate-400 text-[15px] leading-relaxed">{desc}</p>
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <Demo />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -865,12 +876,9 @@ export default async function LandingPage() {
       <footer className="bg-slate-950 border-t border-white/[0.05] py-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5">
-              <LogoMark size={30} />
-              <div>
-                <p className="font-bold text-white text-sm leading-none">EasyRent</p>
-                <p className="text-white/20 text-[11px] mt-0.5">by XpertThemes</p>
-              </div>
+            <div className="flex items-center gap-3.5">
+              <LogoMark size={52} tone="dark" />
+              <p className="text-white/30 text-xs">by XpertThemes</p>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/30">
               <a href="#features"     className="hover:text-white/65 transition-colors">Features</a>
