@@ -11,8 +11,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isPortalPage  = pathname.startsWith("/portal");
   const isAdminPage   = pathname.startsWith("/admin");
   const isLandingPage = pathname === "/";
+  const isOfflinePage = pathname === "/offline";
 
-  if (isAuthPage || isPortalPage || isAdminPage || isLandingPage) {
+  if (isAuthPage || isPortalPage || isAdminPage || isLandingPage || isOfflinePage) {
     return <>{children}</>;
   }
 

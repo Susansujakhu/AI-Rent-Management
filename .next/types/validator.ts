@@ -254,6 +254,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../app/offline/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/offline">> = Specific
+  const handler = {} as typeof import("../../app/offline/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/">> = Specific
@@ -1014,6 +1023,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/whatsapp/status">> = Specific
   const handler = {} as typeof import("../../app/api/whatsapp/status/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/icon-192/route.tsx
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/icon-192">> = Specific
+  const handler = {} as typeof import("../../app/icon-192/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/icon-512/route.tsx
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/icon-512">> = Specific
+  const handler = {} as typeof import("../../app/icon-512/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

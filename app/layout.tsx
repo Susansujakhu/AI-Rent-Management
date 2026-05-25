@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { ThemeProvider } from "next-themes";
+import { SWRegister } from "@/components/sw-register";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -15,6 +16,12 @@ export const metadata: Metadata = {
   title: { default: "EasyRent — Manage Rent Like a Pro", template: "%s | EasyRent" },
   description: "Track rent, utilities, and payments across all your rooms. Generate professional receipts, send WhatsApp reminders, and give tenants a self-service portal — all in one place.",
   keywords: ["rent management", "property management", "rental tracker", "landlord app", "rent collection"],
+  applicationName: "EasyRent",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "EasyRent",
+  },
   openGraph: {
     title: "EasyRent — Manage Rent Like a Pro",
     description: "Track rent, utilities, and payments across all your rooms.",
@@ -29,6 +36,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#6366f1",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning data-scroll-behavior="smooth">
@@ -36,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange={false}>
           <AppShell>{children}</AppShell>
           <Toaster richColors position="top-right" />
+          <SWRegister />
         </ThemeProvider>
       </body>
     </html>

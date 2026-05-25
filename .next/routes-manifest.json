@@ -48,6 +48,20 @@
         }
       ],
       "regex": "^(?:/(.*))(?:/)?$"
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ],
+      "regex": "^/sw\\.js(?:/)?$"
     }
   ],
   "rewrites": {
@@ -715,6 +729,18 @@
       "namedRegex": "^/icon(?:/)?$"
     },
     {
+      "page": "/icon-192",
+      "regex": "^/icon\\-192(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/icon\\-192(?:/)?$"
+    },
+    {
+      "page": "/icon-512",
+      "regex": "^/icon\\-512(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/icon\\-512(?:/)?$"
+    },
+    {
       "page": "/login",
       "regex": "^/login(?:/)?$",
       "routeKeys": {},
@@ -725,6 +751,18 @@
       "regex": "^/maintenance(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/maintenance(?:/)?$"
+    },
+    {
+      "page": "/manifest.webmanifest",
+      "regex": "^/manifest\\.webmanifest(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/manifest\\.webmanifest(?:/)?$"
+    },
+    {
+      "page": "/offline",
+      "regex": "^/offline(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/offline(?:/)?$"
     },
     {
       "page": "/opengraph-image",
