@@ -2,10 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { PAYMENT_METHODS } from "@/lib/utils";
 import { BreakdownLines, type BreakdownData } from "@/components/breakdown-lines";
+
+// Map a tenant-reported method (eSewa/Khalti/…) to the closest pay-form method.
+function mapClaimMethod(m: string | null): string {
+  switch ((m ?? "").toLowerCase()) {
+    case "bank":   return "BANK";
+    case "cash":   return "CASH";
+    case "esewa":
+    case "khalti":
+    case "fonepay": return "UPI";   // digital wallets → UPI bucket
+    default:        return "CASH";
+  }
+}
 
 type Payment = {
   id: string;
@@ -115,7 +127,16 @@ function buildCoveragePreview(
 export default function PayPage() {
   const router  = useRouter();
   const params  = useParams<{ id: string }>();
+  const search  = useSearchParams();
   const id      = params.id;
+
+  // Prefill values when arriving from a tenant's payment report ("Verify & record").
+  const claimAmount = search.get("claimAmount");
+  const claimMethod = search.get("claimMethod");
+  const claimDate   = search.get("claimDate");
+  const claimRef    = search.get("claimRef");
+  const claimNote   = search.get("claimNote");
+  const fromClaim   = !!claimAmount;
 
   const [payment,        setPayment]        = useState<Payment | null>(null);
   const [allUnpaid,      setAllUnpaid]      = useState<UnpaidMonth[]>([]);
@@ -156,15 +177,32 @@ export default function PayPage() {
           const exactChargeBalance = (chargeRows  ?? []).reduce((s, c) => s + (c.amount     - c.amountPaid), 0);
           const exactTotal = exactRentBalance + exactChargeBalance;
 
-          reset({
-            amountPaid: exactTotal > 0 ? exactTotal : data.amountDue - data.amountPaid,
-            method:    data.method ?? "CASH",
-            paidDate:  today,
-            notes:     data.notes  ?? "",
-          });
+          // When opened from a tenant's report, prefill with what they said
+          // they paid. Stash the original method + reference into notes since
+          // the pay form has no dedicated fields for them.
+          if (fromClaim) {
+            const reportedBits = [
+              `Reported via ${claimMethod ?? "—"}`,
+              claimRef  ? `ref: ${claimRef}`   : "",
+              claimNote ? `note: ${claimNote}` : "",
+            ].filter(Boolean).join(" · ");
+            reset({
+              amountPaid: Number(claimAmount) || (exactTotal > 0 ? exactTotal : data.amountDue - data.amountPaid),
+              method:    mapClaimMethod(claimMethod),
+              paidDate:  claimDate || today,
+              notes:     reportedBits,
+            });
+          } else {
+            reset({
+              amountPaid: exactTotal > 0 ? exactTotal : data.amountDue - data.amountPaid,
+              method:    data.method ?? "CASH",
+              paidDate:  today,
+              notes:     data.notes  ?? "",
+            });
+          }
         });
       });
-  }, [id, reset, today]);
+  }, [id, reset, today, fromClaim, claimAmount, claimMethod, claimDate, claimRef, claimNote]);
 
   const onSubmit = async (data: FormData) => {
     try {

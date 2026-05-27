@@ -81,7 +81,18 @@ export function PaymentClaimsBanner({ currencySymbol }: { currencySymbol: string
       {!collapsed && (
         <div className="divide-y divide-slate-50 dark:divide-slate-800">
           {claims.map(c => {
-            const recordHref = c.payment ? `/payments/${c.payment.id}/pay` : `/tenants/${c.tenant.id}`;
+            // Carry the reported details into the pay screen so the amount,
+            // method, date, and reference are pre-filled.
+            const qs = new URLSearchParams({
+              claimAmount: String(c.amount),
+              claimMethod: c.method,
+              claimDate:   c.paidDate.slice(0, 10),
+              ...(c.reference ? { claimRef:  c.reference } : {}),
+              ...(c.note      ? { claimNote: c.note }      : {}),
+            }).toString();
+            const recordHref = c.payment
+              ? `/payments/${c.payment.id}/pay?${qs}`
+              : `/tenants/${c.tenant.id}`;
             return (
               <div key={c.id} className="px-5 py-3.5">
                 <div className="flex items-start justify-between gap-3 mb-2">
