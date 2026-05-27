@@ -5,19 +5,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Bell, CheckCircle2, X, CreditCard, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Bell, CheckCircle2, X, CreditCard, Clock, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
 
 interface Claim {
-  id:        string;
-  amount:    number;
-  method:    string;
-  reference: string | null;
-  paidDate:  string;
-  note:      string | null;
-  status:    string;
-  createdAt: string;
-  tenant:    { id: string; name: string; room: { name: string } | null };
-  payment:   { id: string; month: string } | null;
+  id:             string;
+  amount:         number;
+  method:         string;
+  reference:      string | null;
+  paidDate:       string;
+  note:           string | null;
+  status:         string;
+  screenshotPath: string | null;
+  createdAt:      string;
+  tenant:         { id: string; name: string; room: { name: string } | null };
+  payment:        { id: string; month: string } | null;
 }
 
 /**
@@ -104,13 +105,22 @@ export function PaymentClaimsBanner({ currencySymbol }: { currencySymbol: string
                   {c.note && <span className="italic">&ldquo;{c.note}&rdquo;</span>}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Link
                     href={recordHref}
                     className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-bold transition-colors"
                   >
                     <CreditCard size={12} /> Record payment
                   </Link>
+                  {c.screenshotPath && (
+                    <a
+                      href={`/api/payment-claims/${c.id}/screenshot`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-1.5 rounded-lg font-semibold transition-colors"
+                    >
+                      <ImageIcon size={12} /> Screenshot
+                    </a>
+                  )}
                   <button
                     onClick={() => resolve(c.id, "confirm")}
                     disabled={acting === c.id}

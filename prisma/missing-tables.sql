@@ -126,10 +126,11 @@ CREATE TABLE IF NOT EXISTS `PaymentClaim` (
   `paymentId`  varchar(191) DEFAULT NULL,
   `amount`     double       NOT NULL,
   `method`     varchar(191) NOT NULL,
-  `reference`  varchar(191) DEFAULT NULL,
-  `paidDate`   datetime(3)  NOT NULL,
-  `note`       longtext,
-  `status`     varchar(191) NOT NULL DEFAULT 'pending',
+  `reference`      varchar(191) DEFAULT NULL,
+  `paidDate`       datetime(3)  NOT NULL,
+  `note`           longtext,
+  `screenshotPath` varchar(191) DEFAULT NULL,
+  `status`         varchar(191) NOT NULL DEFAULT 'pending',
   `reviewedAt` datetime(3)  DEFAULT NULL,
   `createdAt`  datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updatedAt`  datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
@@ -140,3 +141,7 @@ CREATE TABLE IF NOT EXISTS `PaymentClaim` (
   CONSTRAINT `PaymentClaim_tenantId_fkey`  FOREIGN KEY (`tenantId`)  REFERENCES `Tenant`  (`id`) ON DELETE CASCADE  ON UPDATE CASCADE,
   CONSTRAINT `PaymentClaim_paymentId_fkey` FOREIGN KEY (`paymentId`) REFERENCES `Payment` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- If PaymentClaim already existed without the screenshot column, add it:
+ALTER TABLE `PaymentClaim`
+  ADD COLUMN IF NOT EXISTS `screenshotPath` varchar(191) DEFAULT NULL;

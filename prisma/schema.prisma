@@ -186,13 +186,14 @@ model PaymentClaim {
   userId     String                       // owner (landlord) — for scoping
   tenantId   String
   paymentId  String?                      // the bill this is reported against (optional)
-  amount     Float
-  method     String                       // "eSewa" | "Khalti" | "Bank" | "Cash" | ...
-  reference  String?                      // optional txn id / reference the tenant entered
-  paidDate   DateTime                     // when the tenant says they paid
-  note       String?   @db.Text
-  status     String    @default("pending") // "pending" | "confirmed" | "rejected"
-  reviewedAt DateTime?
+  amount        Float
+  method        String                    // "eSewa" | "Khalti" | "Bank" | "Cash" | ...
+  reference     String?                   // optional txn id / reference the tenant entered
+  paidDate      DateTime                  // when the tenant says they paid
+  note          String?   @db.Text
+  screenshotPath String?                  // optional proof-of-payment image filename
+  status        String    @default("pending") // "pending" | "confirmed" | "rejected"
+  reviewedAt    DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 

@@ -151,6 +151,14 @@
       "namedRegex": "^/api/payment\\-claims/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/api/payment-claims/[id]/screenshot",
+      "regex": "^/api/payment\\-claims/([^/]+?)/screenshot(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/payment\\-claims/(?<nxtPid>[^/]+?)/screenshot(?:/)?$"
+    },
+    {
       "page": "/api/payments/[id]",
       "regex": "^/api/payments/([^/]+?)(?:/)?$",
       "routeKeys": {
