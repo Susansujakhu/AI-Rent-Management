@@ -20,6 +20,7 @@ function timeAgo(dateStr: string) {
 // notifications with no actionable destination (they just mark read).
 function destinationFor(type: string, data: string | null): string | null {
   if (type === "payment_claim_submitted") return "/payments";
+  if (type === "maintenance_submitted")   return "/maintenance";
   if (type.startsWith("meter_reading")) {
     try {
       const parsed = data ? JSON.parse(data) as { tenantId?: string } : null;

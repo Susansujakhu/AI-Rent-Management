@@ -125,27 +125,14 @@ export async function POST(req: Request) {
   const dateStr   = paidDate.toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" });
   const refStr    = reference ? ` (ref: ${reference})` : "";
 
+  // createNotification mirrors this to the owner's WhatsApp automatically.
   await createNotification(
     t.userId,
     "payment_claim_submitted",
-    `${t.name} reported a payment`,
-    `${t.name} says they paid ${amountStr} via ${method} on ${dateStr}${refStr}. Verify it arrived, then record it.`,
+    `💰 ${t.name} reported a payment`,
+    `${t.name} says they paid ${amountStr} via ${method} on ${dateStr}${refStr}. Verify it arrived, then record it in EasyRent.`,
     { tenantId: t.id, claimId: claim.id, paymentId },
   ).catch(() => null);
-
-  try {
-    const owner = await prisma.user.findUnique({ where: { id: t.userId }, select: { phone: true } });
-    if (owner?.phone) {
-      const { sendWhatsAppMessage, isWhatsAppReady } = await import("@/lib/whatsapp");
-      if (await isWhatsAppReady()) {
-        const msg =
-          `💰 *Payment reported*\n\n` +
-          `${t.name} says they paid *${amountStr}* via ${method} on ${dateStr}${refStr}.\n\n` +
-          `Please verify the money arrived, then record it in EasyRent.`;
-        sendWhatsAppMessage(owner.phone, msg).catch(() => {});
-      }
-    }
-  } catch { /* best effort */ }
 
   return NextResponse.json({ ok: true, id: claim.id }, { status: 201 });
 }

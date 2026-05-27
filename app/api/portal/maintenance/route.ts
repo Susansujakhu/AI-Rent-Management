@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireTenantAPIByToken } from "@/lib/tenant-auth";
+import { createNotification } from "@/lib/notifications";
 
 const VALID_CATEGORIES = ["PLUMBING", "ELECTRICAL", "APPLIANCE", "STRUCTURAL", "PEST", "OTHER"];
 const VALID_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"];
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
   }
 
+  const priority = VALID_PRIORITIES.includes(body.priority ?? "") ? body.priority! : "MEDIUM";
   const request = await prisma.maintenanceRequest.create({
     data: {
       userId:      t.userId,
@@ -51,9 +53,19 @@ export async function POST(req: Request) {
       title:       body.title.trim(),
       description: body.description?.trim() || null,
       category:    VALID_CATEGORIES.includes(body.category ?? "") ? body.category! : "OTHER",
-      priority:    VALID_PRIORITIES.includes(body.priority ?? "") ? body.priority! : "MEDIUM",
+      priority,
     },
   });
+
+  // Notify the owner (in-app + WhatsApp via createNotification).
+  const urgentTag = priority === "URGENT" ? "🔴 URGENT — " : priority === "HIGH" ? "🟠 " : "";
+  await createNotification(
+    t.userId,
+    "maintenance_submitted",
+    `🔧 ${t.name} submitted a maintenance request`,
+    `${urgentTag}${request.title}${body.description?.trim() ? `\n\n${body.description.trim()}` : ""}`,
+    { tenantId: t.id, requestId: request.id },
+  ).catch(() => null);
 
   return NextResponse.json(request, { status: 201 });
 }
