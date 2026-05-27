@@ -8,6 +8,11 @@ import { z } from "zod";
 const DEV_BYPASS = process.env.NODE_ENV !== "production" && process.env.BYPASS_PHONE_OTP === "true";
 const DEV_OTP    = "000000"; // fixed code used in bypass mode
 
+// Keep in sync with /api/auth/signup — these match exactly so anything the
+// OTP-send endpoint accepts is guaranteed to be accepted by signup.
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MAX_BYTES  = 72; // bcrypt silently truncates beyond 72 bytes
+
 function generateOTP(): string {
   // Use a CSPRNG so the 6-digit code can't be predicted from a Math.random()
   // seed leak. randomInt's upper bound is exclusive.
@@ -29,10 +34,27 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
-  const { phone, email } = body;
+  const { phone, email, password } = body;
 
   if (typeof phone !== "string" || !phone.trim()) {
     return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
+  }
+
+  // Validate password here (when supplied) so the verify screen never has to
+  // surface password errors — by the time the OTP is sent, the password is
+  // already known to be acceptable. /api/auth/signup will re-check for
+  // defense in depth, but a legitimate flow will never see a server password
+  // rejection on the verify step.
+  if (password !== undefined && password !== null && password !== "") {
+    if (typeof password !== "string") {
+      return NextResponse.json({ error: "Password must be a string" }, { status: 400 });
+    }
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      return NextResponse.json({ error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters` }, { status: 400 });
+    }
+    if (Buffer.byteLength(password, "utf8") > PASSWORD_MAX_BYTES) {
+      return NextResponse.json({ error: `Password is too long (max ${PASSWORD_MAX_BYTES} bytes)` }, { status: 400 });
+    }
   }
 
   // Validate and check email uniqueness before sending OTP

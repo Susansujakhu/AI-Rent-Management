@@ -40,16 +40,18 @@ export function SignupForm() {
 
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("Enter a valid email address"); return; }
     if (!password) { setError("Password is required"); return; }
-    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
     if (password !== confirmPassword) { setError("Passwords do not match"); return; }
     if (!localPhone.trim()) { setError("Phone number is required"); return; }
 
     setSending(true);
     try {
+      // Send password too so the OTP endpoint can validate it server-side
+      // BEFORE burning an OTP. Anything that passes here will pass /signup.
       const res  = await fetch("/api/auth/send-phone-otp", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ phone: fullPhone, email: email.trim() || undefined }),
+        body:    JSON.stringify({ phone: fullPhone, email: email.trim() || undefined, password }),
       });
       const data = await res.json() as { ok?: boolean; masked?: string; error?: string };
       if (!res.ok) { setError(data.error ?? "Failed to send code"); return; }
@@ -85,7 +87,7 @@ export function SignupForm() {
     }
   };
 
-  const strength      = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
+  const strength      = password.length === 0 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : 3;
   const strengthLabel = ["", "Weak", "Good", "Strong"];
   const strengthColor = ["", "bg-rose-500", "bg-amber-400", "bg-emerald-500"];
 
@@ -213,7 +215,7 @@ export function SignupForm() {
                 <div className="relative">
                   <input type={showPass ? "text" : "password"} value={password}
                     onChange={e => setPassword(e.target.value)}
-                    placeholder="Min. 6 characters" autoComplete="new-password"
+                    placeholder="Min. 8 characters" autoComplete="new-password"
                     className={`${inputCls} pr-12`} />
                   <button type="button" onClick={() => setShowPass(v => !v)}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1">

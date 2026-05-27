@@ -220,8 +220,8 @@ export default async function DashboardPage({
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Rooms */}
-        <div className="animate-fade-up stagger-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 hover:shadow-md transition-shadow">
+        {/* Total Rooms → Rooms */}
+        <Link href="/rooms" className="group animate-fade-up stagger-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500/40 hover:-translate-y-0.5 transition-all duration-200">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-200">
               <Building2 size={17} className="text-white" />
@@ -229,11 +229,13 @@ export default async function DashboardPage({
             <span className="text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded-lg">{occupancyRate}% full</span>
           </div>
           <p className="text-3xl font-bold text-slate-900 dark:text-white dark:text-white">{totalRooms}</p>
-          <p className="text-xs text-slate-400 mt-1 font-medium">Total Rooms</p>
-        </div>
+          <p className="text-xs text-slate-400 mt-1 font-medium flex items-center gap-1">
+            Total Rooms <ChevronRight size={11} className="opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all duration-200 text-indigo-400" />
+          </p>
+        </Link>
 
-        {/* Active Tenants */}
-        <div className="animate-fade-up stagger-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 hover:shadow-md transition-shadow">
+        {/* Active Tenants → Tenants */}
+        <Link href="/tenants" className="group animate-fade-up stagger-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 hover:shadow-md hover:border-violet-200 dark:hover:border-violet-500/40 hover:-translate-y-0.5 transition-all duration-200">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-sm shadow-violet-200">
               <Users size={17} className="text-white" />
@@ -241,11 +243,13 @@ export default async function DashboardPage({
             <span className="text-xs font-semibold bg-violet-50 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 px-2 py-1 rounded-lg">{activeTenantCount} active</span>
           </div>
           <p className="text-3xl font-bold text-slate-900 dark:text-white dark:text-white">{activeTenantCount}</p>
-          <p className="text-xs text-slate-400 mt-1 font-medium">Active Tenants</p>
-        </div>
+          <p className="text-xs text-slate-400 mt-1 font-medium flex items-center gap-1">
+            Active Tenants <ChevronRight size={11} className="opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all duration-200 text-violet-400" />
+          </p>
+        </Link>
 
-        {/* Collected */}
-        <div className="animate-fade-up stagger-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 hover:shadow-md transition-shadow col-span-2 lg:col-span-1">
+        {/* Collected → Payments */}
+        <Link href="/payments" className="group animate-fade-up stagger-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-500/40 hover:-translate-y-0.5 transition-all duration-200 col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between mb-2">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm shadow-emerald-200">
               <TrendingUp size={17} className="text-white" />
@@ -260,14 +264,16 @@ export default async function DashboardPage({
           <div className="flex items-end justify-between">
             <div>
               <p className="text-2xl font-bold text-emerald-600">{fmt(collectedThisMonth)}</p>
-              <p className="text-xs text-slate-400 mt-1 font-medium">Collected {isPastMonth ? "that month" : "this month"}</p>
+              <p className="text-xs text-slate-400 mt-1 font-medium flex items-center gap-1">
+                Collected {isPastMonth ? "that month" : "this month"} <ChevronRight size={11} className="opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all duration-200 text-emerald-400" />
+              </p>
             </div>
             <Sparkline values={monthlyCollected} color="#10b981" />
           </div>
-        </div>
+        </Link>
 
-        {/* Overdue */}
-        <div className="animate-fade-up stagger-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 hover:shadow-md transition-shadow">
+        {/* Overdue → Payments */}
+        <Link href="/payments" className="group animate-fade-up stagger-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 hover:shadow-md hover:border-rose-200 dark:hover:border-rose-500/40 hover:-translate-y-0.5 transition-all duration-200">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-rose-600 flex items-center justify-center shadow-sm shadow-rose-200">
               <AlertTriangle size={17} className="text-white" />
@@ -279,8 +285,10 @@ export default async function DashboardPage({
             )}
           </div>
           <p className="text-3xl font-bold text-rose-600">{overdueCount}</p>
-          <p className="text-xs text-slate-400 mt-1 font-medium">Overdue payments</p>
-        </div>
+          <p className="text-xs text-slate-400 mt-1 font-medium flex items-center gap-1">
+            Overdue payments <ChevronRight size={11} className="opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all duration-200 text-rose-400" />
+          </p>
+        </Link>
       </div>
 
       {/* Chart + Overdue Panel */}

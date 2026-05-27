@@ -52,7 +52,12 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute left-full ml-2 top-0 z-[100] w-80 bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
+        // Open below the button, anchored to its right edge. Works whether
+        // the bell lives in the desktop sidebar (upper-left of screen) or
+        // the mobile header (upper-right) — the dropdown never falls off
+        // the viewport. max-w + viewport-aware width keeps it on screen on
+        // small phones.
+        <div className="absolute top-full right-0 mt-2 z-[100] w-[min(20rem,calc(100vw-2rem))] bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
