@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Check, Settings, Eye, EyeOff, Coins, ShieldCheck, DatabaseBackup, Download, Upload, UserCog, MessageCircle, Wifi, WifiOff, RefreshCw, Smartphone, Bell, Clock, AlertTriangle, Crown, Lock, QrCode } from "lucide-react";
+import { Check, Settings, Eye, EyeOff, Coins, ShieldCheck, DatabaseBackup, Download, Upload, UserCog, MessageCircle, Wifi, WifiOff, RefreshCw, Smartphone, Bell, Clock, AlertTriangle, Crown, Lock, QrCode, Zap } from "lucide-react";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -43,6 +43,7 @@ const PRESETS = [
 
 const TABS = [
   { id: "currency",  label: "Currency",  icon: Coins,          accent: "indigo" },
+  { id: "electricity", label: "Electricity", icon: Zap,        accent: "amber" },
   { id: "account",   label: "Account",   icon: ShieldCheck,    accent: "emerald" },
   { id: "payments",  label: "Payments",  icon: QrCode,         accent: "teal" },
   { id: "whatsapp",  label: "WhatsApp",  icon: MessageCircle,  accent: "green" },
@@ -58,6 +59,10 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
   const [customCode,   setCustomCode]   = useState("");
   const [saving,       setSaving]       = useState(false);
   const [loaded,       setLoaded]       = useState(false);
+
+  // Global electricity rate (default for all tenants without an override)
+  const [globalRate,       setGlobalRate]       = useState("");
+  const [savingGlobalRate, setSavingGlobalRate] = useState(false);
 
   // Account info
   const [userEmail,    setUserEmail]    = useState("");
@@ -125,6 +130,7 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
       if (settings["auto_reminders_enabled"] === "true") setAutoReminders(true);
       if (settings["reminder_hour"]) setReminderHour(parseInt(settings["reminder_hour"]));
       if (settings["reminder_last_run"]) setReminderLastRun(settings["reminder_last_run"]);
+      if (settings["electricityRate"] && parseFloat(settings["electricityRate"]) > 0) setGlobalRate(settings["electricityRate"]);
       setLoaded(true);
     });
 
@@ -221,6 +227,26 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
       toast.error("Failed to save reminder settings");
     } finally {
       setSavingReminders(false);
+    }
+  };
+
+  const handleSaveGlobalRate = async () => {
+    const v   = globalRate.trim();
+    const num = v === "" ? 0 : Number(v);
+    if (!Number.isFinite(num) || num < 0) { toast.error("Enter a valid rate"); return; }
+    setSavingGlobalRate(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method:  "PUT",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ electricityRate: String(num) }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(num > 0 ? "Global electricity rate saved" : "Global rate cleared");
+    } catch {
+      toast.error("Failed to save rate");
+    } finally {
+      setSavingGlobalRate(false);
     }
   };
 
@@ -370,6 +396,40 @@ export default function SettingsClient({ isPro }: { isPro: boolean }) {
               <button onClick={handleSaveCurrency} disabled={saving}
                 className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-sm shadow-indigo-200">
                 {saving ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Electricity ──────────────────────────────────────── */}
+        {activeTab === "electricity" && (
+          <div className="divide-y divide-slate-50 dark:divide-slate-800">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-5 md:px-8 py-6 md:py-7">
+              <div className="pt-0.5">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="w-6 h-6 rounded-md bg-amber-100 flex items-center justify-center"><Zap size={12} className="text-amber-600" /></div>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Global Electricity Rate</h2>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">The default per-unit rate used for every tenant&apos;s meter readings. Any tenant can override this on their own page. Leave at 0 to require a rate to be set per tenant.</p>
+              </div>
+              <div className="md:col-span-2 space-y-4">
+                <div>
+                  <label className={labelCls}>Rate per unit</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400">{currentSymbol}</span>
+                    <input type="number" min={0} step={0.01} value={globalRate}
+                      onChange={e => setGlobalRate(e.target.value)}
+                      placeholder="0"
+                      className={`${fieldCls} pl-9`} />
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1.5">Applied to all tenants who don&apos;t have a specific rate set.</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-5 md:px-8 py-4 flex justify-end bg-slate-50/50 dark:bg-slate-800/50">
+              <button onClick={handleSaveGlobalRate} disabled={savingGlobalRate}
+                className="bg-amber-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-amber-600 disabled:opacity-50 transition-all shadow-sm shadow-amber-200">
+                {savingGlobalRate ? "Saving…" : "Save Rate"}
               </button>
             </div>
           </div>

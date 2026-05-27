@@ -57,13 +57,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "A reading already exists for this month" }, { status: 409 });
   }
 
-  // Get owner's electricity rate from settings
-  const rateSetting = await prisma.setting.findUnique({
-    where: { userId_key: { userId: t.userId, key: "electricityRate" } },
-  });
-  const ratePerUnit = parseFloat(rateSetting?.value ?? "0");
-  const unitsUsed   = parseFloat((current - previous).toFixed(2));
-  const amount      = parseFloat((unitsUsed * ratePerUnit).toFixed(2));
+  // Effective rate: per-tenant override first, then the owner's global default.
+  // Read the override via raw SQL so this works even when the deployed Prisma
+  // client predates the electricityRate column.
+  const rateRow = await prisma.$queryRaw<{ electricityRate: number | null }[]>`
+    SELECT electricityRate FROM \`Tenant\` WHERE id = ${t.id} LIMIT 1
+  `;
+  let ratePerUnit = rateRow[0]?.electricityRate && rateRow[0].electricityRate > 0
+    ? rateRow[0].electricityRate
+    : 0;
+  if (ratePerUnit <= 0) {
+    const rateSetting = await prisma.setting.findUnique({
+      where: { userId_key: { userId: t.userId, key: "electricityRate" } },
+    });
+    ratePerUnit = parseFloat(rateSetting?.value ?? "0") || 0;
+  }
+  // Without a rate a reading is meaningless — refuse rather than silently
+  // recording a ₹0 reading (and skipping charge creation).
+  if (ratePerUnit <= 0) {
+    return NextResponse.json(
+      { error: "Your landlord hasn't set an electricity rate yet. Please contact them." },
+      { status: 409 },
+    );
+  }
+  const unitsUsed = parseFloat((current - previous).toFixed(2));
+  const amount    = parseFloat((unitsUsed * ratePerUnit).toFixed(2));
 
   const autoAccept = t.meterReadingAutoAccept;
   let chargeId: string | null = null;

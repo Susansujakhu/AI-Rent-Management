@@ -6,15 +6,15 @@ import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MoveOutButton } from "./move-out-button";
 import { WhatsAppToggle } from "./whatsapp-toggle";
-import { ElectricityMeterToggle } from "./electricity-meter-toggle";
 import { TenantRecurringChargesPanel } from "./tenant-recurring-charges";
 import { PortalAccessCard } from "./portal-access";
 import { PaymentLedger } from "./payment-ledger";
 import { OneTimeChargesPanel } from "./one-time-charges-panel";
 import { getSettings } from "@/lib/settings";
-import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, Sparkles, MessageCircle } from "lucide-react";
+import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, CheckCircle2, Sparkles, MessageCircle, FileText, Settings, Receipt } from "lucide-react";
 import { TenantDocumentsPanel } from "./tenant-documents";
 import { TenantElectricityPanel } from "./tenant-electricity-panel";
+import { CollapsibleGroup } from "./collapsible-group";
 
 function monthString(year: number, month: number) {
   return `${year}-${String(month).padStart(2, "0")}`;
@@ -150,11 +150,17 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   const fmt          = (n: number) => formatCurrency(n, settings.currencySymbol);
   const rateSetting  = await prisma.setting.findUnique({ where: { userId_key: { userId: user.id, key: "electricityRate" } } });
   const electricityRate = parseFloat(rateSetting?.value ?? "0") || 0;
+  const tenantRate    = tenant.electricityRate ?? null;
+  const effectiveRate = (tenantRate && tenantRate > 0) ? tenantRate : electricityRate;
+  const portalEnabled = process.env.TENANT_PORTAL_ENABLED === "true";
 
   const isActive         = !tenant.moveOutDate;
   const totalCollected   = tenant.payments.reduce((sum, p) => sum + p.amountPaid, 0) + tenant.oneTimeCharges.reduce((sum, c) => sum + c.amountPaid, 0);
   const totalOutstanding = tenant.payments.reduce((sum, p) => sum + Math.max(0, p.amountDue - p.amountPaid), 0) + tenant.oneTimeCharges.reduce((sum, c) => sum + Math.max(0, c.amount - c.amountPaid), 0);
   const overdueCount = tenant.payments.filter(p => p.status === "OVERDUE").length;
+  const totalBilled  = totalCollected + totalOutstanding;
+  const outstandingPct = totalBilled > 0 ? Math.round((totalOutstanding / totalBilled) * 100) : 0;
+  const collectedPct   = totalBilled > 0 ? Math.round((totalCollected / totalBilled) * 100) : 0;
 
   const avatarColor = AVATAR_COLORS[tenant.name.charCodeAt(0) % AVATAR_COLORS.length];
   const initials = tenant.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -173,19 +179,14 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {/* Hero card */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className={`bg-gradient-to-r ${avatarColor} h-20 relative`}>
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="absolute bottom-0 right-4 translate-y-1/2">
-            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatarColor} shadow-lg border-4 border-white dark:border-slate-900 flex items-center justify-center text-white text-xl font-black`}>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-4 min-w-0">
+            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${avatarColor} shadow-md flex items-center justify-center text-white text-lg font-black shrink-0`}>
               {initials}
             </div>
-          </div>
-        </div>
-        <div className="px-5 pt-10 pb-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2.5">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{tenant.name}</h1>
                 <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
                   isActive ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
@@ -222,41 +223,54 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
                 </span>
               </div>
             </div>
-            <div className="flex gap-2 shrink-0">
-              <Link href={`/tenants/${id}/edit`}
-                className="border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                Edit
-              </Link>
-              {isActive && <MoveOutButton tenantId={id} moveInDate={tenant.moveInDate.toISOString()} />}
-            </div>
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto sm:shrink-0">
+            <Link href={`/tenants/${id}/edit`}
+              className="flex-1 sm:flex-none text-center border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+              Edit
+            </Link>
+            {isActive && <MoveOutButton tenantId={id} moveInDate={tenant.moveInDate.toISOString()} />}
           </div>
         </div>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-sm shadow-emerald-200 p-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
-          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center mb-3">
-            <TrendingUp size={15} className="text-white" />
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center">
+              <TrendingUp size={16} className="text-emerald-600 dark:text-emerald-400" />
+            </div>
+            {totalBilled > 0 && (
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full">
+                {collectedPct}% collected
+              </span>
+            )}
           </div>
-          <p className="text-xs font-bold text-emerald-100 uppercase tracking-wider">Total Collected</p>
-          <p className="text-2xl font-black text-white mt-1 tracking-tight">{fmt(totalCollected)}</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Collected</p>
+          <p className="text-2xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">{fmt(totalCollected)}</p>
+          {tenant.payments.length > 0 && (
+            <p className="text-xs text-slate-400 mt-0.5">across {tenant.payments.length} month{tenant.payments.length !== 1 ? "s" : ""}</p>
+          )}
         </div>
 
-        <div className={`rounded-2xl shadow-sm p-5 relative overflow-hidden ${
-          totalOutstanding > 0
-            ? "bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-200"
-            : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800"
-        }`}>
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${totalOutstanding > 0 ? "bg-white/20" : "bg-rose-50"}`}>
-            <AlertCircle size={15} className={totalOutstanding > 0 ? "text-white" : "text-rose-500"} />
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${totalOutstanding > 0 ? "bg-rose-50 dark:bg-rose-500/15" : "bg-emerald-50 dark:bg-emerald-500/15"}`}>
+              {totalOutstanding > 0
+                ? <AlertCircle size={16} className="text-rose-500 dark:text-rose-400" />
+                : <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />}
+            </div>
+            {totalOutstanding > 0 && outstandingPct > 0 && (
+              <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/15 px-2 py-0.5 rounded-full">
+                {outstandingPct}% of billed
+              </span>
+            )}
           </div>
-          <p className={`text-xs font-bold uppercase tracking-wider ${totalOutstanding > 0 ? "text-rose-100" : "text-slate-400"}`}>Outstanding</p>
-          <p className={`text-2xl font-black mt-1 tracking-tight ${totalOutstanding > 0 ? "text-white" : "text-rose-600"}`}>{fmt(totalOutstanding)}</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Outstanding</p>
+          <p className={`text-2xl font-black mt-1 tracking-tight ${totalOutstanding > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white"}`}>{fmt(totalOutstanding)}</p>
           {overdueCount > 0 && (
-            <p className="text-xs text-rose-100 mt-0.5">{overdueCount} overdue month{overdueCount !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{overdueCount} overdue month{overdueCount !== 1 ? "s" : ""}</p>
           )}
         </div>
       </div>
@@ -277,70 +291,102 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         </div>
       )}
 
-      {/* WhatsApp notification toggle */}
-      <WhatsAppToggle tenantId={id} enabled={tenant.whatsappNotify} />
+      {/* Details & Documents — reference info, tucked away by default */}
+      <CollapsibleGroup
+        title="Details & Documents"
+        subtitle="Deposit, notes & uploaded files"
+        icon={<FileText size={15} />}
+      >
+        {(tenant.deposit > 0 || tenant.moveOutDate || tenant.notes) && (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 space-y-3">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Details</h2>
+            <div className="space-y-2.5 text-sm divide-y divide-slate-50 dark:divide-slate-800">
+              {tenant.deposit > 0 && (
+                <div className="flex justify-between pt-2 first:pt-0">
+                  <span className="text-slate-400 dark:text-slate-500 font-medium">Security Deposit</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{fmt(tenant.deposit)}</span>
+                </div>
+              )}
+              {tenant.moveOutDate && (
+                <div className="flex justify-between pt-2 first:pt-0">
+                  <span className="text-slate-400 dark:text-slate-500 font-medium">Move-out Date</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{formatDate(tenant.moveOutDate)}</span>
+                </div>
+              )}
+              {tenant.notes && (
+                <div className="pt-2 first:pt-0">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Notes</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{tenant.notes}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        <TenantDocumentsPanel tenantId={id} />
+      </CollapsibleGroup>
 
-      {/* Electricity meter reading toggle */}
-      {process.env.TENANT_PORTAL_ENABLED === "true" && (
-        <ElectricityMeterToggle
+      {/* Charges & Electricity — recurring + one-time charges and meter readings */}
+      <CollapsibleGroup
+        title="Charges & Electricity"
+        subtitle="Recurring & one-time charges, meter readings"
+        icon={<Receipt size={15} />}
+      >
+        {isActive && tenant.room && (
+          <TenantRecurringChargesPanel
+            tenantId={id}
+            roomId={tenant.room.id}
+            roomCharges={tenant.room.recurringCharges.filter(c => c.tenantId === null)}
+            tenantCharges={tenant.room.recurringCharges.filter(c => c.tenantId === id)}
+            currencySymbol={settings.currencySymbol}
+            moveInMonth={`${tenant.moveInDate.getFullYear()}-${String(tenant.moveInDate.getMonth() + 1).padStart(2, "0")}`}
+          />
+        )}
+        <OneTimeChargesPanel
           tenantId={id}
+          charges={tenant.oneTimeCharges.map(c => ({
+            id:        c.id,
+            title:     c.title,
+            amount:    c.amount,
+            amountPaid: c.amountPaid,
+            date:      c.date.toISOString(),
+            status:    c.status,
+            notes:     c.notes,
+          }))}
+          currencySymbol={settings.currencySymbol}
+          isActive={isActive}
+        />
+        <TenantElectricityPanel
+          tenantId={id}
+          defaultRate={effectiveRate}
+          globalRate={electricityRate}
+          tenantRate={tenantRate}
+          currencySymbol={settings.currencySymbol}
           canSubmit={tenant.canSubmitMeterReading}
           autoAccept={tenant.meterReadingAutoAccept}
+          portalEnabled={portalEnabled}
         />
-      )}
+      </CollapsibleGroup>
 
-      {/* Tenant Portal Access */}
-      {process.env.TENANT_PORTAL_ENABLED === "true" && (
-        <PortalAccessCard
-          tenantId={id}
-          tenantName={tenant.name}
-          tenantPhone={tenant.phone}
-          portalEnabled={tenant.portalEnabled}
-          portalToken={tenant.portalToken ?? null}
-          isPro={pro}
-        />
-      )}
+      {/* Settings & Access — set-once configuration, kept at the bottom */}
+      <CollapsibleGroup
+        title="Settings & Access"
+        subtitle="Notifications, meter readings & portal link"
+        icon={<Settings size={15} />}
+      >
+        <WhatsAppToggle tenantId={id} enabled={tenant.whatsappNotify} />
+        {process.env.TENANT_PORTAL_ENABLED === "true" && (
+          <PortalAccessCard
+            tenantId={id}
+            tenantName={tenant.name}
+            tenantPhone={tenant.phone}
+            portalEnabled={tenant.portalEnabled}
+            portalToken={tenant.portalToken ?? null}
+            isPro={pro}
+          />
+        )}
+      </CollapsibleGroup>
 
-      {/* Contact info card */}
-      {(tenant.deposit > 0 || tenant.notes) && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 space-y-3">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Details</h2>
-          <div className="space-y-2.5 text-sm divide-y divide-slate-50 dark:divide-slate-800">
-            {tenant.deposit > 0 && (
-              <div className="flex justify-between pt-2 first:pt-0">
-                <span className="text-slate-400 dark:text-slate-500 font-medium">Security Deposit</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{fmt(tenant.deposit)}</span>
-              </div>
-            )}
-            {tenant.moveOutDate && (
-              <div className="flex justify-between pt-2 first:pt-0">
-                <span className="text-slate-400 dark:text-slate-500 font-medium">Move-out Date</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{formatDate(tenant.moveOutDate)}</span>
-              </div>
-            )}
-            {tenant.notes && (
-              <div className="pt-2 first:pt-0">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Notes</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{tenant.notes}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Recurring Charges */}
-      {isActive && tenant.room && (
-        <TenantRecurringChargesPanel
-          tenantId={id}
-          roomId={tenant.room.id}
-          roomCharges={tenant.room.recurringCharges.filter(c => c.tenantId === null)}
-          tenantCharges={tenant.room.recurringCharges.filter(c => c.tenantId === id)}
-          currencySymbol={settings.currencySymbol}
-          moveInMonth={`${tenant.moveInDate.getFullYear()}-${String(tenant.moveInDate.getMonth() + 1).padStart(2, "0")}`}
-        />
-      )}
-
-      {/* Payment Ledger */}
+      {/* Payment Ledger — primary money view, kept last */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
           <h2 className="font-bold text-slate-900 dark:text-white text-sm">Payment Ledger</h2>
@@ -370,32 +416,6 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
           moveInDay={tenant.moveInDate.getDate()}
         />
       </div>
-
-      {/* One-time Charges */}
-      <OneTimeChargesPanel
-        tenantId={id}
-        charges={tenant.oneTimeCharges.map(c => ({
-          id:        c.id,
-          title:     c.title,
-          amount:    c.amount,
-          amountPaid: c.amountPaid,
-          date:      c.date.toISOString(),
-          status:    c.status,
-          notes:     c.notes,
-        }))}
-        currencySymbol={settings.currencySymbol}
-        isActive={isActive}
-      />
-
-      {/* Electricity meter readings */}
-      <TenantElectricityPanel
-        tenantId={id}
-        defaultRate={electricityRate}
-        currencySymbol={settings.currencySymbol}
-      />
-
-      {/* Documents */}
-      <TenantDocumentsPanel tenantId={id} />
     </div>
   );
 }

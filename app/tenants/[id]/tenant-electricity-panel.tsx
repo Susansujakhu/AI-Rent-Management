@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, CheckCircle2, ChevronDown, ChevronUp, Clock, Plus, Trash2, X, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Camera, CheckCircle2, ChevronDown, ChevronUp, Clock, Pencil, Plus, Trash2, X, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -27,12 +28,26 @@ function monthLabel(m: string) {
 export function TenantElectricityPanel({
   tenantId,
   defaultRate,
+  globalRate,
+  tenantRate,
   currencySymbol,
+  canSubmit,
+  autoAccept,
+  portalEnabled,
 }: {
   tenantId:       string;
-  defaultRate:    number;
+  defaultRate:    number;   // effective rate = tenant override or global
+  globalRate:     number;   // owner's global default
+  tenantRate:     number | null; // per-tenant override, if set
   currencySymbol: string;
+  canSubmit:      boolean;  // tenant may submit readings via portal
+  autoAccept:     boolean;  // submissions auto-confirmed into charges
+  portalEnabled:  boolean;  // tenant portal feature enabled at all
 }) {
+  const router = useRouter();
+  const [submit, setSubmit]   = useState(canSubmit);
+  const [auto,   setAuto]     = useState(autoAccept);
+  const [togglingMeter, setTogglingMeter] = useState(false);
   const [readings,  setReadings]  = useState<Reading[]>([]);
   const [expanded,  setExpanded]  = useState<string | null>(null);
   const [showForm,  setShowForm]  = useState(false);
@@ -40,6 +55,13 @@ export function TenantElectricityPanel({
   const [deleteId,  setDeleteId]  = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [photoUploading, setPhotoUploading] = useState<string | null>(null);
+
+  // Per-tenant rate override state. Effective rate falls back to the global default.
+  const [override,   setOverride]   = useState<number | null>(tenantRate);
+  const [editingRate, setEditingRate] = useState(false);
+  const [rateInput,  setRateInput]  = useState(tenantRate != null ? String(tenantRate) : "");
+  const [savingRate, setSavingRate] = useState(false);
+  const effectiveRate = (override && override > 0) ? override : globalRate;
 
   const [form, setForm] = useState({
     month:        currentMonth(),
@@ -69,6 +91,11 @@ export function TenantElectricityPanel({
       setForm(f => ({ ...f, previous: String(latest.current) }));
     }
   }, [readings]);
+
+  // Keep the local override in sync when the server re-renders with a new
+  // tenant rate — e.g. after it's set from the meter-readings toggle elsewhere
+  // on the page. (useState only reads the prop on first mount.)
+  useEffect(() => { setOverride(tenantRate); }, [tenantRate]);
 
   const prev = parseFloat(form.previous);
   const curr = parseFloat(form.current);
@@ -142,6 +169,78 @@ export function TenantElectricityPanel({
     setDeleteId(null);
   };
 
+  // Save (or clear) the per-tenant rate override. Empty input clears it so the
+  // tenant falls back to the owner's global rate.
+  const saveRate = async () => {
+    const v   = rateInput.trim();
+    const num = v === "" ? null : Number(v);
+    if (num !== null && (!Number.isFinite(num) || num < 0)) {
+      toast.error("Enter a valid rate");
+      return;
+    }
+    setSavingRate(true);
+    try {
+      const res = await fetch(`/api/tenants/${tenantId}`, {
+        method:  "PUT",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ electricityRate: num }),
+      });
+      if (!res.ok) { toast.error("Failed to save rate"); return; }
+      setOverride(num);
+      setEditingRate(false);
+      const newEff = (num ?? globalRate);
+      setForm(f => ({ ...f, rate: newEff > 0 ? String(newEff) : "" }));
+      toast.success(num == null ? "Using global rate" : "Tenant rate updated");
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setSavingRate(false);
+    }
+  };
+
+  const openForm = () => {
+    setForm(f => ({ ...f, rate: effectiveRate > 0 ? String(effectiveRate) : "" }));
+    setShowForm(true);
+  };
+
+  // Enable/disable tenant portal submissions + auto-confirm. Surfaces the
+  // server's gate message (e.g. "Add an electricity unit rate first…").
+  const updateMeter = async (patch: { canSubmitMeterReading?: boolean; meterReadingAutoAccept?: boolean }) => {
+    setTogglingMeter(true);
+    try {
+      const res = await fetch(`/api/tenants/${tenantId}`, {
+        method:  "PUT",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(patch),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(d?.error || "Failed to update setting");
+      }
+      if (patch.canSubmitMeterReading !== undefined) {
+        setSubmit(patch.canSubmitMeterReading);
+        toast.success(patch.canSubmitMeterReading ? "Tenant can now submit readings" : "Tenant submissions disabled");
+        if (!patch.canSubmitMeterReading && auto) {
+          await fetch(`/api/tenants/${tenantId}`, {
+            method:  "PUT",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ meterReadingAutoAccept: false }),
+          });
+          setAuto(false);
+        }
+      }
+      if (patch.meterReadingAutoAccept !== undefined) {
+        setAuto(patch.meterReadingAutoAccept);
+        toast.success(patch.meterReadingAutoAccept ? "Readings will be auto-confirmed" : "Readings require your review");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update setting");
+    } finally {
+      setTogglingMeter(false);
+    }
+  };
+
   const pending   = readings.filter(r => r.status === "pending_review").sort((a, b) => b.month.localeCompare(a.month));
   const confirmed = readings.filter(r => r.status !== "pending_review").sort((a, b) => b.month.localeCompare(a.month));
 
@@ -171,13 +270,121 @@ export function TenantElectricityPanel({
           </div>
           {!showForm && (
             <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30 transition-colors"
+              onClick={openForm}
+              disabled={effectiveRate <= 0}
+              title={effectiveRate <= 0 ? "Set an electricity rate first" : undefined}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-amber-50 dark:disabled:hover:bg-amber-500/15"
             >
               <Plus size={12} /> Add Reading
             </button>
           )}
         </div>
+
+        {/* Rate strip — the per-unit rate must exist before any reading is added */}
+        <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
+          {editingRate ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Rate per unit</span>
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-slate-400">{currencySymbol}</span>
+                <input
+                  type="number" min={0} step={0.01}
+                  value={rateInput}
+                  onChange={e => setRateInput(e.target.value)}
+                  onFocus={e => e.target.select()}
+                  placeholder={globalRate > 0 ? String(globalRate) : "e.g. 12"}
+                  autoFocus
+                  className="w-24 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                />
+              </div>
+              <button onClick={saveRate} disabled={savingRate} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-white disabled:opacity-50 transition-colors">
+                {savingRate ? "Saving…" : "Save"}
+              </button>
+              <button onClick={() => { setEditingRate(false); setRateInput(override != null ? String(override) : ""); }} className="text-xs font-medium px-2 py-1.5 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+                Cancel
+              </button>
+              {override != null && globalRate > 0 && (
+                <button onClick={() => setRateInput("")} className="text-xs text-slate-400 hover:text-amber-600 underline">
+                  Use global ({currencySymbol}{globalRate})
+                </button>
+              )}
+            </div>
+          ) : effectiveRate > 0 ? (
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                <span className="font-bold text-slate-800 dark:text-slate-100">{currencySymbol}{effectiveRate}</span>
+                <span className="text-slate-400"> / unit</span>
+                <span className="ml-2 text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                  {override && override > 0 ? "tenant-specific" : "global default"}
+                </span>
+              </p>
+              <button
+                onClick={() => { setEditingRate(true); setRateInput(override != null ? String(override) : ""); }}
+                className="shrink-0 flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-amber-600 dark:text-slate-400 transition-colors"
+              >
+                <Pencil size={11} /> Change
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">Set an electricity rate to start adding readings.</p>
+              <button
+                onClick={() => { setEditingRate(true); setRateInput(""); }}
+                className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-white transition-colors"
+              >
+                Set rate
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Tenant submissions — enable portal readings + auto-confirm, gated on the rate above */}
+        {portalEnabled && (
+          <div className="border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between px-5 py-3.5">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${submit ? "bg-amber-50 dark:bg-amber-500/15" : "bg-slate-50 dark:bg-slate-800"}`}>
+                  <Zap size={14} className={submit ? "text-amber-500" : "text-slate-400"} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Tenant submissions</p>
+                  <p className="text-xs text-slate-400">
+                    {submit
+                      ? "Tenant can submit readings via portal"
+                      : effectiveRate > 0
+                        ? "Tenant cannot submit readings"
+                        : "Set a rate above to enable"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => updateMeter({ canSubmitMeterReading: !submit })}
+                disabled={togglingMeter || (effectiveRate <= 0 && !submit)}
+                title={effectiveRate <= 0 && !submit ? "Set an electricity rate first" : undefined}
+                className={`relative w-11 h-6 rounded-full transition-all duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed shrink-0 ${submit ? "bg-amber-500" : "bg-slate-200 dark:bg-slate-700"}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${submit ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </div>
+            {submit && (
+              <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                <div className="pl-11">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Auto-confirm readings</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {auto ? "Charges created automatically on submission" : "You review each reading before it's charged"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => updateMeter({ meterReadingAutoAccept: !auto })}
+                  disabled={togglingMeter}
+                  className={`relative w-9 h-5 rounded-full transition-all duration-200 focus:outline-none disabled:opacity-50 shrink-0 ${auto ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${auto ? "translate-x-4" : "translate-x-0"}`} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Add Reading Form */}
         {showForm && (

@@ -63,8 +63,37 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     data.notes = body.notes || null;
   }
   if ("whatsappNotify"         in body) data.whatsappNotify         = Boolean(body.whatsappNotify);
-  if ("canSubmitMeterReading"  in body) data.canSubmitMeterReading  = Boolean(body.canSubmitMeterReading);
   if ("meterReadingAutoAccept" in body) data.meterReadingAutoAccept = Boolean(body.meterReadingAutoAccept);
+
+  if ("electricityRate" in body) {
+    if (body.electricityRate === null || body.electricityRate === "") {
+      data.electricityRate = null;
+    } else {
+      const r = Number(body.electricityRate);
+      if (!Number.isFinite(r) || r < 0)
+        return NextResponse.json({ error: "electricityRate must be a non-negative number" }, { status: 400 });
+      data.electricityRate = r > 0 ? r : null;   // 0 means "no override"
+    }
+  }
+
+  if ("canSubmitMeterReading" in body) {
+    data.canSubmitMeterReading = Boolean(body.canSubmitMeterReading);
+    if (data.canSubmitMeterReading) {
+      // A meter reading is worthless without a rate — require an effective rate
+      // (per-tenant override, set in this same request or already stored, else
+      // the global default) before tenants can submit readings.
+      const tenantRate = "electricityRate" in data
+        ? (data.electricityRate as number | null)
+        : (await prisma.tenant.findFirst({ where: { id, userId }, select: { electricityRate: true } }))?.electricityRate ?? null;
+      let eff = tenantRate ?? 0;
+      if (eff <= 0) {
+        const g = await prisma.setting.findUnique({ where: { userId_key: { userId, key: "electricityRate" } } });
+        eff = parseFloat(g?.value ?? "0") || 0;
+      }
+      if (eff <= 0)
+        return NextResponse.json({ error: "Add an electricity unit rate first, then enable meter readings." }, { status: 400 });
+    }
+  }
 
   // ── Move-out handling ────────────────────────────────────────────────────────
   if ("moveOutDate" in body && !body.moveOutDate) {
@@ -153,6 +182,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     whatsappNotify:           v => Prisma.sql`\`whatsappNotify\` = ${v ? 1 : 0}`,
     canSubmitMeterReading:    v => Prisma.sql`\`canSubmitMeterReading\` = ${v ? 1 : 0}`,
     meterReadingAutoAccept:   v => Prisma.sql`\`meterReadingAutoAccept\` = ${v ? 1 : 0}`,
+    electricityRate:          v => Prisma.sql`\`electricityRate\` = ${v as number | null}`,
   };
   const setParts = Object.entries(data)
     .filter(([k]) => fieldSql[k])

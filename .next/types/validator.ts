@@ -713,6 +713,33 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../app/api/payment-claims/[id]/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/payment-claims/[id]">> = Specific
+  const handler = {} as typeof import("../../app/api/payment-claims/[id]/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/api/payment-claims/[id]/screenshot/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/payment-claims/[id]/screenshot">> = Specific
+  const handler = {} as typeof import("../../app/api/payment-claims/[id]/screenshot/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/api/payment-claims/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/payment-claims">> = Specific
+  const handler = {} as typeof import("../../app/api/payment-claims/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/api/payments/[id]/breakdown/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/payments/[id]/breakdown">> = Specific
@@ -843,6 +870,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/portal/meter-readings">> = Specific
   const handler = {} as typeof import("../../app/api/portal/meter-readings/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/api/portal/payment-claims/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/portal/payment-claims">> = Specific
+  const handler = {} as typeof import("../../app/api/portal/payment-claims/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

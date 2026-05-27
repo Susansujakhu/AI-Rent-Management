@@ -8,7 +8,8 @@ ALTER TABLE `Tenant`
   ADD COLUMN IF NOT EXISTS `portalToken`            varchar(191) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS `creditBalance`          double       NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS `canSubmitMeterReading`  tinyint(1)   NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS `meterReadingAutoAccept` tinyint(1)   NOT NULL DEFAULT 0;
+  ADD COLUMN IF NOT EXISTS `meterReadingAutoAccept` tinyint(1)   NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS `electricityRate`        double       DEFAULT NULL;
 
 -- ── 2. Unique index for portalToken ──────────────────────────────────────────
 -- Skip this statement if you get "Duplicate key name" — the index already exists
