@@ -6,6 +6,7 @@ import { getSettings } from "@/lib/settings";
 import { isPro } from "@/lib/plan";
 import { PaymentsView, type ReceivedSession, type OpenBill } from "@/components/payments-view";
 import { GeneratePaymentsButton } from "@/components/generate-payments-button";
+import { PaymentClaimsBanner } from "@/components/payment-claims-banner";
 
 export default async function PaymentsPage() {
   const { requireAuth } = await import("@/lib/auth");
@@ -272,6 +273,9 @@ export default async function PaymentsPage() {
         </div>
         <GeneratePaymentsButton />
       </div>
+
+      {/* Tenant-reported payments awaiting the owner's review */}
+      <PaymentClaimsBanner currencySymbol={settings.currencySymbol} />
 
       <PaymentsView
         sessions={sessions}

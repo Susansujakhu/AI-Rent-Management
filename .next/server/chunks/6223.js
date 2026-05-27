@@ -1,0 +1,1 @@
+"use strict";exports.id=6223,exports.ids=[6223],exports.modules={76223:(a,b,c)=>{c.d(b,{getSettings:()=>e});var d=c(57078);let e=(0,c(91986).cache)(async a=>{let b=await d.prisma.setting.findMany({where:{userId:a}}),c={};for(let a of b)c[a.key]=a.value;return{currencySymbol:c.currency_symbol??"रू",currencyCode:c.currency_code??"NPR"}})}};

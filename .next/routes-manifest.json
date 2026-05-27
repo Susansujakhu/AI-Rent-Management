@@ -143,6 +143,14 @@
       "namedRegex": "^/api/one\\-time\\-charges/(?<nxtPid>[^/]+?)/void(?:/)?$"
     },
     {
+      "page": "/api/payment-claims/[id]",
+      "regex": "^/api/payment\\-claims/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/payment\\-claims/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/api/payments/[id]",
       "regex": "^/api/payments/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -561,6 +569,12 @@
       "namedRegex": "^/api/one\\-time\\-charges(?:/)?$"
     },
     {
+      "page": "/api/payment-claims",
+      "regex": "^/api/payment\\-claims(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/payment\\-claims(?:/)?$"
+    },
+    {
       "page": "/api/payments",
       "regex": "^/api/payments(?:/)?$",
       "routeKeys": {},
@@ -613,6 +627,12 @@
       "regex": "^/api/portal/meter\\-readings(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/portal/meter\\-readings(?:/)?$"
+    },
+    {
+      "page": "/api/portal/payment-claims",
+      "regex": "^/api/portal/payment\\-claims(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/portal/payment\\-claims(?:/)?$"
     },
     {
       "page": "/api/portal/payment-qr",

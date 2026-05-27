@@ -48,6 +48,7 @@ model User {
   documents            TenantDocument[]
   meterReadings        MeterReading[]
   notifications        Notification[]
+  paymentClaims        PaymentClaim[]
 }
 
 model SubscriptionHistory {
@@ -145,6 +146,7 @@ model Tenant {
   maintenanceRequests MaintenanceRequest[]
   documents          TenantDocument[]
   meterReadings      MeterReading[]
+  paymentClaims      PaymentClaim[]
 
   @@index([userId, moveOutDate])    // active tenants query
 }
@@ -168,11 +170,38 @@ model Payment {
   tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   room         Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
   transactions PaymentTransaction[]
+  paymentClaims PaymentClaim[]
 
   @@unique([tenantId, month])
   @@index([userId, month])      // dashboard month queries
   @@index([userId, status])     // open bills / overdue counts
   @@index([tenantId])           // tenant ledger lookups
+}
+
+// A tenant-reported payment — "I paid X via Y." This is a CLAIM, not a
+// recorded payment: the owner must verify the money arrived and then record
+// it through the normal payment flow. Status tracks the review lifecycle.
+model PaymentClaim {
+  id         String    @id @default(cuid())
+  userId     String                       // owner (landlord) — for scoping
+  tenantId   String
+  paymentId  String?                      // the bill this is reported against (optional)
+  amount     Float
+  method     String                       // "eSewa" | "Khalti" | "Bank" | "Cash" | ...
+  reference  String?                      // optional txn id / reference the tenant entered
+  paidDate   DateTime                     // when the tenant says they paid
+  note       String?   @db.Text
+  status     String    @default("pending") // "pending" | "confirmed" | "rejected"
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])     // owner's pending-claims queue
+  @@index([tenantId, status])   // tenant's "awaiting confirmation" badges
 }
 
 model PaymentTransaction {

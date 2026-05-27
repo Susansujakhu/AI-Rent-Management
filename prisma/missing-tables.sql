@@ -117,3 +117,26 @@ CREATE TABLE IF NOT EXISTS `Notification` (
   KEY `Notification_userId_read_idx` (`userId`, `read`),
   CONSTRAINT `Notification_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── 9. PaymentClaim — tenant-reported "I paid X" awaiting owner confirmation ──
+CREATE TABLE IF NOT EXISTS `PaymentClaim` (
+  `id`         varchar(191) NOT NULL,
+  `userId`     varchar(191) NOT NULL,
+  `tenantId`   varchar(191) NOT NULL,
+  `paymentId`  varchar(191) DEFAULT NULL,
+  `amount`     double       NOT NULL,
+  `method`     varchar(191) NOT NULL,
+  `reference`  varchar(191) DEFAULT NULL,
+  `paidDate`   datetime(3)  NOT NULL,
+  `note`       longtext,
+  `status`     varchar(191) NOT NULL DEFAULT 'pending',
+  `reviewedAt` datetime(3)  DEFAULT NULL,
+  `createdAt`  datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt`  datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `PaymentClaim_userId_status_idx`   (`userId`, `status`),
+  KEY `PaymentClaim_tenantId_status_idx` (`tenantId`, `status`),
+  CONSTRAINT `PaymentClaim_userId_fkey`    FOREIGN KEY (`userId`)    REFERENCES `User`    (`id`) ON DELETE CASCADE  ON UPDATE CASCADE,
+  CONSTRAINT `PaymentClaim_tenantId_fkey`  FOREIGN KEY (`tenantId`)  REFERENCES `Tenant`  (`id`) ON DELETE CASCADE  ON UPDATE CASCADE,
+  CONSTRAINT `PaymentClaim_paymentId_fkey` FOREIGN KEY (`paymentId`) REFERENCES `Payment` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
