@@ -69,4 +69,4 @@ export const EXPENSE_CATEGORIES = [
   "OTHER",
 ] as const;
 
-export const PAYMENT_METHODS = ["CASH", "UPI", "BANK", "CHEQUE", "DEPOSIT", "ADVANCE"] as const;
+export const PAYMENT_METHODS = ["CASH", "E-WALLET", "BANK", "CHEQUE", "DEPOSIT", "ADVANCE"] as const;

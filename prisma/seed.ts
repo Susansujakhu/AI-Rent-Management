@@ -53,7 +53,7 @@ async function main() {
           amountPaid: paid ? rooms[i].monthlyRent : 0,
           status: paid ? "PAID" : "PENDING",
           paidDate: paid ? new Date(d.getFullYear(), d.getMonth(), 5) : null,
-          method: paid ? "UPI" : null,
+          method: paid ? "E-WALLET" : null,
         },
       });
     }

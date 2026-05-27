@@ -14,7 +14,7 @@ function mapClaimMethod(m: string | null): string {
     case "cash":   return "CASH";
     case "esewa":
     case "khalti":
-    case "fonepay": return "UPI";   // digital wallets → UPI bucket
+    case "fonepay": return "E-WALLET";   // eSewa / Khalti / FonePay → e-wallet
     default:        return "CASH";
   }
 }
