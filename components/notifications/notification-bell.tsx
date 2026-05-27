@@ -29,7 +29,10 @@ function destinationFor(type: string, data: string | null): string | null {
   return null;
 }
 
-export function NotificationBell() {
+// `placement` controls where the dropdown opens relative to the bell:
+//   "sidebar" — bell sits at the left (desktop sidebar) → open to the right
+//   "header"  — bell sits at the right (mobile header)  → open below, right-aligned
+export function NotificationBell({ placement = "sidebar" }: { placement?: "sidebar" | "header" }) {
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -67,12 +70,17 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        // Open below the button, anchored to its right edge. Works whether
-        // the bell lives in the desktop sidebar (upper-left of screen) or
-        // the mobile header (upper-right) — the dropdown never falls off
-        // the viewport. max-w + viewport-aware width keeps it on screen on
-        // small phones.
-        <div className="absolute top-full right-0 mt-2 z-[100] w-[min(20rem,calc(100vw-2rem))] bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
+        // Placement-aware so the panel never falls off-screen:
+        //   sidebar → opens to the RIGHT of the bell (into the content area)
+        //   header  → opens BELOW, right-aligned, width capped to the viewport
+        <div
+          className={cn(
+            "absolute z-[100] bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden",
+            placement === "sidebar"
+              ? "left-full ml-2 top-0 w-80"
+              : "top-full right-0 mt-2 w-[min(20rem,calc(100vw-2rem))]"
+          )}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
             <div className="flex items-center gap-2">

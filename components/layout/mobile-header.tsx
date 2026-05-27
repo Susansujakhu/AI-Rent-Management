@@ -78,7 +78,7 @@ export function MobileHeader() {
           </button>
         )}
 
-        <NotificationBell />
+        <NotificationBell placement="header" />
       </div>
     </header>
   );
