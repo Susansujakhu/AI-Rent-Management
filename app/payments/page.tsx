@@ -8,10 +8,18 @@ import { PaymentsView, type ReceivedSession, type OpenBill } from "@/components/
 import { GeneratePaymentsButton } from "@/components/generate-payments-button";
 import { PaymentClaimsBanner } from "@/components/payment-claims-banner";
 
-export default async function PaymentsPage() {
+export default async function PaymentsPage({ searchParams }: { searchParams: Promise<{ tenantId?: string }> }) {
   const { requireAuth } = await import("@/lib/auth");
   const user     = await requireAuth();
   const settings = await getSettings(user.id);
+
+  // A notification deep-link (?tenantId=…) preselects that tenant in the filter.
+  const { tenantId } = await searchParams;
+  let initialTenant: string | undefined;
+  if (tenantId) {
+    const t = await prisma.tenant.findFirst({ where: { id: tenantId, userId: user.id }, select: { name: true } });
+    initialTenant = t?.name ?? undefined;
+  }
 
   // ── All transactions → group into received sessions ────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -282,6 +290,7 @@ export default async function PaymentsPage() {
         openBills={openBills}
         currencySymbol={settings.currencySymbol}
         isPro={isPro(user)}
+        initialTenant={initialTenant}
       />
     </div>
   );

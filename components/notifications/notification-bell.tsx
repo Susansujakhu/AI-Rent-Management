@@ -19,14 +19,17 @@ function timeAgo(dateStr: string) {
 // Where a notification should take the owner when tapped. Returns null for
 // notifications with no actionable destination (they just mark read).
 function destinationFor(type: string, data: string | null): string | null {
-  if (type === "payment_claim_submitted") return "/payments";
-  if (type === "maintenance_submitted")   return "/maintenance";
-  if (type.startsWith("meter_reading")) {
-    try {
-      const parsed = data ? JSON.parse(data) as { tenantId?: string } : null;
-      if (parsed?.tenantId) return `/tenants/${parsed.tenantId}`;
-    } catch { /* ignore */ }
+  let tenantId: string | undefined;
+  try {
+    tenantId = data ? (JSON.parse(data) as { tenantId?: string }).tenantId : undefined;
+  } catch { /* ignore */ }
+
+  // Payment report → Payments page, preselecting the reporting tenant in the filter.
+  if (type === "payment_claim_submitted") {
+    return tenantId ? `/payments?tenantId=${tenantId}` : "/payments";
   }
+  if (type === "maintenance_submitted") return "/maintenance";
+  if (type.startsWith("meter_reading") && tenantId) return `/tenants/${tenantId}`;
   return null;
 }
 

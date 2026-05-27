@@ -501,11 +501,12 @@ function SessionDrawer({ session, fmt, isPro, canVoid, onClose, onVoided }: {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
+export function PaymentsView({ sessions, openBills, currencySymbol, isPro, initialTenant }: {
   sessions:       ReceivedSession[];
   openBills:      OpenBill[];
   currencySymbol: string;
   isPro:          boolean;
+  initialTenant?: string;   // tenant NAME to preselect (e.g. from a notification deep-link)
 }) {
   const fmt    = (n: number) => formatCurrency(n, currencySymbol);
   const router = useRouter();
@@ -515,12 +516,32 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro }: {
     ...openBills.map(b => b.tenantName),
   ])).sort();
 
-  // Default filters: first tenant alphabetically + current calendar year.
-  // The user can clear either via "Clear all" or the per-chip clear actions.
+  const TENANT_KEY = "er:payments:tenant";
+
+  // Default filters: a deep-linked tenant wins; otherwise first tenant
+  // alphabetically (localStorage restores the last-used value on mount).
   const currentYear = new Date().getFullYear();
-  const [tenant,   setTenant]   = useState<string>(() => tenantNames[0] ?? "");
+  const [tenant,   setTenant]   = useState<string>(() =>
+    (initialTenant && tenantNames.includes(initialTenant)) ? initialTenant : (tenantNames[0] ?? "")
+  );
   const [dateFrom, setDateFrom] = useState<string>(`${currentYear}-01-01`);
   const [dateTo,   setDateTo]   = useState<string>(`${currentYear}-12-31`);
+
+  // Restore the last-used tenant filter once on mount — unless a deep-link
+  // explicitly asked for a tenant, which takes precedence.
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    if (initialTenant) return;
+    const saved = typeof window !== "undefined" ? localStorage.getItem(TENANT_KEY) : null;
+    if (saved !== null && (saved === "" || tenantNames.includes(saved))) setTenant(saved);
+  }, [initialTenant, tenantNames]);
+
+  // Persist the tenant filter so the next visit lands where they left off.
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem(TENANT_KEY, tenant);
+  }, [tenant]);
   const [drawer,         setDrawer]         = useState<ReceivedSession | null>(null);
   const [sessionPage,    setSessionPage]    = useState(1);
   const [billPage,       setBillPage]       = useState(1);
