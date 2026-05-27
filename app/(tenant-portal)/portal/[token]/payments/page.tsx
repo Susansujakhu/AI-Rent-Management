@@ -5,8 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate, formatRentalPeriod } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
 import { PortalShell } from "../../_components/portal-shell";
+import { ReportPayment, type OutstandingBill } from "../../payments/report-payment";
 import Link from "next/link";
-import { FileText, QrCode } from "lucide-react";
+import { FileText, QrCode, Clock } from "lucide-react";
 import { existsSync } from "fs";
 import { join } from "path";
 
@@ -59,6 +60,24 @@ export default async function PortalPaymentsPage({
   const totalDue     = payments.reduce((s, p) => s + p.amountDue, 0);
   const totalPaid    = payments.reduce((s, p) => s + p.amountPaid, 0);
   const overdueCount = payments.filter(p => p.status === "OVERDUE").length;
+
+  // Pending payment claims — for "reported" badges + preventing double-reporting.
+  const pendingClaims = await prisma.paymentClaim.findMany({
+    where:  { tenantId: tenant.id, status: "pending" },
+    select: { paymentId: true },
+  });
+  const reportedPaymentIds = pendingClaims
+    .map(c => c.paymentId)
+    .filter((id): id is string => !!id);
+  const reportedSet = new Set(reportedPaymentIds);
+
+  const outstandingBills: OutstandingBill[] = payments
+    .filter(p => p.amountDue - p.amountPaid > 0)
+    .map(p => ({
+      id:      p.id,
+      label:   formatRentalPeriod(p.month, tenant.moveInDate.getDate()),
+      balance: p.amountDue - p.amountPaid,
+    }));
 
   const qrBase = `/api/portal/payment-qr?t=${encodeURIComponent(token)}`;
 
@@ -138,6 +157,14 @@ export default async function PortalPaymentsPage({
           </div>
         )}
 
+        {/* Report a payment made outside the app */}
+        <ReportPayment
+          token={token}
+          bills={outstandingBills}
+          reportedPaymentIds={reportedPaymentIds}
+          currencySymbol={settings.currencySymbol}
+        />
+
         {/* Payment list */}
         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
           {payments.length === 0 ? (
@@ -151,9 +178,16 @@ export default async function PortalPaymentsPage({
                       <p className="font-semibold text-slate-800 text-sm">{formatRentalPeriod(p.month, tenant.moveInDate.getDate())}</p>
                       <p className="text-xs text-slate-400 mt-0.5">{p.room.name}</p>
                     </div>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${STATUS_STYLES[p.status] ?? "bg-slate-100 text-slate-600"}`}>
-                      {p.status}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${STATUS_STYLES[p.status] ?? "bg-slate-100 text-slate-600"}`}>
+                        {p.status}
+                      </span>
+                      {reportedSet.has(p.id) && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                          <Clock size={9} /> Reported
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-slate-500 space-y-0.5">
