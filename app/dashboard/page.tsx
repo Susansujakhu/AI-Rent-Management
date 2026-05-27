@@ -97,7 +97,9 @@ export default async function DashboardPage({
       for (const m2 of allMonths) {
         const isPast    = m2 < cur;
         const amountDue = tenant.room.monthlyRent + tenant.room.recurringCharges
-          .filter((c) => (c.tenantId === null || c.tenantId === tenant.id) && (!c.effectiveFrom || c.effectiveFrom <= m2))
+          .filter((c) => (c.tenantId === null || c.tenantId === tenant.id)
+            && (!c.effectiveFrom || c.effectiveFrom <= m2)
+            && (!c.effectiveTo   || m2 <= c.effectiveTo))
           .reduce((s, c) => s + c.amount, 0);
         const existing = await prisma.payment.findUnique({
           where: { tenantId_month: { tenantId: tenant.id, month: m2 } },

@@ -110,11 +110,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
 
     if (tenant?.room && tenant.roomId) {
-      const baseAmount  = tenant.room.monthlyRent
-        + tenant.room.recurringCharges.reduce((s, c) => s + c.amount, 0);
       const moYear      = moveOutDate.getFullYear();
       const moMonthNum  = moveOutDate.getMonth() + 1;
       const moMonthStr  = monthStr(moYear, moMonthNum);
+      const baseAmount  = tenant.room.monthlyRent
+        + tenant.room.recurringCharges
+            .filter(c => (c.tenantId === null || c.tenantId === id)
+              && (!c.effectiveFrom || c.effectiveFrom <= moMonthStr)
+              && (!c.effectiveTo   || moMonthStr <= c.effectiveTo))
+            .reduce((s, c) => s + c.amount, 0);
       const daysInMonth = new Date(moYear, moMonthNum, 0).getDate();
       const daysOccupied = moveOutDate.getDate();
 

@@ -91,7 +91,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
     const moveInMonth     = monthString(moveInDate.getFullYear(), moveInDate.getMonth() + 1);
     for (const m of monthRange(moveInMonth, lastMonthStr)) {
       const chargesForMonth = tenantBase.room.recurringCharges
-        .filter(c => (c.tenantId === null || c.tenantId === tenantBase.id) && (!c.effectiveFrom || c.effectiveFrom <= m))
+        .filter(c => (c.tenantId === null || c.tenantId === tenantBase.id)
+          && (!c.effectiveFrom || c.effectiveFrom <= m)
+          && (!c.effectiveTo   || m <= c.effectiveTo))
         .reduce((s, c) => s + c.amount, 0);
       const baseAmount = tenantBase.room.monthlyRent + chargesForMonth;
 
@@ -405,7 +407,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
             breakdown: tenant.room ? {
               baseRent: tenant.room.monthlyRent,
               charges:  tenant.room.recurringCharges
-                .filter(c => (c.tenantId === null || c.tenantId === tenant.id) && (!c.effectiveFrom || c.effectiveFrom <= p.month))
+                .filter(c => (c.tenantId === null || c.tenantId === tenant.id)
+                  && (!c.effectiveFrom || c.effectiveFrom <= p.month)
+                  && (!c.effectiveTo   || p.month <= c.effectiveTo))
                 .map(c => ({ title: c.title, amount: c.amount })),
             } : undefined,
           }))}

@@ -11,6 +11,10 @@ ALTER TABLE `Tenant`
   ADD COLUMN IF NOT EXISTS `meterReadingAutoAccept` tinyint(1)   NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS `electricityRate`        double       DEFAULT NULL;
 
+-- ── 1b. RecurringCharge — end month (Stop instead of delete) ─────────────────
+ALTER TABLE `RecurringCharge`
+  ADD COLUMN IF NOT EXISTS `effectiveTo` varchar(191) DEFAULT NULL;
+
 -- ── 2. Unique index for portalToken ──────────────────────────────────────────
 -- Skip this statement if you get "Duplicate key name" — the index already exists
 ALTER TABLE `Tenant` ADD UNIQUE INDEX `Tenant_portalToken_key` (`portalToken`);

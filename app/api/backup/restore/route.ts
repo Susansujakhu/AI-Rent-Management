@@ -136,6 +136,7 @@ export async function POST(req: Request) {
           title:         c.title         as string,
           amount:        Number(c.amount),
           effectiveFrom: c.effectiveFrom as string | null ?? null,
+          effectiveTo:   c.effectiveTo   as string | null ?? null,
           createdAt:     new Date(c.createdAt as string),
         }});
       }

@@ -70,7 +70,9 @@ async function runMonthlyPaymentGeneration(): Promise<void> {
     const recurringTotal = (tenant.room.recurringCharges ?? [])
       .filter(c => {
         if (c.tenantId && c.tenantId !== tenant.id) return false;
-        return !c.effectiveFrom || c.effectiveFrom <= month;
+        if (c.effectiveFrom && c.effectiveFrom > month) return false;
+        if (c.effectiveTo   && c.effectiveTo   < month) return false;
+        return true;
       })
       .reduce((sum, c) => sum + c.amount, 0);
 

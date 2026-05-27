@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { currentMonth } from "@/lib/utils";
+import { currentMonth, formatMonth } from "@/lib/utils";
 
-type Charge = { id: string; title: string; amount: number; effectiveFrom: string | null };
+type Charge = { id: string; title: string; amount: number; effectiveFrom: string | null; effectiveTo: string | null };
 
 export function TenantRecurringChargesPanel({
   tenantId,
@@ -30,6 +30,9 @@ export function TenantRecurringChargesPanel({
   const [saving, setSaving] = useState(false);
   const [titleErr, setTitleErr] = useState("");
   const [amountErr, setAmountErr] = useState("");
+  const [stoppingId, setStoppingId] = useState<string | null>(null);
+  const [stopMonth,  setStopMonth]  = useState(currentMonth());
+  const [stopping,   setStopping]   = useState(false);
 
   const fmt = (n: number) => `${currencySymbol}${n.toLocaleString()}`;
 
@@ -66,6 +69,40 @@ export function TenantRecurringChargesPanel({
     }
   };
 
+  const handleStop = async (chargeId: string) => {
+    setStopping(true);
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/charges/${chargeId}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ effectiveTo: stopMonth }),
+      });
+      if (!res.ok) { const d = await res.json().catch(() => null) as { error?: string } | null; throw new Error(d?.error || ""); }
+      setStoppingId(null);
+      toast.success(`Charge stopped — billed through ${formatMonth(stopMonth)}`);
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error && e.message ? e.message : "Failed to stop charge");
+    } finally {
+      setStopping(false);
+    }
+  };
+
+  const handleResume = async (chargeId: string) => {
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/charges/${chargeId}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ effectiveTo: null }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Charge resumed");
+      router.refresh();
+    } catch {
+      toast.error("Failed to resume charge");
+    }
+  };
+
   const handleDelete = async (chargeId: string) => {
     try {
       const res = await fetch(`/api/rooms/${roomId}/charges/${chargeId}`, { method: "DELETE" });
@@ -95,12 +132,14 @@ export function TenantRecurringChargesPanel({
             {roomCharges.map((c) => (
               <div key={c.id} className="flex items-center justify-between py-2">
                 <div>
-                  <span className="text-sm text-slate-600 dark:text-slate-400">{c.title}</span>
-                  {c.effectiveFrom && (
-                    <span className="ml-2 text-xs text-slate-400">from {c.effectiveFrom}</span>
+                  <span className={`text-sm ${c.effectiveTo ? "text-slate-400 line-through" : "text-slate-600 dark:text-slate-400"}`}>{c.title}</span>
+                  {(c.effectiveFrom || c.effectiveTo) && (
+                    <span className="ml-2 text-xs text-slate-400">
+                      {c.effectiveFrom ? `from ${formatMonth(c.effectiveFrom)}` : ""}{c.effectiveTo ? ` to ${formatMonth(c.effectiveTo)}` : ""}
+                    </span>
                   )}
                 </div>
-                <span className="text-sm text-slate-700 dark:text-slate-300">{fmt(c.amount)}/mo</span>
+                <span className={`text-sm ${c.effectiveTo ? "text-slate-400" : "text-slate-700 dark:text-slate-300"}`}>{fmt(c.amount)}/mo</span>
               </div>
             ))}
           </div>
@@ -116,22 +155,62 @@ export function TenantRecurringChargesPanel({
           <p className="text-sm text-slate-400 mb-2">No tenant-specific charges.</p>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800 mb-2">
-            {tenantCharges.map((c) => (
-              <div key={c.id} className="flex items-center justify-between py-2">
-                <div>
-                  <span className="text-sm text-slate-700 dark:text-slate-300">{c.title}</span>
-                  {c.effectiveFrom && (
-                    <span className="ml-2 text-xs text-slate-400">from {c.effectiveFrom}</span>
+            {tenantCharges.map((c) => {
+              const ended = !!c.effectiveTo;
+              const isStopping = stoppingId === c.id;
+              return (
+                <div key={c.id} className="py-2">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0">
+                      <span className={`text-sm ${ended ? "text-slate-400 line-through" : "text-slate-700 dark:text-slate-300"}`}>{c.title}</span>
+                      {(c.effectiveFrom || ended) && (
+                        <span className="ml-2 text-xs text-slate-400">
+                          {c.effectiveFrom ? `from ${formatMonth(c.effectiveFrom)}` : ""}{ended ? ` to ${formatMonth(c.effectiveTo!)}` : ""}
+                        </span>
+                      )}
+                      {ended && <span className="ml-1.5 text-[11px] font-semibold text-rose-400">· stopped</span>}
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`text-sm font-medium ${ended ? "text-slate-400" : "text-slate-900 dark:text-white"}`}>{fmt(c.amount)}/mo</span>
+                      {ended ? (
+                        <>
+                          <button onClick={() => handleResume(c.id)} className="text-xs text-indigo-500 hover:text-indigo-700">Resume</button>
+                          <button onClick={() => handleDelete(c.id)} className="text-xs text-rose-500 hover:text-rose-700">Delete</button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => { setStoppingId(isStopping ? null : c.id); setStopMonth(currentMonth() < (c.effectiveFrom ?? moveInMonth) ? (c.effectiveFrom ?? moveInMonth) : currentMonth()); }}
+                          className="text-xs text-rose-500 hover:text-rose-700"
+                        >
+                          Stop
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {isStopping && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2.5">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Stop after</span>
+                      <input
+                        type="month"
+                        value={stopMonth}
+                        min={c.effectiveFrom ?? moveInMonth}
+                        onChange={(e) => setStopMonth(e.target.value)}
+                        className="border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-400/50"
+                      />
+                      <button
+                        onClick={() => handleStop(c.id)}
+                        disabled={stopping}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white disabled:opacity-50 transition-colors"
+                      >
+                        {stopping ? "Stopping…" : "Confirm stop"}
+                      </button>
+                      <button onClick={() => setStoppingId(null)} className="text-xs px-2 py-1.5 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Cancel</button>
+                      <span className="text-[11px] text-slate-400 w-full">Billed through {formatMonth(stopMonth)}; removed from later months. Past months are unchanged.</span>
+                    </div>
                   )}
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-slate-900 dark:text-white">{fmt(c.amount)}/mo</span>
-                  <button onClick={() => handleDelete(c.id)} className="text-xs text-rose-500 hover:text-rose-700">
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -168,6 +247,7 @@ export function TenantRecurringChargesPanel({
                 onChange={(e) => setEffectiveFrom(e.target.value)}
                 className="border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800 dark:text-slate-200"
               />
+              {effectiveFrom && <span className="text-xs text-slate-400 whitespace-nowrap">({formatMonth(effectiveFrom)})</span>}
             </div>
             <button
               onClick={handleAdd}

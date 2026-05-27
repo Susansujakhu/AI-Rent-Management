@@ -21,12 +21,13 @@ export async function GET(
       userId:  user.id,
       OR: [{ tenantId: null }, { tenantId: payment.tenantId }],
     },
-    select: { title: true, amount: true, effectiveFrom: true },
+    select: { title: true, amount: true, effectiveFrom: true, effectiveTo: true },
     orderBy: { createdAt: "asc" },
   });
 
   const charges = allCharges
-    .filter(c => !c.effectiveFrom || c.effectiveFrom <= payment.month)
+    .filter(c => (!c.effectiveFrom || c.effectiveFrom <= payment.month)
+              && (!c.effectiveTo   || payment.month <= c.effectiveTo))
     .map(c => ({ title: c.title, amount: c.amount }));
 
   return NextResponse.json({ baseRent: payment.room.monthlyRent, charges });

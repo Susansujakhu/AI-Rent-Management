@@ -23,7 +23,8 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
   const activeCharges = payment.room.recurringCharges
     .filter(c =>
       (c.tenantId === null || c.tenantId === payment.tenantId) &&
-      (!c.effectiveFrom || c.effectiveFrom <= payment.month),
+      (!c.effectiveFrom || c.effectiveFrom <= payment.month) &&
+      (!c.effectiveTo   || payment.month <= c.effectiveTo),
     )
     .map(c => ({ title: c.title, amount: c.amount }));
 

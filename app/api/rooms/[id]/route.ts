@@ -41,7 +41,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     include: { recurringCharges: true },
   });
 
-  const newAmountDue = newRent + room.recurringCharges.reduce((s, c) => s + c.amount, 0);
+  const newAmountDue = newRent + room.recurringCharges.filter(c => !c.effectiveTo).reduce((s, c) => s + c.amount, 0);
   await prisma.payment.updateMany({
     where: { roomId: id, userId, status: "PENDING", amountPaid: 0 },
     data:  { amountDue: newAmountDue },

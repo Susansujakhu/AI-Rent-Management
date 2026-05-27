@@ -54,7 +54,9 @@ export async function generatePaymentsFromMoveIn(
     const recurringTotal = room.recurringCharges
       .filter(c => {
         if (c.tenantId && c.tenantId !== tenantId) return false;
-        return !c.effectiveFrom || c.effectiveFrom <= m;
+        if (c.effectiveFrom && c.effectiveFrom > m) return false;
+        if (c.effectiveTo   && c.effectiveTo   < m) return false;
+        return true;
       })
       .reduce((sum, c) => sum + c.amount, 0);
 

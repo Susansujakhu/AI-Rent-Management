@@ -255,6 +255,7 @@ model RecurringCharge {
   title         String
   amount        Float
   effectiveFrom String?
+  effectiveTo   String?  // last month this charge applies (YYYY-MM); null = still active
   createdAt     DateTime @default(now())
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)

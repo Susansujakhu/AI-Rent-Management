@@ -239,7 +239,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
       breakdown: {
         baseRent: p.room.monthlyRent,
         charges:  p.room.recurringCharges
-          .filter(c => (c.tenantId === null || c.tenantId === p.tenantId) && (!c.effectiveFrom || c.effectiveFrom <= p.month))
+          .filter(c => (c.tenantId === null || c.tenantId === p.tenantId)
+            && (!c.effectiveFrom || c.effectiveFrom <= p.month)
+            && (!c.effectiveTo   || p.month <= c.effectiveTo))
           .map(c => ({ title: c.title, amount: c.amount })),
       },
     })),
