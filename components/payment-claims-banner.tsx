@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Bell, CheckCircle2, X, CreditCard, Clock, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
+import { Bell, X, CreditCard, Clock, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
 
 interface Claim {
   id:             string;
@@ -133,14 +133,6 @@ export function PaymentClaimsBanner({ currencySymbol }: { currencySymbol: string
                       <ImageIcon size={12} /> Screenshot
                     </a>
                   )}
-                  {/* For when the owner already recorded it elsewhere */}
-                  <button
-                    onClick={() => resolve(c.id, "confirm")}
-                    disabled={acting === c.id}
-                    className="flex items-center gap-1.5 text-xs border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
-                  >
-                    <CheckCircle2 size={12} /> Mark done
-                  </button>
                   <button
                     onClick={() => resolve(c.id, "reject")}
                     disabled={acting === c.id}
@@ -157,7 +149,7 @@ export function PaymentClaimsBanner({ currencySymbol }: { currencySymbol: string
 
       <div className="px-5 py-2.5 bg-slate-50/60 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800">
         <p className="text-[11px] text-slate-400">
-          These are tenant reports, not confirmed payments. <span className="font-semibold text-slate-500 dark:text-slate-300">Verify &amp; record</span> takes you to the payment screen and clears the report automatically. Use <span className="font-semibold text-slate-500 dark:text-slate-300">Mark done</span> only if you already recorded it elsewhere.
+          These are tenant reports, not confirmed payments. <span className="font-semibold text-slate-500 dark:text-slate-300">Verify &amp; record</span> opens the payment screen and clears the report once you save it. <span className="font-semibold text-slate-500 dark:text-slate-300">Dismiss</span> rejects a report that didn&apos;t arrive.
         </p>
       </div>
     </div>
