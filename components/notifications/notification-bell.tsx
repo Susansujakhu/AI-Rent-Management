@@ -2,6 +2,7 @@
 
 import { Bell, CheckCheck, Zap, X } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useNotifications } from "@/lib/notification-context";
 import { cn } from "@/lib/utils";
 
@@ -15,10 +16,24 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+// Where a notification should take the owner when tapped. Returns null for
+// notifications with no actionable destination (they just mark read).
+function destinationFor(type: string, data: string | null): string | null {
+  if (type === "payment_claim_submitted") return "/payments";
+  if (type.startsWith("meter_reading")) {
+    try {
+      const parsed = data ? JSON.parse(data) as { tenantId?: string } : null;
+      if (parsed?.tenantId) return `/tenants/${parsed.tenantId}`;
+    } catch { /* ignore */ }
+  }
+  return null;
+}
+
 export function NotificationBell() {
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Close on outside click
   useEffect(() => {
@@ -92,13 +107,19 @@ export function NotificationBell() {
                 <p className="text-sm text-slate-500">No notifications yet</p>
               </div>
             ) : (
-              notifications.map(n => (
+              notifications.map(n => {
+                const dest = destinationFor(n.type, n.data);
+                return (
                 <button
                   key={n.id}
-                  onClick={() => { markRead(n.id); }}
+                  onClick={() => {
+                    markRead(n.id);
+                    if (dest) { setOpen(false); router.push(dest); }
+                  }}
                   className={cn(
                     "w-full text-left px-4 py-3 hover:bg-slate-800/40 transition-colors flex gap-3 items-start",
-                    !n.read && "bg-indigo-500/5"
+                    !n.read && "bg-indigo-500/5",
+                    dest && "cursor-pointer"
                   )}
                 >
                   <div className="w-7 h-7 rounded-full bg-amber-500/15 flex items-center justify-center shrink-0 mt-0.5">
@@ -118,7 +139,8 @@ export function NotificationBell() {
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 shrink-0" />
                   )}
                 </button>
-              ))
+                );
+              })
             )}
           </div>
         </div>
