@@ -106,11 +106,12 @@ export function PaymentClaimsBanner({ currencySymbol }: { currencySymbol: string
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* Primary: recording the payment auto-confirms this claim */}
                   <Link
                     href={recordHref}
                     className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-bold transition-colors"
                   >
-                    <CreditCard size={12} /> Record payment
+                    <CreditCard size={12} /> Verify &amp; record
                   </Link>
                   {c.screenshotPath && (
                     <a
@@ -121,17 +122,18 @@ export function PaymentClaimsBanner({ currencySymbol }: { currencySymbol: string
                       <ImageIcon size={12} /> Screenshot
                     </a>
                   )}
+                  {/* For when the owner already recorded it elsewhere */}
                   <button
                     onClick={() => resolve(c.id, "confirm")}
                     disabled={acting === c.id}
                     className="flex items-center gap-1.5 text-xs border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
                   >
-                    <CheckCircle2 size={12} /> Confirm
+                    <CheckCircle2 size={12} /> Mark done
                   </button>
                   <button
                     onClick={() => resolve(c.id, "reject")}
                     disabled={acting === c.id}
-                    className="flex items-center gap-1.5 text-xs border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-xs border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
                   >
                     <X size={12} /> Dismiss
                   </button>
@@ -144,7 +146,7 @@ export function PaymentClaimsBanner({ currencySymbol }: { currencySymbol: string
 
       <div className="px-5 py-2.5 bg-slate-50/60 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800">
         <p className="text-[11px] text-slate-400">
-          These are tenant reports, not confirmed payments. Verify the money arrived, record it, then Confirm.
+          These are tenant reports, not confirmed payments. <span className="font-semibold text-slate-500 dark:text-slate-300">Verify &amp; record</span> takes you to the payment screen and clears the report automatically. Use <span className="font-semibold text-slate-500 dark:text-slate-300">Mark done</span> only if you already recorded it elsewhere.
         </p>
       </div>
     </div>

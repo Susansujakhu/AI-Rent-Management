@@ -261,6 +261,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     include: { tenant: true, room: true },
   });
 
+  // Recording a payment IS the confirmation of any tenant-reported claim
+  // linked to this bill — auto-resolve it so the owner doesn't have to
+  // separately confirm. (Best effort — never block the payment on this.)
+  await prisma.paymentClaim
+    .updateMany({
+      where: { userId, paymentId: id, status: "pending" },
+      data:  { status: "confirmed", reviewedAt: new Date() },
+    })
+    .catch(() => {});
+
   if (isPro(auth) && updated && await isWhatsAppReady() && updated.tenant.phone && updated.amountPaid > 0 && updated.tenant.whatsappNotify) {
     const settings = await getSettings(userId);
     const fmt      = (n: number) => formatCurrency(n, settings.currencySymbol);
