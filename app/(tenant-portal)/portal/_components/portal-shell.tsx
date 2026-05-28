@@ -19,6 +19,10 @@ export function PortalShell({
 }) {
   const pathname = usePathname();
   const router   = useRouter();
+  // Token-URL flow (/portal/<token>/...) has no session to clear — the URL itself
+  // authorises. Only show Sign out for the OTP cookie-session flow (/portal/...),
+  // where it actually does something useful (e.g. shared-device sign-off).
+  const isTokenFlow = pathname.startsWith(`/portal/${token}`);
 
   const BASE_NAV = [
     { href: `/portal/${token}/dashboard`,   label: "Dashboard",   icon: LayoutDashboard },
@@ -94,18 +98,20 @@ export function PortalShell({
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="px-3 py-4 border-t border-slate-100">
-          <button
-            onClick={handleSignOut}
-            className="w-full group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-150"
-          >
-            <span className="flex items-center justify-center w-7 h-7 rounded-lg group-hover:bg-rose-100 transition-colors">
-              <LogOut size={15} />
-            </span>
-            Sign out
-          </button>
-        </div>
+        {/* Footer — Sign out only in cookie-session flow */}
+        {!isTokenFlow && (
+          <div className="px-3 py-4 border-t border-slate-100">
+            <button
+              onClick={handleSignOut}
+              className="w-full group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-150"
+            >
+              <span className="flex items-center justify-center w-7 h-7 rounded-lg group-hover:bg-rose-100 transition-colors">
+                <LogOut size={15} />
+              </span>
+              Sign out
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* ── Mobile top header ────────────────────────────────────────── */}
@@ -120,12 +126,14 @@ export function PortalShell({
               {roomName && <p className="text-slate-400 text-xs">{roomName}</p>}
             </div>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-slate-400 hover:text-rose-500 text-xs font-medium transition-colors p-2 rounded-lg hover:bg-rose-50"
-          >
-            <LogOut size={15} />
-          </button>
+          {!isTokenFlow && (
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-1.5 text-slate-400 hover:text-rose-500 text-xs font-medium transition-colors p-2 rounded-lg hover:bg-rose-50"
+            >
+              <LogOut size={15} />
+            </button>
+          )}
         </div>
       </header>
 

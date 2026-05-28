@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { ThemeProvider } from "next-themes";
 import { SWRegister } from "@/components/sw-register";
+import { DoubleBackToHome } from "./_components/double-back-to-home";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AppShell>{children}</AppShell>
           <Toaster richColors position="top-right" />
           <SWRegister />
+          <DoubleBackToHome />
         </ThemeProvider>
       </body>
     </html>

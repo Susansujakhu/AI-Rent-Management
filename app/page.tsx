@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { LandingNavbar } from "./_components/landing-navbar";
 import { AddRoomDemo, AddTenantDemo, TrackCollectDemo } from "./_components/how-it-works-demos";
+import { RedirectIfStandalone } from "./_components/redirect-if-standalone";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { prisma } from "@/lib/prisma";
 
@@ -499,6 +500,7 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#faf9f6] dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden">
+      <RedirectIfStandalone />
       <LandingNavbar />
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
