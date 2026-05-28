@@ -893,6 +893,12 @@
       "regex": "^/upgrade(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/upgrade(?:/)?$"
+    },
+    {
+      "page": "/welcome",
+      "regex": "^/welcome(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/welcome(?:/)?$"
     }
   ],
   "dataRoutes": [],

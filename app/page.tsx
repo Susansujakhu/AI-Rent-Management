@@ -506,11 +506,13 @@ export default async function LandingPage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-transparentbg.png" alt="EasyRent" className="w-32 h-32 object-contain" />
       </div>
-      {/* Inline redirect — short delay so the splash is actually visible. */}
+      {/* Inline redirect — short delay so the splash is actually visible.
+          First-launch installs (no onboarded flag) get the /welcome carousel
+          instead of /dashboard. */}
       <script
         dangerouslySetInnerHTML={{
           __html:
-            "(function(){try{var s=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches;var i=window.navigator.standalone===true;var a=document.referrer&&document.referrer.indexOf('android-app://')===0;if(s||i||a)setTimeout(function(){window.location.replace('/dashboard');},550);}catch(e){}})();",
+            "(function(){try{var s=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches;var i=window.navigator.standalone===true;var a=document.referrer&&document.referrer.indexOf('android-app://')===0;if(s||i||a){var ob=false;try{ob=localStorage.getItem('er:onboarded')==='1';}catch(e){}setTimeout(function(){window.location.replace(ob?'/dashboard':'/welcome');},550);}}catch(e){}})();",
         }}
       />
       <LandingNavbar />

@@ -8,7 +8,7 @@ import { NotificationProvider } from "@/lib/notification-context";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage    = pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password" || pathname === "/reset-password";
+  const isAuthPage    = pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password" || pathname === "/reset-password" || pathname === "/welcome";
   const isPortalPage  = pathname.startsWith("/portal");
   const isAdminPage   = pathname.startsWith("/admin");
   const isLandingPage = pathname === "/";
