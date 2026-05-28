@@ -384,3 +384,17 @@ body {
   .scroll-reveal-delay-2 { animation-delay: 120ms; }
   .scroll-reveal-delay-3 { animation-delay: 180ms; }
 }
+
+/* Standalone (PWA / TWA) launch splash — covers the landing page while the
+   client-side redirect to /dashboard fires, so the user sees the logo instead
+   of a flash of marketing content. CSS media query so it shows before any JS. */
+.standalone-splash { display: none; }
+@media (display-mode: standalone) {
+  .standalone-splash { display: flex !important; }
+}
+@keyframes splash-pulse {
+  0%, 100% { opacity: 1;    transform: scale(1);    }
+  50%      { opacity: 0.85; transform: scale(0.96); }
+}
+.standalone-splash > * { animation: splash-pulse 1.4s ease-in-out infinite; }
+

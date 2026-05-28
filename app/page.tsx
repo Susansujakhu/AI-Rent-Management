@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { LandingNavbar } from "./_components/landing-navbar";
 import { AddRoomDemo, AddTenantDemo, TrackCollectDemo } from "./_components/how-it-works-demos";
-import { RedirectIfStandalone } from "./_components/redirect-if-standalone";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { prisma } from "@/lib/prisma";
 
@@ -500,7 +499,20 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#faf9f6] dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden">
-      <RedirectIfStandalone />
+      {/* Launch splash for installed PWA / TWA — shown via CSS media query
+          (no JS needed) so the logo paints immediately while the redirect
+          fires, instead of the marketing content flashing. */}
+      <div className="standalone-splash fixed inset-0 z-[100] items-center justify-center bg-white dark:bg-slate-950 pointer-events-none">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-transparentbg.png" alt="EasyRent" className="w-32 h-32 object-contain" />
+      </div>
+      {/* Inline redirect — short delay so the splash is actually visible. */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html:
+            "(function(){try{var s=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches;var i=window.navigator.standalone===true;var a=document.referrer&&document.referrer.indexOf('android-app://')===0;if(s||i||a)setTimeout(function(){window.location.replace('/dashboard');},550);}catch(e){}})();",
+        }}
+      />
       <LandingNavbar />
 
       {/* ── Hero ─────────────────────────────────────────────────── */}

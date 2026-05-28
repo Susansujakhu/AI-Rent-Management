@@ -191,8 +191,7 @@ export function SignupForm() {
                   <select
                     value={countryCode}
                     onChange={e => setCountryCode(e.target.value)}
-                    className="bg-slate-50 text-slate-700 text-sm px-3 py-3.5 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0"
-                    style={{ maxWidth: "90px" }}
+                    className="bg-slate-50 text-slate-700 text-sm px-3 py-3.5 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0 min-w-[5.5rem]"
                   >
                     {COUNTRY_CODES.map(c => (
                       <option key={c.code} value={c.code}>+{c.code}</option>

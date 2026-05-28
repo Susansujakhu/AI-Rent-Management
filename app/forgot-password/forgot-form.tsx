@@ -104,8 +104,7 @@ export function ForgotPasswordForm() {
                 <select
                   value={countryCode}
                   onChange={e => setCountryCode(e.target.value)}
-                  className="bg-white/15 text-white text-sm px-3 py-3.5 border-r border-white/15 focus:outline-none cursor-pointer shrink-0"
-                  style={{ maxWidth: "90px" }}
+                  className="bg-white/15 text-white text-sm px-3 py-3.5 border-r border-white/15 focus:outline-none cursor-pointer shrink-0 min-w-[5.5rem]"
                 >
                   {COUNTRY_CODES.map(c => (
                     <option key={c.code} value={c.code} style={{ background: "#1e1b4b" }}>
