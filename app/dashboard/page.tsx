@@ -7,6 +7,7 @@ import { getSettings } from "@/lib/settings";
 import { Building2, Users, TrendingUp, AlertTriangle, DoorOpen, CreditCard, Receipt, ChevronRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { CollectionChart } from "@/components/collection-chart";
 import { MonthPicker } from "@/components/month-picker";
+import { SetupChecklist } from "./setup-checklist";
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -198,6 +199,15 @@ export default async function DashboardPage({
 
   const isPastMonth = month < cur;
 
+  // First-run setup signals — drive the Get-started checklist card.
+  const [tenantCount, paidPaymentCount] = await Promise.all([
+    prisma.tenant.count({ where: { userId: user.id } }),
+    prisma.payment.count({ where: { userId: user.id, amountPaid: { gt: 0 } } }),
+  ]);
+  const hasRooms    = totalRooms       > 0;
+  const hasTenants  = tenantCount      > 0;
+  const hasPayments = paidPaymentCount > 0;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -210,6 +220,9 @@ export default async function DashboardPage({
         </div>
         <MonthPicker months={availableMonths} selected={month} currentMonth={cur} />
       </div>
+
+      {/* First-run setup checklist — self-hides once everything's done or dismissed */}
+      <SetupChecklist hasRooms={hasRooms} hasTenants={hasTenants} hasPayments={hasPayments} />
 
       {/* Past-month notice */}
       {isPastMonth && (
