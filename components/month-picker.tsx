@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { useClampPopover } from "@/lib/use-clamp-popover";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -27,6 +28,7 @@ export function MonthPicker({ months, selected, currentMonth }: {
   const panelRef  = useRef<HTMLDivElement>(null);
   const [open,    setOpen]    = useState(false);
   const [viewYear, setViewYear] = useState(() => parseInt(selected.split("-")[0]));
+  useClampPopover(open, panelRef);
 
   // Close on outside click / Escape
   useEffect(() => {
@@ -90,7 +92,7 @@ export function MonthPicker({ months, selected, currentMonth }: {
       {open && (
         <div
           ref={panelRef}
-          className="absolute right-0 sm:right-auto sm:left-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-w-[calc(100vw-1rem)] w-[min(280px,calc(100vw-1rem))]"
+          className="absolute left-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-w-[calc(100vw-1rem)] w-[min(280px,calc(100vw-1rem))]"
         >
           {/* Header — indigo gradient with year nav */}
           <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 px-4 py-3 flex items-center justify-between">

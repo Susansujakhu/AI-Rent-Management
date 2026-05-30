@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Users, ChevronDown, Check } from "lucide-react";
+import { useClampPopover } from "@/lib/use-clamp-popover";
 
 export interface TenantOption {
   id:   string;
@@ -15,6 +16,7 @@ export function TenantPicker({ tenants, value }: { tenants: TenantOption[]; valu
   const [open, setOpen] = useState(false);
   const btnRef   = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  useClampPopover(open, panelRef);
 
   useEffect(() => {
     if (!open) return;

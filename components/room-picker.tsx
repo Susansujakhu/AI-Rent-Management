@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Home, ChevronDown, Check } from "lucide-react";
+import { useClampPopover } from "@/lib/use-clamp-popover";
 
 export interface RoomOption {
   id:   string;
@@ -15,6 +16,7 @@ export function RoomPicker({ rooms, value }: { rooms: RoomOption[]; value: strin
   const [open, setOpen] = useState(false);
   const btnRef   = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  useClampPopover(open, panelRef);
 
   useEffect(() => {
     if (!open) return;

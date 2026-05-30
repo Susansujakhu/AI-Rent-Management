@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useClampPopover } from "@/lib/use-clamp-popover";
 import {
   Users, ChevronDown, X, MessageCircle, Receipt,
   ExternalLink, CreditCard, Bell, CheckCircle2,
@@ -181,6 +182,7 @@ function TenantDropdown({ names, value, onChange }: {
   const [open, setOpen] = useState(false);
   const btnRef   = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  useClampPopover(open, panelRef);
 
   useEffect(() => {
     if (!open) return;
@@ -215,7 +217,7 @@ function TenantDropdown({ names, value, onChange }: {
 
       {open && (
         <div ref={panelRef}
-          className="absolute top-full right-0 sm:right-auto sm:left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden py-1 max-w-[calc(100vw-1rem)]"
+          className="absolute top-full left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden py-1 max-w-[calc(100vw-1rem)]"
           style={{ minWidth: 180 }}>
           <button
             onClick={() => { onChange(""); setOpen(false); }}
@@ -258,6 +260,7 @@ function DateRangeChip({ dateFrom, dateTo, onDateFrom, onDateTo }: {
   const [open, setOpen] = useState(false);
   const btnRef   = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  useClampPopover(open, panelRef);
 
   useEffect(() => {
     if (!open) return;
@@ -292,7 +295,7 @@ function DateRangeChip({ dateFrom, dateTo, onDateFrom, onDateTo }: {
 
       {open && (
         <div ref={panelRef}
-          className="absolute top-full right-0 sm:right-auto sm:left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden max-w-[calc(100vw-1rem)]"
+          className="absolute top-full left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden max-w-[calc(100vw-1rem)]"
           style={{ minWidth: 256 }}
         >
           {/* Header */}
