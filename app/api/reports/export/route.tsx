@@ -3,11 +3,24 @@ import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { requireAuthAPI } from "@/lib/auth";
 import { isPro, planLimitResponse } from "@/lib/plan";
+import {
+  SummaryDocument,
+  PaymentsDocument,
+  ExpensesDocument,
+  TenantsDocument,
+  renderPdf,
+} from "@/lib/report-pdf";
 
-function csvCell(value: string | number): string {
-  const s = String(value);
-  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
-  return `"${safe.replace(/"/g, '""')}"`;
+export const runtime = "nodejs";
+
+function pdfResponse(buf: Buffer, filename: string) {
+  return new NextResponse(new Uint8Array(buf), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}.pdf"`,
+      "Cache-Control": "no-store",
+    },
+  });
 }
 
 export async function GET(req: Request) {
@@ -28,8 +41,8 @@ export async function GET(req: Request) {
   // Validate tenant/room belong to this user before honouring the filter.
   const tenantParam = searchParams.get("tenantId");
   const roomParam   = searchParams.get("roomId");
-  const tenantOwned = tenantParam ? await prisma.tenant.findFirst({ where: { id: tenantParam, userId }, select: { id: true, roomId: true } }) : null;
-  const roomOwned   = roomParam   ? await prisma.room.findFirst({   where: { id: roomParam,   userId }, select: { id: true                  } }) : null;
+  const tenantOwned = tenantParam ? await prisma.tenant.findFirst({ where: { id: tenantParam, userId }, select: { id: true, name: true, roomId: true } }) : null;
+  const roomOwned   = roomParam   ? await prisma.room.findFirst({   where: { id: roomParam,   userId }, select: { id: true, name: true              } }) : null;
   const tenantId    = tenantOwned?.id ?? null;
   const roomId      = roomOwned?.id   ?? null;
   // Expenses are room-scoped — when a tenant is selected, narrow expenses to
@@ -41,6 +54,12 @@ export async function GET(req: Request) {
 
   const settings = await getSettings(userId);
   const sym      = settings.currencySymbol;
+  const generated = new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" });
+
+  const filterParts: string[] = [];
+  if (tenantOwned) filterParts.push(`Tenant: ${tenantOwned.name}`);
+  if (roomOwned)   filterParts.push(`Room: ${roomOwned.name}`);
+  const subtitleSuffix = filterParts.length ? `  ·  ${filterParts.join("  ·  ")}` : "";
 
   // ── Tenants export ──────────────────────────────────────────────────────────
   if (type === "tenants") {
@@ -49,20 +68,27 @@ export async function GET(req: Request) {
       include: { room: { select: { name: true } } },
       orderBy: { createdAt: "asc" },
     });
-    const header = ["Name", "Phone", "Email", "Room", "Move-in Date", "Move-out Date", `Deposit (${sym})`, `Credit Balance (${sym})`, "Status"].map(csvCell).join(",");
-    const rows   = tenants.map(t => [
-      t.name, t.phone, t.email ?? "", t.room?.name ?? "",
-      t.moveInDate.toLocaleDateString("en"),
-      t.moveOutDate ? t.moveOutDate.toLocaleDateString("en") : "",
-      t.deposit, t.creditBalance,
-      t.moveOutDate ? "Moved Out" : "Active",
-    ].map(csvCell).join(","));
-    return new NextResponse([header, ...rows].join("\n"), {
-      headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="tenants-${year}${namePart}.csv"`,
-      },
-    });
+    const rows = tenants.map(t => ({
+      name:    t.name,
+      phone:   t.phone,
+      email:   t.email ?? "",
+      room:    t.room?.name ?? "",
+      moveIn:  t.moveInDate.toLocaleDateString("en"),
+      moveOut: t.moveOutDate ? t.moveOutDate.toLocaleDateString("en") : "",
+      deposit: t.deposit,
+      credit:  t.creditBalance,
+      status:  t.moveOutDate ? "Moved Out" : "Active",
+    }));
+    const buf = await renderPdf(
+      <TenantsDocument
+        title="Tenants Report"
+        subtitle={`${year}${subtitleSuffix}`}
+        generated={generated}
+        sym={sym}
+        rows={rows}
+      />,
+    );
+    return pdfResponse(buf, `tenants-${year}${namePart}`);
   }
 
   // ── Payments export ─────────────────────────────────────────────────────────
@@ -72,20 +98,27 @@ export async function GET(req: Request) {
       include: { tenant: { select: { name: true } }, room: { select: { name: true } } },
       orderBy: [{ month: "desc" }, { tenant: { name: "asc" } }],
     });
-    const header = ["Month", "Tenant", "Room", `Rent Due (${sym})`, `Paid (${sym})`, `Balance (${sym})`, "Status", "Paid Date", "Method"].map(csvCell).join(",");
-    const rows   = payments.map(p => [
-      p.month, p.tenant.name, p.room.name,
-      p.amountDue, p.amountPaid, p.amountDue - p.amountPaid,
-      p.status,
-      p.paidDate ? p.paidDate.toLocaleDateString("en") : "",
-      p.method ?? "",
-    ].map(csvCell).join(","));
-    return new NextResponse([header, ...rows].join("\n"), {
-      headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="payments-${year}${namePart}.csv"`,
-      },
-    });
+    const rows = payments.map(p => ({
+      month:    p.month,
+      tenant:   p.tenant.name,
+      room:     p.room.name,
+      due:      p.amountDue,
+      paid:     p.amountPaid,
+      balance:  p.amountDue - p.amountPaid,
+      status:   p.status,
+      paidDate: p.paidDate ? p.paidDate.toLocaleDateString("en") : "",
+      method:   p.method ?? "",
+    }));
+    const buf = await renderPdf(
+      <PaymentsDocument
+        title="Payments Report"
+        subtitle={`${year}${subtitleSuffix}`}
+        generated={generated}
+        sym={sym}
+        rows={rows}
+      />,
+    );
+    return pdfResponse(buf, `payments-${year}${namePart}`);
   }
 
   // ── Expenses export ─────────────────────────────────────────────────────────
@@ -95,17 +128,24 @@ export async function GET(req: Request) {
       include: { room: { select: { name: true } } },
       orderBy: { date: "desc" },
     });
-    const header = ["Date", "Title", "Category", `Amount (${sym})`, "Room", "Description"].map(csvCell).join(",");
-    const rows   = expenses.map(e => [
-      e.date.toLocaleDateString("en"), e.title, e.category,
-      e.amount, e.room?.name ?? "", e.description ?? "",
-    ].map(csvCell).join(","));
-    return new NextResponse([header, ...rows].join("\n"), {
-      headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="expenses-${year}${namePart}.csv"`,
-      },
-    });
+    const rows = expenses.map(e => ({
+      date:        e.date.toLocaleDateString("en"),
+      title:       e.title,
+      category:    e.category,
+      amount:      e.amount,
+      room:        e.room?.name ?? "",
+      description: e.description ?? "",
+    }));
+    const buf = await renderPdf(
+      <ExpensesDocument
+        title="Expenses Report"
+        subtitle={`${year}${subtitleSuffix}`}
+        generated={generated}
+        sym={sym}
+        rows={rows}
+      />,
+    );
+    return pdfResponse(buf, `expenses-${year}${namePart}`);
   }
 
   // ── Summary report (default) ────────────────────────────────────────────────
@@ -143,16 +183,23 @@ export async function GET(req: Request) {
     const col = payByMonth[m]?.col ?? 0;
     const exp = expByMonth[m] ?? 0;
     const rate = due > 0 ? `${Math.round((col / due) * 100)}%` : "—";
-    return [label(m), due, col, rate, exp, col - exp].map(csvCell).join(",");
+    return { month: label(m), due, col, rate, exp, net: col - exp };
   });
 
-  const header = ["Month", `Rent Due (${sym})`, `Collected (${sym})`, "Collection Rate", `Expenses (${sym})`, `Net Income (${sym})`].map(csvCell).join(",");
-  const csv = [header, ...rows].join("\n");
+  const totals = rows.reduce(
+    (a, r) => ({ due: a.due + r.due, col: a.col + r.col, exp: a.exp + r.exp, net: a.net + r.net }),
+    { due: 0, col: 0, exp: 0, net: 0 },
+  );
 
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv",
-      "Content-Disposition": `attachment; filename="rent-report-${year}${namePart}.csv"`,
-    },
-  });
+  const buf = await renderPdf(
+    <SummaryDocument
+      title="Rent Collection Summary"
+      subtitle={`${year}${subtitleSuffix}`}
+      generated={generated}
+      sym={sym}
+      rows={rows}
+      totals={totals}
+    />,
+  );
+  return pdfResponse(buf, `rent-report-${year}${namePart}`);
 }

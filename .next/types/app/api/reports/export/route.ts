@@ -1,4 +1,4 @@
-// File: D:\Projects\Rent Calculator\rent-manager\app\api\reports\export\route.ts
+// File: D:\Projects\Rent Calculator\rent-manager\app\api\reports\export\route.tsx
 import * as entry from '../../../../../../app/api/reports/export/route.js'
 import type { NextRequest } from 'next/server.js'
 

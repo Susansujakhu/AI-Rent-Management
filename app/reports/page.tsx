@@ -215,7 +215,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 className="inline-flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 text-slate-400 px-3 py-2 rounded-xl text-sm font-semibold cursor-not-allowed select-none"
               >
                 <Lock size={14} />
-                Export CSV
+                Export PDF
                 <span className="ml-1 text-[10px] font-bold bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">PRO</span>
               </span>
             )}
