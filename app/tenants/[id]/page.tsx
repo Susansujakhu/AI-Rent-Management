@@ -349,8 +349,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
                         className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors"
                       >
                         <Plus size={12} />
-                        <span className="hidden sm:inline">Add Payment</span>
-                        <span className="sm:hidden">Pay</span>
+                        Add Payment
                       </Link>
                     )}
                   </div>

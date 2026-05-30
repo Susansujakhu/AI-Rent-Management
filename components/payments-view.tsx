@@ -215,7 +215,7 @@ function TenantDropdown({ names, value, onChange }: {
 
       {open && (
         <div ref={panelRef}
-          className="absolute top-full left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden py-1"
+          className="absolute top-full right-0 sm:right-auto sm:left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden py-1 max-w-[calc(100vw-1rem)]"
           style={{ minWidth: 180 }}>
           <button
             onClick={() => { onChange(""); setOpen(false); }}
@@ -292,7 +292,7 @@ function DateRangeChip({ dateFrom, dateTo, onDateFrom, onDateTo }: {
 
       {open && (
         <div ref={panelRef}
-          className="absolute top-full left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden"
+          className="absolute top-full right-0 sm:right-auto sm:left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden max-w-[calc(100vw-1rem)]"
           style={{ minWidth: 256 }}
         >
           {/* Header */}
@@ -820,7 +820,7 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro, initi
                             <>
                               <Link href={`/payments/${g.paymentId}/pay`}
                                 className="flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-bold transition-colors">
-                                <CreditCard size={11} />Pay
+                                <CreditCard size={11} />Add Payment
                               </Link>
                               {g.tenantPhone && g.whatsappNotify && isPro && (
                                 <button

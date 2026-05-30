@@ -130,17 +130,17 @@ export default async function TenantsPage({ searchParams }: { searchParams: Prom
                 >
                   {/* Top row: avatar + name + status */}
                   <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div
                         className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-lg bg-gradient-to-br ${gradient} text-white shadow-sm shrink-0`}
                       >
                         {tenant.name.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-700 transition-colors leading-tight">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-700 transition-colors leading-tight truncate">
                           {tenant.name}
                         </p>
-                        <p className="text-xs font-medium text-indigo-500 mt-0.5">
+                        <p className="text-xs font-medium text-indigo-500 mt-0.5 truncate">
                           {tenant.room ? tenant.room.name : (
                             <span className="text-amber-500">No room</span>
                           )}

@@ -353,7 +353,7 @@ export function OneTimeChargesPanel({
                             {c.status !== "PAID" && (
                               <Link href={`/tenants/${tenantId}/one-time-charge/${c.id}/pay`}
                                 className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
-                                Pay
+                                Add Payment
                               </Link>
                             )}
                             {canEdit && !isVoiding && (
@@ -445,7 +445,7 @@ export function OneTimeChargesPanel({
                       {c.status !== "PAID" && (
                         <Link href={`/tenants/${tenantId}/one-time-charge/${c.id}/pay`}
                           className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
-                          Pay
+                          Add Payment
                         </Link>
                       )}
                       {canEdit && (

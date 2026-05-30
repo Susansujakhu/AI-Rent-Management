@@ -57,7 +57,7 @@ export function TenantPicker({ tenants, value }: { tenants: TenantOption[]; valu
 
       {open && (
         <div ref={panelRef}
-          className="absolute top-full right-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden py-1 max-h-72 overflow-y-auto"
+          className="absolute top-full right-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden py-1 max-h-72 overflow-y-auto max-w-[calc(100vw-1rem)]"
           style={{ minWidth: 200 }}
         >
           <button

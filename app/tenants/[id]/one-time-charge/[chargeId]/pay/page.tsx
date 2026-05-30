@@ -94,7 +94,7 @@ export default function PayOneTimeChargePage() {
           <CreditCard size={18} className="text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pay One-time Charge</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Record Payment</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 truncate max-w-xs">{charge.title}</p>
         </div>
       </div>

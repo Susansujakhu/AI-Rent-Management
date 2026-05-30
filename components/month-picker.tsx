@@ -90,8 +90,7 @@ export function MonthPicker({ months, selected, currentMonth }: {
       {open && (
         <div
           ref={panelRef}
-          className="absolute left-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden"
-          style={{ minWidth: 280 }}
+          className="absolute right-0 sm:right-auto sm:left-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-w-[calc(100vw-1rem)] w-[min(280px,calc(100vw-1rem))]"
         >
           {/* Header — indigo gradient with year nav */}
           <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 px-4 py-3 flex items-center justify-between">

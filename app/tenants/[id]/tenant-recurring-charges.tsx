@@ -216,8 +216,8 @@ export function TenantRecurringChargesPanel({
 
         {/* Add tenant-specific charge form */}
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
-          <div className="flex gap-2">
-            <div className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex-1 min-w-0">
               <input
                 value={title}
                 onChange={(e) => { setTitle(e.target.value); if (e.target.value.trim()) setTitleErr(""); }}
@@ -226,19 +226,19 @@ export function TenantRecurringChargesPanel({
               />
               {titleErr && <p className="text-rose-500 text-xs mt-1">{titleErr}</p>}
             </div>
-            <div>
+            <div className="sm:w-28">
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => { setAmount(e.target.value); if (Number(e.target.value) > 0) setAmountErr(""); }}
                 placeholder={`Amount ${currencySymbol}`}
-                className={`w-28 border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-slate-200 ${amountErr ? "border-rose-400" : ""}`}
+                className={`w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-slate-200 ${amountErr ? "border-rose-400" : ""}`}
               />
               {amountErr && <p className="text-rose-500 text-xs mt-1">{amountErr}</p>}
             </div>
           </div>
-          <div className="flex gap-2 items-center">
-            <div className="flex items-center gap-2 flex-1">
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
               <label className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">Effective from</label>
               <input
                 type="month"
@@ -252,7 +252,7 @@ export function TenantRecurringChargesPanel({
             <button
               onClick={handleAdd}
               disabled={saving}
-              className="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="w-full sm:w-auto bg-indigo-600 text-white px-4 py-2 sm:py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
               Add
             </button>

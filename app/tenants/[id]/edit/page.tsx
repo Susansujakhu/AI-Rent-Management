@@ -64,8 +64,8 @@ export default function EditTenantPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 space-y-5">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2">
             <label className={label}>Full Name <span className="text-rose-500 normal-case">*</span></label>
             <input {...register("name", { required: "Name is required" })} className={field} placeholder="e.g. Ravi Kumar" />
             {errors.name && <p className={err}>{errors.name.message}</p>}

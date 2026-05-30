@@ -414,7 +414,7 @@ export function AllPaymentsTable({
                     {r.rowType === "payment" && r.status !== "PAID" && (
                       <Link href={`/payments/${r.id}/pay`}
                         className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 font-semibold transition-colors">
-                        Pay
+                        Add Payment
                       </Link>
                     )}
                     {r.rowType === "charge" && r.status !== "PAID" && (

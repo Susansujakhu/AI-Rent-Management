@@ -396,7 +396,7 @@ export default async function DashboardPage({
                   <StatusBadge status={p.status} />
                   {p.status !== "PAID" && (
                     <Link href={`/payments/${p.id}/pay`} className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-medium transition-colors">
-                      Pay
+                      Add Payment
                     </Link>
                   )}
                 </div>
