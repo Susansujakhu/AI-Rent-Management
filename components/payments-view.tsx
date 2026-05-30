@@ -777,12 +777,12 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro, initi
                 return (
                   <div key={g.key} className={g.status === "OVERDUE" ? "border-l-2 border-rose-400" : ""}>
                     {/* Main row */}
-                    <div className="px-5 py-3.5 flex items-center gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                    <div className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                       <div className="flex items-center gap-2.5 flex-1 min-w-0">
                         {!tenant && <TenantAvatar name={g.tenantName} size="sm" />}
                         <div className="min-w-0 flex-1">
                           {!tenant && <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{g.tenantName}</p>}
-                          <p className={`text-sm font-semibold text-slate-800 dark:text-slate-200 truncate ${tenant ? "" : "mt-0.5"}`}>
+                          <p className={`text-sm font-semibold text-slate-800 dark:text-slate-200 break-words sm:truncate ${tenant ? "" : "mt-0.5"}`}>
                             {g.periodLabel}
                           </p>
                           {isMulti ? (
@@ -806,37 +806,39 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro, initi
                           )}
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-base font-black text-slate-900 dark:text-white">{fmt(balance)}</p>
-                        {g.totalPaid > 0 && <p className="text-xs text-slate-400">{fmt(g.totalPaid)} paid</p>}
-                      </div>
-                      <span className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shrink-0 ${colorCls}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[g.status] ?? "bg-slate-400"}`} />
-                        {g.status}
-                      </span>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {g.paymentId ? (
-                          <>
-                            <Link href={`/payments/${g.paymentId}/pay`}
-                              className="flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-bold transition-colors">
-                              <CreditCard size={11} />Pay
-                            </Link>
-                            {g.tenantPhone && g.whatsappNotify && isPro && (
-                              <button
-                                onClick={async () => {
-                                  const res = await fetch("/api/whatsapp/send-reminder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentId: g.paymentId, type: g.status === "OVERDUE" ? "overdue" : "due" }) });
-                                  const d = await res.json() as { error?: string };
-                                  if (!res.ok) toast.error(d.error ?? "Failed"); else toast.success("Reminder sent ✅");
-                                }}
-                                title="Send WhatsApp reminder"
-                                className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10 rounded-lg transition-colors">
-                                <Bell size={14} />
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <Link href={`/tenants/${g.tenantId}`} className="text-xs text-indigo-600 font-semibold hover:underline">View →</Link>
-                        )}
+                      <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
+                        <div className="text-left sm:text-right shrink-0">
+                          <p className="text-base font-black text-slate-900 dark:text-white">{fmt(balance)}</p>
+                          {g.totalPaid > 0 && <p className="text-xs text-slate-400">{fmt(g.totalPaid)} paid</p>}
+                        </div>
+                        <span className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shrink-0 ${colorCls}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[g.status] ?? "bg-slate-400"}`} />
+                          {g.status}
+                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {g.paymentId ? (
+                            <>
+                              <Link href={`/payments/${g.paymentId}/pay`}
+                                className="flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-bold transition-colors">
+                                <CreditCard size={11} />Pay
+                              </Link>
+                              {g.tenantPhone && g.whatsappNotify && isPro && (
+                                <button
+                                  onClick={async () => {
+                                    const res = await fetch("/api/whatsapp/send-reminder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentId: g.paymentId, type: g.status === "OVERDUE" ? "overdue" : "due" }) });
+                                    const d = await res.json() as { error?: string };
+                                    if (!res.ok) toast.error(d.error ?? "Failed"); else toast.success("Reminder sent ✅");
+                                  }}
+                                  title="Send WhatsApp reminder"
+                                  className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10 rounded-lg transition-colors">
+                                  <Bell size={14} />
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <Link href={`/tenants/${g.tenantId}`} className="text-xs text-indigo-600 font-semibold hover:underline">View →</Link>
+                          )}
+                        </div>
                       </div>
                     </div>
 

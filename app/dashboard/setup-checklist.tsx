@@ -86,7 +86,7 @@ export function SetupChecklist({
               )}
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-semibold ${
-                  s.done ? "text-slate-400 line-through" : "text-slate-800 dark:text-slate-200"
+                  s.done ? "text-emerald-600 dark:text-emerald-400" : "text-slate-800 dark:text-slate-200"
                 }`}>
                   {s.label}
                 </p>

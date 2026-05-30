@@ -3,17 +3,11 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
 import { MoveOutButton } from "./move-out-button";
-import { WhatsAppToggle } from "./whatsapp-toggle";
-import { TenantRecurringChargesPanel } from "./tenant-recurring-charges";
-import { PortalAccessCard } from "./portal-access";
-import { PaymentLedger } from "./payment-ledger";
-import { OneTimeChargesPanel } from "./one-time-charges-panel";
 import { getSettings } from "@/lib/settings";
-import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, CheckCircle2, Sparkles, MessageCircle, FileText, Settings, Receipt } from "lucide-react";
+import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, CheckCircle2, Sparkles, FileText, CreditCard, Plus } from "lucide-react";
 import { TenantDocumentsPanel } from "./tenant-documents";
-import { TenantElectricityPanel } from "./tenant-electricity-panel";
 import { CollapsibleGroup } from "./collapsible-group";
 
 function monthString(year: number, month: number) {
@@ -62,9 +56,7 @@ const AVATAR_COLORS = [
 export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { requireAuth } = await import("@/lib/auth");
-  const { isPro } = await import("@/lib/plan");
   const user = await requireAuth();
-  const pro  = isPro(user);
 
   const tenantBase = await prisma.tenant.findUnique({
     where: { id, userId: user.id },
@@ -150,11 +142,6 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
   const settings     = await getSettings(user.id);
   const fmt          = (n: number) => formatCurrency(n, settings.currencySymbol);
-  const rateSetting  = await prisma.setting.findUnique({ where: { userId_key: { userId: user.id, key: "electricityRate" } } });
-  const electricityRate = parseFloat(rateSetting?.value ?? "0") || 0;
-  const tenantRate    = tenant.electricityRate ?? null;
-  const effectiveRate = (tenantRate && tenantRate > 0) ? tenantRate : electricityRate;
-  const portalEnabled = process.env.TENANT_PORTAL_ENABLED === "true";
 
   const isActive         = !tenant.moveOutDate;
   const totalCollected   = tenant.payments.reduce((sum, p) => sum + p.amountPaid, 0) + tenant.oneTimeCharges.reduce((sum, c) => sum + c.amountPaid, 0);
@@ -327,98 +314,51 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         <TenantDocumentsPanel tenantId={id} />
       </CollapsibleGroup>
 
-      {/* Charges & Electricity — recurring + one-time charges and meter readings */}
-      <CollapsibleGroup
-        title="Charges & Electricity"
-        subtitle="Recurring & one-time charges, meter readings"
-        icon={<Receipt size={15} />}
-      >
-        {isActive && tenant.room && (
-          <TenantRecurringChargesPanel
-            tenantId={id}
-            roomId={tenant.room.id}
-            roomCharges={tenant.room.recurringCharges.filter(c => c.tenantId === null)}
-            tenantCharges={tenant.room.recurringCharges.filter(c => c.tenantId === id)}
-            currencySymbol={settings.currencySymbol}
-            moveInMonth={`${tenant.moveInDate.getFullYear()}-${String(tenant.moveInDate.getMonth() + 1).padStart(2, "0")}`}
-          />
-        )}
-        <OneTimeChargesPanel
-          tenantId={id}
-          charges={tenant.oneTimeCharges.map(c => ({
-            id:        c.id,
-            title:     c.title,
-            amount:    c.amount,
-            amountPaid: c.amountPaid,
-            date:      c.date.toISOString(),
-            status:    c.status,
-            notes:     c.notes,
-          }))}
-          currencySymbol={settings.currencySymbol}
-          isActive={isActive}
-        />
-        <TenantElectricityPanel
-          tenantId={id}
-          defaultRate={effectiveRate}
-          globalRate={electricityRate}
-          tenantRate={tenantRate}
-          currencySymbol={settings.currencySymbol}
-          canSubmit={tenant.canSubmitMeterReading}
-          autoAccept={tenant.meterReadingAutoAccept}
-          portalEnabled={portalEnabled}
-        />
-      </CollapsibleGroup>
-
-      {/* Settings & Access — set-once configuration, kept at the bottom */}
-      <CollapsibleGroup
-        title="Settings & Access"
-        subtitle="Notifications, meter readings & portal link"
-        icon={<Settings size={15} />}
-      >
-        <WhatsAppToggle tenantId={id} enabled={tenant.whatsappNotify} />
-        {process.env.TENANT_PORTAL_ENABLED === "true" && (
-          <PortalAccessCard
-            tenantId={id}
-            tenantName={tenant.name}
-            tenantPhone={tenant.phone}
-            portalEnabled={tenant.portalEnabled}
-            portalToken={tenant.portalToken ?? null}
-            isPro={pro}
-          />
-        )}
-      </CollapsibleGroup>
-
-      {/* Payment Ledger — primary money view, kept last */}
+      {/* Payment History — compact list of this tenant's months. */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-          <h2 className="font-bold text-slate-900 dark:text-white text-sm">Payment Ledger</h2>
-          <p className="text-xs text-slate-400 mt-0.5">{tenant.payments.length} months recorded</p>
+          <h2 className="font-bold text-slate-900 dark:text-white text-sm">Payment History</h2>
+          <p className="text-xs text-slate-400 mt-0.5">{tenant.payments.length} month{tenant.payments.length !== 1 ? "s" : ""} recorded</p>
         </div>
-        <PaymentLedger
-          payments={tenant.payments.map(p => ({
-            id:        p.id,
-            month:     p.month,
-            amountDue: p.amountDue,
-            amountPaid: p.amountPaid,
-            paidDate:  p.paidDate?.toISOString() ?? null,
-            method:    p.method,
-            status:    p.status,
-            notes:     p.notes,
-            breakdown: tenant.room ? {
-              baseRent: tenant.room.monthlyRent,
-              charges:  tenant.room.recurringCharges
-                .filter(c => (c.tenantId === null || c.tenantId === tenant.id)
-                  && (!c.effectiveFrom || c.effectiveFrom <= p.month)
-                  && (!c.effectiveTo   || p.month <= c.effectiveTo))
-                .map(c => ({ title: c.title, amount: c.amount })),
-            } : undefined,
-          }))}
-          currencySymbol={settings.currencySymbol}
-          isPro={pro}
-          tenantPhone={tenant.phone}
-          whatsappNotify={tenant.whatsappNotify}
-          moveInDay={tenant.moveInDate.getDate()}
-        />
+        {tenant.payments.length === 0 ? (
+          <div className="p-12 text-center">
+            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3">
+              <CreditCard size={18} className="text-slate-300 dark:text-slate-600" />
+            </div>
+            <p className="text-sm text-slate-400">No payments recorded yet.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-50 dark:divide-slate-800">
+            {tenant.payments.map(p => {
+              const needsPayment = p.status === "PENDING" || p.status === "PARTIAL" || p.status === "OVERDUE";
+              return (
+                <div key={p.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{formatMonth(p.month)}</p>
+                    {p.room && <p className="text-xs text-slate-400">{p.room.name}</p>}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right hidden sm:block">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">{fmt(p.amountPaid)}</p>
+                      <p className="text-xs text-slate-400">of {fmt(p.amountDue)}</p>
+                    </div>
+                    <StatusBadge status={p.status} />
+                    {needsPayment && (
+                      <Link
+                        href={`/payments/${p.id}/pay`}
+                        className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors"
+                      >
+                        <Plus size={12} />
+                        <span className="hidden sm:inline">Add Payment</span>
+                        <span className="sm:hidden">Pay</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
