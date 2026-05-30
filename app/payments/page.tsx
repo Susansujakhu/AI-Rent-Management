@@ -83,14 +83,15 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         whatsappNotify: t.payment.tenant.whatsappNotify,
         paidAt:         t.paidAt.toISOString(),
         method:         t.method,
-        // totalEntered on initiating txn covers the full cash (incl. one-time charges)
-        // fall back to summing amounts if legacy record without totalEntered
-        total:          (t.totalEntered ?? 0) > 0 ? t.totalEntered : t.amount + (t.creditAmount ?? 0),
+        // Start at 0; total is accumulated below from each txn (or replaced
+        // by totalEntered when one of the txns carries the full session sum).
+        total:          0,
         lines:          [],
       });
     }
     const s = sessionMap.get(key)!;
-    // If a later txn has totalEntered set, use it (it's the initiating one)
+    // totalEntered (set on one txn per session) is the source of truth when present.
+    // Otherwise (legacy records without totalEntered) we sum amount+creditAmount.
     if ((t.totalEntered ?? 0) > 0) s.total = t.totalEntered;
     else if (!(rawTxns.some(x => `${x.payment.tenantId}_${x.paidAt.toISOString()}` === key && (x.totalEntered ?? 0) > 0))) {
       s.total += t.amount + (t.creditAmount ?? 0);

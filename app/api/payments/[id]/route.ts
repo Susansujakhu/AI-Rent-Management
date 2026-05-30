@@ -120,9 +120,19 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: `method must be one of: ${PAYMENT_METHODS.join(", ")}` }, { status: 400 });
   }
 
-  const txPaidAt = body.paidDate && !isNaN(new Date(body.paidDate).getTime())
-    ? new Date(body.paidDate)
-    : new Date();
+  // paidDate from the form is just "YYYY-MM-DD" which parses to midnight UTC.
+  // Two payments recorded on the same date would collide into one paidAt and
+  // get merged into one "session" by the /payments grouping logic. Use the
+  // current time-of-day so each recording is its own session, while keeping
+  // the user's chosen calendar date intact (for back-dating).
+  const txPaidAt = (() => {
+    const d = body.paidDate && !isNaN(new Date(body.paidDate).getTime())
+      ? new Date(body.paidDate)
+      : new Date();
+    const now = new Date();
+    d.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+    return d;
+  })();
 
   let remaining = totalEntered;
 
@@ -262,20 +272,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
   }
 
-  // Create transaction records — creditAmount is only set on the initiating payment
-  for (const u of updates) {
-    const isInitiating = u.paymentId === id;
+  // Create transaction records. totalEntered/creditAmount/notes live on a
+  // single "anchor" row per session so /payments can compute the correct
+  // session total. Prefer the initiating payment when it's in updates;
+  // otherwise fall back to the first update (older bills consumed everything).
+  const initiatingIdx = updates.findIndex(u => u.paymentId === id);
+  const anchorIdx     = initiatingIdx >= 0 ? initiatingIdx : 0;
+  for (let i = 0; i < updates.length; i++) {
+    const u        = updates[i];
+    const isAnchor = i === anchorIdx;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (prisma as any).paymentTransaction.create({
       data: {
         userId,
         paymentId:    u.paymentId,
         amount:       u.apply,
-        creditAmount: isInitiating ? creditGenerated : 0,
-        totalEntered: isInitiating ? totalEntered : 0,
+        creditAmount: isAnchor ? creditGenerated : 0,
+        totalEntered: isAnchor ? totalEntered    : 0,
         method:       body.method || null,
         paidAt:       txPaidAt,
-        note:         isInitiating ? (body.notes || null) : null,
+        note:         isAnchor ? (body.notes || null) : null,
       },
     });
   }
