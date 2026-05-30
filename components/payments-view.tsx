@@ -295,7 +295,7 @@ function DateRangeChip({ dateFrom, dateTo, onDateFrom, onDateTo }: {
 
       {open && (
         <div ref={panelRef}
-          className="absolute top-full left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden max-w-[calc(100vw-1rem)]"
+          className="absolute top-full left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden max-w-[calc(100vw-1rem)] w-[min(calc(100vw-1rem),18rem)] sm:w-auto"
           style={{ minWidth: 256 }}
         >
           {/* Header */}
@@ -305,7 +305,7 @@ function DateRangeChip({ dateFrom, dateTo, onDateFrom, onDateTo }: {
           </div>
 
           <div className="p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">From</label>
                 <input type="date" value={dateFrom} onChange={e => onDateFrom(e.target.value)}
