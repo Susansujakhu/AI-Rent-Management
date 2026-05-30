@@ -382,11 +382,28 @@ function SessionDrawer({ session, fmt, isPro, canVoid, onClose, onVoided }: {
   const handleVoid = async () => {
     setVoiding(true);
     try {
-      for (const pid of paymentIds) {
-        const res = await fetch(`/api/payments/${pid}`, { method: "DELETE" });
+      // Modern sessions (those with PaymentTransaction rows) go through the
+      // session-scoped void endpoint so we only reverse this session, not
+      // other payments touching the same Payment row. Legacy sessions (keys
+      // prefixed with "legacy_") don't have transaction rows — fall back to
+      // the per-Payment DELETE which clears the bill entirely.
+      if (session.key.startsWith("legacy_")) {
+        for (const pid of paymentIds) {
+          const res = await fetch(`/api/payments/${pid}`, { method: "DELETE" });
+          if (!res.ok) {
+            const d = await res.json().catch(() => ({})) as { error?: string };
+            throw new Error(d.error ?? "Failed to void payment");
+          }
+        }
+      } else {
+        const res = await fetch("/api/payments/sessions/void", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ tenantId: session.tenantId, paidAt: session.paidAt }),
+        });
         if (!res.ok) {
           const d = await res.json().catch(() => ({})) as { error?: string };
-          throw new Error(d.error ?? "Failed to void payment");
+          throw new Error(d.error ?? "Failed to void session");
         }
       }
       toast.success("Payment voided");

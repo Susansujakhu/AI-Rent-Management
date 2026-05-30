@@ -601,6 +601,12 @@
       "namedRegex": "^/api/payments/generate(?:/)?$"
     },
     {
+      "page": "/api/payments/sessions/void",
+      "regex": "^/api/payments/sessions/void(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/payments/sessions/void(?:/)?$"
+    },
+    {
       "page": "/api/portal/charges",
       "regex": "^/api/portal/charges(?:/)?$",
       "routeKeys": {},

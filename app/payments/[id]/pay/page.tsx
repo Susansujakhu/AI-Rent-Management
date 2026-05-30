@@ -92,8 +92,24 @@ function buildCoveragePreview(
     }
   }
 
-  // 1) Initiating payment first (full or partial)
-  const initiating = allUnpaid.find(u => u.id === initiatingId);
+  const initiating      = allUnpaid.find(u => u.id === initiatingId);
+  const initiatingMonth = initiating?.month;
+
+  // 1) Older unpaid months (before initiating) — oldest first, partial allowed
+  if (initiatingMonth) {
+    for (const u of allUnpaid) {
+      if (remaining <= 0) break;
+      if (u.id === initiatingId) continue;
+      if (u.month >= initiatingMonth) continue;
+      const bal = u.amountDue - u.amountPaid;
+      if (bal <= 0) continue;
+      const apply = Math.min(remaining, bal);
+      preview.push({ kind: "payment", label: formatMonth(u.month), amount: apply, full: apply >= bal, remainingAfter: bal - apply });
+      remaining -= apply;
+    }
+  }
+
+  // 2) Initiating payment (full or partial)
   if (initiating && remaining > 0) {
     const bal = initiating.amountDue - initiating.amountPaid;
     if (bal > 0) {
@@ -103,20 +119,21 @@ function buildCoveragePreview(
     }
   }
 
-  // 2) Cascade to other unpaid months — only full clearance (mirrors the
-  //    backend in app/api/payments/[id]/route.ts)
-  for (const u of allUnpaid) {
-    if (remaining <= 0) break;
-    if (u.id === initiatingId) continue;
-    const bal = u.amountDue - u.amountPaid;
-    if (bal <= 0) continue;
-    if (remaining < bal) break;
-    preview.push({ kind: "payment", label: formatMonth(u.month), amount: bal, full: true, remainingAfter: 0 });
-    remaining -= bal;
+  // 3) Newer unpaid months — full clearance only (mirrors backend)
+  if (initiatingMonth) {
+    for (const u of allUnpaid) {
+      if (remaining <= 0) break;
+      if (u.id === initiatingId) continue;
+      if (u.month <= initiatingMonth) continue;
+      const bal = u.amountDue - u.amountPaid;
+      if (bal <= 0) continue;
+      if (remaining < bal) break;
+      preview.push({ kind: "payment", label: formatMonth(u.month), amount: bal, full: true, remainingAfter: 0 });
+      remaining -= bal;
+    }
   }
 
-  // 3) Whatever's left after that goes to the tenant's credit balance —
-  //    the backend does this and the user should see it before submitting.
+  // 4) Whatever's left goes to the tenant's credit balance.
   if (remaining > 0) {
     preview.push({ kind: "credit", amount: remaining });
   }
@@ -147,7 +164,7 @@ export default function PayPage() {
   const today = new Date().toISOString().split("T")[0];
 
   const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } =
-    useForm<FormData>({ defaultValues: { method: "CASH", paidDate: today } });
+    useForm<FormData>({ defaultValues: { method: "CASH", paidDate: today, applyToOneTimeCharges: true } });
 
   const watchedAmount   = useWatch({ control, name: "amountPaid" });
   const applyToOneTime  = useWatch({ control, name: "applyToOneTimeCharges" });
@@ -191,6 +208,7 @@ export default function PayPage() {
               method:    mapClaimMethod(claimMethod),
               paidDate:  claimDate || today,
               notes:     reportedBits,
+              applyToOneTimeCharges: true,
             });
           } else {
             reset({
@@ -198,6 +216,7 @@ export default function PayPage() {
               method:    data.method ?? "CASH",
               paidDate:  today,
               notes:     data.notes  ?? "",
+              applyToOneTimeCharges: true,
             });
           }
         });

@@ -163,11 +163,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   // ── Payment distribution ─────────────────────────────────────────────────
   // Rules:
-  //  • Apply to the initiating payment FIRST (the one user clicked Pay on),
-  //    even if it stays partial.
-  //  • Only cascade to OTHER unpaid months if remaining >= that month's full balance.
-  //    This prevents a small overpayment (e.g. रू100 extra) from creating a confusing
-  //    PARTIAL status on the next month — it goes to credit instead.
+  //  • Clear OLDER unpaid months first (oldest first, partial allowed on each).
+  //    Outstanding past debt should disappear before this month is touched.
+  //  • Then apply to the initiating payment (the one user clicked Pay on),
+  //    fully or partial as the remaining cash allows.
+  //  • Cascade to NEWER months only if remaining covers the full balance —
+  //    avoids stray PARTIAL rows in future months from a small overpayment.
+  //  • Anything left → tenant credit balance.
 
   const allUnpaid = await prisma.payment.findMany({
     where: { userId, tenantId: current.tenantId, status: { not: "PAID" } },
@@ -177,8 +179,29 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   // Collect updates without applying yet (need credit total first)
   const updates: { paymentId: string; month: string; amountDue: number; apply: number; newPaid: number; newStatus: string }[] = [];
 
-  // 1) Initiating payment first — fully apply (or partial if not enough)
-  const initiating = allUnpaid.find(p => p.id === id);
+  const initiating      = allUnpaid.find(p => p.id === id);
+  const initiatingMonth = initiating?.month ?? current.month;
+
+  // 1) OLDER unpaid months (before initiating) — oldest first, partial allowed
+  for (const p of allUnpaid) {
+    if (remaining <= 0) break;
+    if (p.id === id) continue;
+    if (p.month >= initiatingMonth) continue;
+    const balance = p.amountDue - p.amountPaid;
+    if (balance <= 0) continue;
+    const apply = Math.min(remaining, balance);
+    remaining  -= apply;
+    updates.push({
+      paymentId: p.id,
+      month:     p.month,
+      amountDue: p.amountDue,
+      apply,
+      newPaid:   p.amountPaid + apply,
+      newStatus: resolveStatus(p.amountPaid + apply, p.amountDue, p.status === "OVERDUE"),
+    });
+  }
+
+  // 2) Initiating payment — fully apply (or partial if not enough)
   if (initiating && remaining > 0) {
     const balance = initiating.amountDue - initiating.amountPaid;
     if (balance > 0) {
@@ -195,10 +218,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
   }
 
-  // 2) Cascade to OTHER unpaid months (oldest first) — only full clearance
+  // 3) NEWER unpaid months — full clearance only (avoid stray partial on future)
   for (const p of allUnpaid) {
     if (remaining <= 0) break;
     if (p.id === id) continue;
+    if (p.month <= initiatingMonth) continue;
     const balance = p.amountDue - p.amountPaid;
     if (balance <= 0) continue;
     if (remaining < balance) break;
