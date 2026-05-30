@@ -342,7 +342,7 @@ export function PaymentSessionsTable({
                   {r.type === "payment" && (
                     <>
                       <Link href={`/payments/${r.id}/pay`}
-                        className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 font-semibold transition-colors">
+                        className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 font-semibold transition-colors whitespace-nowrap">
                         Add Payment
                       </Link>
                       {r.tenantPhone && r.whatsappNotify && isPro && (

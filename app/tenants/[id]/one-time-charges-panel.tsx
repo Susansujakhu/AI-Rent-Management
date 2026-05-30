@@ -352,7 +352,7 @@ export function OneTimeChargesPanel({
                           <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             {c.status !== "PAID" && (
                               <Link href={`/tenants/${tenantId}/one-time-charge/${c.id}/pay`}
-                                className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                                className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium whitespace-nowrap">
                                 Add Payment
                               </Link>
                             )}
@@ -444,7 +444,7 @@ export function OneTimeChargesPanel({
                     <div className="flex items-center gap-2 pt-0.5 flex-wrap">
                       {c.status !== "PAID" && (
                         <Link href={`/tenants/${tenantId}/one-time-charge/${c.id}/pay`}
-                          className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                          className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium whitespace-nowrap">
                           Add Payment
                         </Link>
                       )}

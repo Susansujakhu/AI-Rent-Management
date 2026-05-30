@@ -346,7 +346,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
                     {needsPayment && (
                       <Link
                         href={`/payments/${p.id}/pay`}
-                        className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
                       >
                         <Plus size={12} />
                         Add Payment

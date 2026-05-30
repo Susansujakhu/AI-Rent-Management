@@ -324,7 +324,7 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
                   {p.status !== "PAID" && (
                     <>
                       <Link href={`/payments/${p.id}/pay`}
-                        className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                        className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium whitespace-nowrap">
                         Add Payment
                       </Link>
                       <SendReminderButton
@@ -414,7 +414,7 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
                       {p.status !== "PAID" && (
                         <>
                           <Link href={`/payments/${p.id}/pay`}
-                            className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                            className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium whitespace-nowrap">
                             Add Payment
                           </Link>
                           <SendReminderButton

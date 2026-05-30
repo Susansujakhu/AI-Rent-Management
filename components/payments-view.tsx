@@ -822,7 +822,7 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro, initi
                           {g.paymentId ? (
                             <>
                               <Link href={`/payments/${g.paymentId}/pay`}
-                                className="flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-bold transition-colors">
+                                className="flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-bold transition-colors whitespace-nowrap">
                                 <CreditCard size={11} />Add Payment
                               </Link>
                               {g.tenantPhone && g.whatsappNotify && isPro && (

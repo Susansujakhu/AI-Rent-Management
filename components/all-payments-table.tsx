@@ -413,7 +413,7 @@ export function AllPaymentsTable({
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {r.rowType === "payment" && r.status !== "PAID" && (
                       <Link href={`/payments/${r.id}/pay`}
-                        className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 font-semibold transition-colors">
+                        className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 font-semibold transition-colors whitespace-nowrap">
                         Add Payment
                       </Link>
                     )}

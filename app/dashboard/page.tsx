@@ -378,24 +378,24 @@ export default async function DashboardPage({
         ) : (
           <div className="divide-y divide-app-divider">
             {selectedMonthPayments.map((p) => (
-              <div key={p.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-app-row-hover transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xs font-bold">
+              <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-app-row-hover transition-colors">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xs font-bold shrink-0">
                     {p.tenant.name.charAt(0)}
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{p.tenant.name}</p>
-                    <p className="text-xs text-slate-400">{p.room.name}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{p.tenant.name}</p>
+                    <p className="text-xs text-slate-400 truncate">{p.room.name}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right hidden sm:block">
                     <p className="text-sm font-bold text-slate-900 dark:text-white">{fmt(p.amountPaid)}</p>
                     <p className="text-xs text-slate-400">of {fmt(p.amountDue)}</p>
                   </div>
                   <StatusBadge status={p.status} />
                   {p.status !== "PAID" && (
-                    <Link href={`/payments/${p.id}/pay`} className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-medium transition-colors">
+                    <Link href={`/payments/${p.id}/pay`} className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-medium transition-colors whitespace-nowrap">
                       Add Payment
                     </Link>
                   )}

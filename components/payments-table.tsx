@@ -472,7 +472,7 @@ export function PaymentsTable({
                       <div className="flex items-center gap-1.5">
                         <Link
                           href={`/payments/${p.id}/pay`}
-                          className="inline-flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+                          className="inline-flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-indigo-700 transition-colors whitespace-nowrap"
                         >
                           <CreditCard size={11} />
                           Add Payment
@@ -549,7 +549,7 @@ export function PaymentsTable({
                       <ReminderButton paymentId={p.id} status={p.status} />
                       <Link
                         href={`/payments/${p.id}/pay`}
-                        className="inline-flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-semibold transition-colors"
+                        className="inline-flex items-center gap-1.5 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-semibold transition-colors whitespace-nowrap"
                       >
                         <CreditCard size={11} />
                         Add Payment
