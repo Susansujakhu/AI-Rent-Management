@@ -135,7 +135,7 @@ function TransactionHistory({ paymentId, fmt }: { paymentId: string; fmt: (n: nu
   const [txns,    setTxns]    = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
-  const [pos,     setPos]     = useState({ top: 0, right: 0 });
+  const [pos,     setPos]     = useState<{ top: number; right?: number; left?: number }>({ top: 0, right: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
 
   // Close on Escape or outside click
@@ -156,13 +156,18 @@ function TransactionHistory({ paymentId, fmt }: { paymentId: string; fmt: (n: nu
   const toggle = async () => {
     if (open) { setOpen(false); return; }
 
-    // Position the popover to the right of the button, aligned to its top
+    // Position: below the button on mobile (full-width sheet), to the left
+    // of the button on desktop (matches old behaviour).
     if (btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      setPos({
-        top:   r.top + window.scrollY,
-        right: window.innerWidth - r.right + r.width + 8,
-      });
+      if (window.innerWidth < 640) {
+        setPos({ top: r.bottom + window.scrollY + 6, left: 8, right: 8 });
+      } else {
+        setPos({
+          top:   r.top + window.scrollY,
+          right: window.innerWidth - r.right + r.width + 8,
+        });
+      }
     }
     if (!fetched) {
       setLoading(true);
@@ -190,8 +195,8 @@ function TransactionHistory({ paymentId, fmt }: { paymentId: string; fmt: (n: nu
 
       {open && typeof document !== "undefined" && createPortal(
         <div
-          className="absolute z-50 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
-          style={{ top: pos.top, right: pos.right }}
+          className="absolute z-50 w-auto sm:w-80 max-w-[calc(100vw-1rem)] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
+          style={{ top: pos.top, right: pos.right, left: pos.left }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-50 to-slate-50 dark:from-indigo-500/10 dark:to-slate-800 border-b border-slate-100 dark:border-slate-800">
@@ -345,9 +350,9 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
                       hasPhone={!!tenantPhone} whatsappNotify={whatsappNotify} isPro={isPro}
                     />
                   )}
+                  {p.amountPaid > 0 && <TransactionHistory paymentId={p.id} fmt={fmt} />}
                 </div>
               </div>
-              <TransactionHistory paymentId={p.id} fmt={fmt} />
             </div>
           );
         })}
