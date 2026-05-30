@@ -81,6 +81,20 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
     const lastMonthStr    = monthString(lastYear, lastMonth);
     const calCurrentMonth = monthString(today.getFullYear(), today.getMonth() + 1);
     const moveInMonth     = monthString(moveInDate.getFullYear(), moveInDate.getMonth() + 1);
+
+    // If the move-in date has been pushed forward, clean up the
+    // untouched auto-generated months that now fall before it. Anything
+    // with money applied (PAID / PARTIAL / manual entry) is kept so real
+    // receipt history isn't silently destroyed by a date correction.
+    await prisma.payment.deleteMany({
+      where: {
+        userId:     user.id,
+        tenantId:   tenantBase.id,
+        month:      { lt: moveInMonth },
+        amountPaid: 0,
+      },
+    });
+
     for (const m of monthRange(moveInMonth, lastMonthStr)) {
       const chargesForMonth = tenantBase.room.recurringCharges
         .filter(c => (c.tenantId === null || c.tenantId === tenantBase.id)
