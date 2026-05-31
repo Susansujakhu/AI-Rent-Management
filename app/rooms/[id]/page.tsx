@@ -15,7 +15,7 @@ import { WhatsAppToggle } from "../../tenants/[id]/whatsapp-toggle";
 import { PortalAccessCard } from "../../tenants/[id]/portal-access";
 import { CollapsibleGroup } from "../../tenants/[id]/collapsible-group";
 import { PaymentLedger } from "../../tenants/[id]/payment-ledger";
-import { ChevronRight, DoorOpen, Banknote, CreditCard, Wrench, UserCheck, UserX, UserPlus, Receipt, Settings } from "lucide-react";
+import { ChevronRight, DoorOpen, Banknote, Wrench, UserCheck, UserX, UserPlus, Receipt, Settings, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default async function RoomDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -54,7 +54,13 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
 
   const currentTenant = room.tenants[0];
   const totalCollected = room.payments.reduce((s, p) => s + p.amountPaid, 0);
-  const paidCount = room.payments.filter(p => p.status === "PAID").length;
+
+  // Outstanding is scoped to the *current* tenant — historical debts of past
+  // tenants don't count toward what this room owes today.
+  const currentTenantOutstanding = currentTenant
+    ? currentTenant.payments.reduce((s, p) => s + Math.max(0, p.amountDue - p.amountPaid), 0)
+      + currentTenant.oneTimeCharges.reduce((s, c) => s + Math.max(0, c.amount - c.amountPaid), 0)
+    : 0;
 
   const rateSetting     = await prisma.setting.findUnique({ where: { userId_key: { userId: user.id, key: "electricityRate" } } });
   const electricityRate = parseFloat(rateSetting?.value ?? "0") || 0;
@@ -141,16 +147,15 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
           <p className="text-xs text-slate-400 mt-0.5">last 12 months</p>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden">
-          <div className="absolute inset-y-0 left-0 w-1 bg-indigo-400 rounded-l-2xl" />
-          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center mb-3">
-            <CreditCard size={15} className="text-indigo-600 dark:text-indigo-400" />
+          <div className={`absolute inset-y-0 left-0 w-1 ${currentTenantOutstanding > 0 ? "bg-rose-400" : "bg-emerald-400"} rounded-l-2xl`} />
+          <div className={`w-8 h-8 rounded-lg ${currentTenantOutstanding > 0 ? "bg-rose-50 dark:bg-rose-500/15" : "bg-emerald-50 dark:bg-emerald-500/15"} flex items-center justify-center mb-3`}>
+            {currentTenantOutstanding > 0
+              ? <AlertCircle size={15} className="text-rose-500 dark:text-rose-400" />
+              : <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400" />}
           </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Payments</p>
-          <div className="mt-1 flex items-end gap-1">
-            <p className="text-xl font-black text-slate-900 dark:text-white tracking-tight">{paidCount}</p>
-            <p className="text-sm text-slate-400 font-medium mb-0.5">/ {room.payments.length}</p>
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">paid in full</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Outstanding</p>
+          <p className={`text-xl font-black mt-1 tracking-tight ${currentTenantOutstanding > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white"}`}>{fmt(currentTenantOutstanding)}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{currentTenant ? "current tenant" : "no tenant"}</p>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden">
           <div className="absolute inset-y-0 left-0 w-1 bg-orange-400 rounded-l-2xl" />

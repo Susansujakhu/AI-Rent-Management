@@ -3,10 +3,11 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatCurrency, formatDate, formatMonth } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { MoveOutButton } from "./move-out-button";
+import { PaymentLedger } from "./payment-ledger";
 import { getSettings } from "@/lib/settings";
-import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, CheckCircle2, Sparkles, FileText, CreditCard, Plus } from "lucide-react";
+import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, CheckCircle2, Sparkles, FileText } from "lucide-react";
 import { TenantDocumentsPanel } from "./tenant-documents";
 import { CollapsibleGroup } from "./collapsible-group";
 
@@ -26,24 +27,6 @@ function monthRange(start: string, end: string) {
   return months;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    PAID:    "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20",
-    PARTIAL: "bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20",
-    PENDING: "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20",
-    OVERDUE: "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20",
-  };
-  const dots: Record<string, string> = {
-    PAID: "bg-emerald-500", PARTIAL: "bg-blue-500", PENDING: "bg-amber-400", OVERDUE: "bg-rose-500",
-  };
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${styles[status] ?? "bg-slate-100 text-slate-600"}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${dots[status] ?? "bg-slate-400"}`} />
-      {status}
-    </span>
-  );
-}
-
 const AVATAR_COLORS = [
   "from-violet-400 to-violet-600",
   "from-blue-400 to-blue-600",
@@ -56,7 +39,9 @@ const AVATAR_COLORS = [
 export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { requireAuth } = await import("@/lib/auth");
+  const { isPro } = await import("@/lib/plan");
   const user = await requireAuth();
+  const pro  = isPro(user);
 
   const tenantBase = await prisma.tenant.findUnique({
     where: { id, userId: user.id },
@@ -328,50 +313,37 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         <TenantDocumentsPanel tenantId={id} />
       </CollapsibleGroup>
 
-      {/* Payment History — compact list of this tenant's months. */}
+      {/* Payment Ledger — full month-by-month view for this tenant. */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-          <h2 className="font-bold text-slate-900 dark:text-white text-sm">Payment History</h2>
+          <h2 className="font-bold text-slate-900 dark:text-white text-sm">Payment Ledger</h2>
           <p className="text-xs text-slate-400 mt-0.5">{tenant.payments.length} month{tenant.payments.length !== 1 ? "s" : ""} recorded</p>
         </div>
-        {tenant.payments.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3">
-              <CreditCard size={18} className="text-slate-300 dark:text-slate-600" />
-            </div>
-            <p className="text-sm text-slate-400">No payments recorded yet.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-50 dark:divide-slate-800">
-            {tenant.payments.map(p => {
-              const needsPayment = p.status === "PENDING" || p.status === "PARTIAL" || p.status === "OVERDUE";
-              return (
-                <div key={p.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{formatMonth(p.month)}</p>
-                    {p.room && <p className="text-xs text-slate-400">{p.room.name}</p>}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right hidden sm:block">
-                      <p className="text-sm font-bold text-slate-900 dark:text-white">{fmt(p.amountPaid)}</p>
-                      <p className="text-xs text-slate-400">of {fmt(p.amountDue)}</p>
-                    </div>
-                    <StatusBadge status={p.status} />
-                    {needsPayment && (
-                      <Link
-                        href={`/payments/${p.id}/pay`}
-                        className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
-                      >
-                        <Plus size={12} />
-                        Add Payment
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <PaymentLedger
+          payments={tenant.payments.map(p => ({
+            id:         p.id,
+            month:      p.month,
+            amountDue:  p.amountDue,
+            amountPaid: p.amountPaid,
+            paidDate:   p.paidDate?.toISOString() ?? null,
+            method:     p.method,
+            status:     p.status,
+            notes:      p.notes,
+            breakdown: tenant.room ? {
+              baseRent: tenant.room.monthlyRent,
+              charges:  tenant.room.recurringCharges
+                .filter(c => (c.tenantId === null || c.tenantId === tenant.id)
+                  && (!c.effectiveFrom || c.effectiveFrom <= p.month)
+                  && (!c.effectiveTo   || p.month <= c.effectiveTo))
+                .map(c => ({ title: c.title, amount: c.amount })),
+            } : undefined,
+          }))}
+          currencySymbol={settings.currencySymbol}
+          isPro={pro}
+          tenantPhone={tenant.phone}
+          whatsappNotify={tenant.whatsappNotify}
+          moveInDay={tenant.moveInDate.getDate()}
+        />
       </div>
     </div>
   );
