@@ -44,7 +44,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
           payments:       { orderBy: { month: "desc" } },
         },
       },
-      payments:         { include: { tenant: true }, orderBy: { month: "desc" }, take: 12 },
+      payments:         { select: { amountPaid: true } },
       expenses:         { orderBy: { date: "desc" }, take: 5 },
       recurringCharges: { orderBy: { createdAt: "asc" } },
     },
@@ -144,7 +144,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
           </div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Collected</p>
           <p className="text-xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">{fmt(totalCollected)}</p>
-          <p className="text-xs text-slate-400 mt-0.5">last 12 months</p>
+          <p className="text-xs text-slate-400 mt-0.5">all-time</p>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden">
           <div className={`absolute inset-y-0 left-0 w-1 ${currentTenantOutstanding > 0 ? "bg-rose-400" : "bg-emerald-400"} rounded-l-2xl`} />
