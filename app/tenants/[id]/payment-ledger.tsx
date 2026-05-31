@@ -16,6 +16,11 @@ export interface SerializedPayment {
   id: string; month: string; amountDue: number; amountPaid: number;
   paidDate: string | null; method: string | null; status: string; notes: string | null;
   breakdown?: BreakdownData;
+  // Extra (one-time) charges dated within this payment's calendar month.
+  // Folded into the row's displayed Due/Paid/Balance so electricity, repairs,
+  // etc. appear in the same row rather than being orphaned from rent.
+  extraDue?:  number;
+  extraPaid?: number;
 }
 
 interface Transaction {
@@ -262,6 +267,19 @@ function TransactionHistory({ paymentId, fmt }: { paymentId: string; fmt: (n: nu
 
 const PAGE_SIZE = 8;
 
+// Compute the row's displayed numbers, folding in extra (one-time) charges
+// that fall in the same month so electricity, repairs, etc. show in the
+// matching rent row instead of being orphaned.
+function combine(p: SerializedPayment) {
+  const due  = p.amountDue  + (p.extraDue  ?? 0);
+  const paid = p.amountPaid + (p.extraPaid ?? 0);
+  const balance = Math.max(0, due - paid);
+  let status = p.status;
+  if (due > 0 && paid >= due)      status = "PAID";
+  else if (paid > 0)               status = "PARTIAL";
+  return { due, paid, balance, status };
+}
+
 export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, whatsappNotify, moveInDay }: Props) {
   const fmt    = (n: number) => formatCurrency(n, currencySymbol);
   const fmtMon = (month: string) => formatRentalPeriod(month, moveInDay);
@@ -271,10 +289,10 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
     return <div className="p-10 text-center text-slate-400 text-sm">No payment records yet.</div>;
   }
 
-  // Summary totals across ALL months (not just current page)
-  const totalDue       = payments.reduce((s, p) => s + p.amountDue, 0);
-  const totalPaid      = payments.reduce((s, p) => s + p.amountPaid, 0);
-  const totalBalance   = payments.reduce((s, p) => s + Math.max(0, p.amountDue - p.amountPaid), 0);
+  // Summary totals (across ALL months, not just the current page).
+  const totalDue       = payments.reduce((s, p) => s + combine(p).due, 0);
+  const totalPaid      = payments.reduce((s, p) => s + combine(p).paid, 0);
+  const totalBalance   = payments.reduce((s, p) => s + combine(p).balance, 0);
   const hasOutstanding = totalBalance > 0;
 
   // Paginated slice
@@ -285,36 +303,36 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
       {/* ── Mobile ─────────────────────────────────────────────────────────── */}
       <div className="divide-y divide-slate-50 dark:divide-slate-800 sm:hidden">
         {paged.map(p => {
-          const balance = Math.max(0, p.amountDue - p.amountPaid);
+          const c = combine(p);
           return (
             <div key={p.id} className="p-4 space-y-2 hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{fmtMon(p.month)}</span>
-                <StatusBadge status={p.status} />
+                <StatusBadge status={c.status} />
               </div>
 
               {/* Amounts row */}
               <div className="flex items-start justify-between text-xs">
                 <div className="flex items-center gap-3 text-slate-500">
                   <div>
-                    <span>Due <span className="font-medium text-slate-700 dark:text-slate-300">{fmt(p.amountDue)}</span></span>
+                    <span>Due <span className="font-medium text-slate-700 dark:text-slate-300">{fmt(c.due)}</span></span>
                     {p.breakdown && <BreakdownLines breakdown={p.breakdown} fmt={fmt} />}
                   </div>
-                  <span>Paid <span className="font-semibold text-slate-900 dark:text-white">{fmt(p.amountPaid)}</span></span>
-                  {balance > 0 && (
-                    <span className={p.status === "OVERDUE" ? "text-rose-600 font-bold" : "text-amber-600 font-bold"}>
-                      Bal {fmt(balance)}
+                  <span>Paid <span className="font-semibold text-slate-900 dark:text-white">{fmt(c.paid)}</span></span>
+                  {c.balance > 0 && (
+                    <span className={c.status === "OVERDUE" ? "text-rose-600 font-bold" : "text-amber-600 font-bold"}>
+                      Bal {fmt(c.balance)}
                     </span>
                   )}
                 </div>
               </div>
 
               {/* Progress bar for partial payments */}
-              {p.status === "PARTIAL" && (
+              {c.status === "PARTIAL" && c.due > 0 && (
                 <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-blue-400 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, (p.amountPaid / p.amountDue) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (c.paid / c.due) * 100)}%` }}
                   />
                 </div>
               )}
@@ -326,14 +344,14 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
                   {p.method ? ` · ${p.method}` : ""}
                 </div>
                 <div className="flex items-center gap-2">
-                  {p.status !== "PAID" && (
+                  {c.status !== "PAID" && (
                     <>
                       <Link href={`/payments/${p.id}/pay`}
                         className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium whitespace-nowrap">
                         Add Payment
                       </Link>
                       <SendReminderButton
-                        paymentId={p.id} paymentStatus={p.status}
+                        paymentId={p.id} paymentStatus={c.status}
                         hasPhone={!!tenantPhone} whatsappNotify={whatsappNotify} isPro={isPro}
                       />
                     </>
@@ -383,28 +401,30 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-            {paged.map(p => (
+            {paged.map(p => {
+              const c = combine(p);
+              return (
               <tr key={p.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors group align-top">
                 <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{fmtMon(p.month)}</td>
                 <td className="px-3 py-3 text-right whitespace-nowrap">
-                  <span className="font-bold text-slate-900 dark:text-white">{fmt(p.amountPaid)}</span>
-                  <span className="block text-[11px] text-slate-400">of {fmt(p.amountDue)}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{fmt(c.paid)}</span>
+                  <span className="block text-[11px] text-slate-400">of {fmt(c.due)}</span>
                   {p.breakdown && (
                     <div className="flex justify-end">
                       <BreakdownLines breakdown={p.breakdown} fmt={fmt} />
                     </div>
                   )}
-                  {p.status === "PARTIAL" && (
+                  {c.status === "PARTIAL" && c.due > 0 && (
                     <div className="mt-1 w-full h-1 bg-slate-100 rounded-full overflow-hidden">
                       <div className="h-full bg-blue-400 rounded-full"
-                        style={{ width: `${Math.min(100, (p.amountPaid / p.amountDue) * 100)}%` }} />
+                        style={{ width: `${Math.min(100, (c.paid / c.due) * 100)}%` }} />
                     </div>
                   )}
                 </td>
                 <td className="px-3 py-3 text-right whitespace-nowrap">
-                  <BalanceCell amountDue={p.amountDue} amountPaid={p.amountPaid} status={p.status} fmt={fmt} />
+                  <BalanceCell amountDue={c.due} amountPaid={c.paid} status={c.status} fmt={fmt} />
                 </td>
-                <td className="px-3 py-3 text-center"><StatusBadge status={p.status} /></td>
+                <td className="px-3 py-3 text-center"><StatusBadge status={c.status} /></td>
                 <td className="px-3 py-3 text-xs text-slate-400 whitespace-nowrap">
                   {p.paidDate ? (
                     <>
@@ -416,14 +436,14 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
                 <td className="px-3 py-3">
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {p.status !== "PAID" && (
+                      {c.status !== "PAID" && (
                         <>
                           <Link href={`/payments/${p.id}/pay`}
                             className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium whitespace-nowrap">
                             Add Payment
                           </Link>
                           <SendReminderButton
-                            paymentId={p.id} paymentStatus={p.status}
+                            paymentId={p.id} paymentStatus={c.status}
                             hasPhone={!!tenantPhone} whatsappNotify={whatsappNotify} isPro={isPro}
                           />
                         </>
@@ -448,7 +468,8 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
 
           {/* Summary footer */}

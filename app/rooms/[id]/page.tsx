@@ -282,24 +282,37 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
             <p className="text-xs text-slate-400 mt-0.5">{currentTenant.payments.length} months recorded</p>
           </div>
           <PaymentLedger
-            payments={currentTenant.payments.map(p => ({
-              id:         p.id,
-              month:      p.month,
-              amountDue:  p.amountDue,
-              amountPaid: p.amountPaid,
-              paidDate:   p.paidDate?.toISOString() ?? null,
-              method:     p.method,
-              status:     p.status,
-              notes:      p.notes,
-              breakdown: {
-                baseRent: room.monthlyRent,
-                charges:  room.recurringCharges
-                  .filter(c => (c.tenantId === null || c.tenantId === currentTenant.id)
-                    && (!c.effectiveFrom || c.effectiveFrom <= p.month)
-                    && (!c.effectiveTo   || p.month <= c.effectiveTo))
-                  .map(c => ({ title: c.title, amount: c.amount })),
-              },
-            }))}
+            payments={currentTenant.payments.map(p => {
+              const otcForMonth = currentTenant.oneTimeCharges.filter(c => {
+                const d = new Date(c.date);
+                const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+                return k === p.month;
+              });
+              const recurringForMonth = room.recurringCharges
+                .filter(c => (c.tenantId === null || c.tenantId === currentTenant.id)
+                  && (!c.effectiveFrom || c.effectiveFrom <= p.month)
+                  && (!c.effectiveTo   || p.month <= c.effectiveTo))
+                .map(c => ({ title: c.title, amount: c.amount }));
+              return {
+                id:         p.id,
+                month:      p.month,
+                amountDue:  p.amountDue,
+                amountPaid: p.amountPaid,
+                paidDate:   p.paidDate?.toISOString() ?? null,
+                method:     p.method,
+                status:     p.status,
+                notes:      p.notes,
+                extraDue:   otcForMonth.reduce((s, c) => s + c.amount,     0),
+                extraPaid:  otcForMonth.reduce((s, c) => s + c.amountPaid, 0),
+                breakdown: {
+                  baseRent: room.monthlyRent,
+                  charges:  [
+                    ...recurringForMonth,
+                    ...otcForMonth.map(c => ({ title: c.title, amount: c.amount })),
+                  ],
+                },
+              };
+            })}
             currencySymbol={settings.currencySymbol}
             isPro={pro}
             tenantPhone={currentTenant.phone}
