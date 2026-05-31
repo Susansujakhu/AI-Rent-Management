@@ -295,8 +295,7 @@ function DateRangeChip({ dateFrom, dateTo, onDateFrom, onDateTo }: {
 
       {open && (
         <div ref={panelRef}
-          className="absolute top-full left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden max-w-[calc(100vw-1rem)] w-[min(calc(100vw-1rem),18rem)] sm:w-auto"
-          style={{ minWidth: 256 }}
+          className="absolute top-full left-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden max-w-[calc(100vw-1rem)] w-[min(calc(100vw-1rem),18rem)] sm:w-[22rem]"
         >
           {/* Header */}
           <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 px-4 py-3">
@@ -607,12 +606,12 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro, initi
         <div className="relative">
           {/* Filtered indicator */}
           {hasFilter && (
-            <div className="mb-4 inline-flex items-center gap-1.5 bg-white/10 border border-white/20 text-white/80 text-xs font-semibold px-3 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-              Filtered view
-              {tenant && <span className="text-white/60">· {tenant}</span>}
-              {(dateFrom || dateTo) && <span className="text-white/60">· {dateLabel(dateFrom, dateTo)}</span>}
-              <button onClick={clearFilters} className="ml-1 opacity-60 hover:opacity-100 transition-opacity">
+            <div className="mb-4 inline-flex flex-wrap items-center gap-x-1.5 gap-y-1 bg-white/10 border border-white/20 text-white/80 text-xs font-semibold px-3 py-1.5 rounded-2xl max-w-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+              <span className="whitespace-nowrap">Filtered view</span>
+              {tenant && <span className="text-white/60 whitespace-nowrap">· {tenant}</span>}
+              {(dateFrom || dateTo) && <span className="text-white/60 whitespace-nowrap">· {dateLabel(dateFrom, dateTo)}</span>}
+              <button onClick={clearFilters} className="ml-1 opacity-60 hover:opacity-100 transition-opacity shrink-0">
                 <X size={11} />
               </button>
             </div>

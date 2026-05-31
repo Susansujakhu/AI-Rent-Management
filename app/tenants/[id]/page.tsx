@@ -167,44 +167,44 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {/* Hero card */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-4 min-w-0">
-            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${avatarColor} shadow-md flex items-center justify-center text-white text-lg font-black shrink-0`}>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+            <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br ${avatarColor} shadow-md flex items-center justify-center text-white text-base sm:text-lg font-black shrink-0`}>
               {initials}
             </div>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{tenant.name}</h1>
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight">{tenant.name}</h1>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold ${
                   isActive ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                 }`}>
                   {isActive ? "Active" : "Past Tenant"}
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-3 mt-2.5">
-                <span className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
-                  <Phone size={13} className="text-slate-400" />
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                <span className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                  <Phone size={12} className="text-slate-400" />
                   {tenant.phone}
                 </span>
                 {tenant.email && (
-                  <span className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
-                    <Mail size={13} className="text-slate-400" />
-                    {tenant.email}
+                  <span className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 min-w-0">
+                    <Mail size={12} className="text-slate-400 shrink-0" />
+                    <span className="truncate">{tenant.email}</span>
                   </span>
                 )}
                 {tenant.room && (
-                  <Link href={`/rooms/${tenant.room.id}`} className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-                    <Home size={13} />
+                  <Link href={`/rooms/${tenant.room.id}`} className="flex items-center gap-1.5 text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                    <Home size={12} />
                     {tenant.room.name}
                   </Link>
                 )}
-                <span className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
-                  <Calendar size={13} className="text-slate-400" />
+                <span className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                  <Calendar size={12} className="text-slate-400" />
                   Since {formatDate(tenant.moveInDate)}
                   {yearsWithUs >= 1 && (
-                    <span className="flex items-center gap-0.5 text-violet-600 font-semibold text-xs">
-                      <Sparkles size={11} />
+                    <span className="flex items-center gap-0.5 text-violet-600 font-semibold text-[11px]">
+                      <Sparkles size={10} />
                       {yearsWithUs}yr
                     </span>
                   )}
@@ -214,7 +214,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
           </div>
           <div className="flex gap-2 w-full sm:w-auto sm:shrink-0">
             <Link href={`/tenants/${id}/edit`}
-              className="flex-1 sm:flex-none text-center border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+              className="flex-1 sm:flex-none text-center border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               Edit
             </Link>
             {isActive && <MoveOutButton tenantId={id} moveInDate={tenant.moveInDate.toISOString()} />}
@@ -223,44 +223,46 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {/* Stat cards — both scroll to the Payment Ledger below. */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <a href="#payment-ledger"
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 block hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-500/40 transition-all cursor-pointer">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center">
-              <TrendingUp size={16} className="text-emerald-600 dark:text-emerald-400" />
+          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-3 sm:p-5 block hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-500/40 transition-all cursor-pointer min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center shrink-0">
+              <TrendingUp size={14} className="text-emerald-600 dark:text-emerald-400" />
             </div>
             {totalBilled > 0 && (
-              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full">
-                {collectedPct}% collected
+              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap">
+                <span className="sm:hidden">{collectedPct}%</span>
+                <span className="hidden sm:inline">{collectedPct}% collected</span>
               </span>
             )}
           </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Collected</p>
-          <p className="text-2xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">{fmt(totalCollected)}</p>
+          <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Total Collected</p>
+          <p className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white mt-0.5 sm:mt-1 tracking-tight truncate">{fmt(totalCollected)}</p>
           {tenant.payments.length > 0 && (
-            <p className="text-xs text-slate-400 mt-0.5">across {tenant.payments.length} month{tenant.payments.length !== 1 ? "s" : ""}</p>
+            <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">across {tenant.payments.length} month{tenant.payments.length !== 1 ? "s" : ""}</p>
           )}
         </a>
 
         <a href="#payment-ledger"
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 block hover:shadow-md hover:border-rose-200 dark:hover:border-rose-500/40 transition-all cursor-pointer">
-          <div className="flex items-center justify-between mb-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${totalOutstanding > 0 ? "bg-rose-50 dark:bg-rose-500/15" : "bg-emerald-50 dark:bg-emerald-500/15"}`}>
+          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-3 sm:p-5 block hover:shadow-md hover:border-rose-200 dark:hover:border-rose-500/40 transition-all cursor-pointer min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+            <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 ${totalOutstanding > 0 ? "bg-rose-50 dark:bg-rose-500/15" : "bg-emerald-50 dark:bg-emerald-500/15"}`}>
               {totalOutstanding > 0
-                ? <AlertCircle size={16} className="text-rose-500 dark:text-rose-400" />
-                : <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />}
+                ? <AlertCircle size={14} className="text-rose-500 dark:text-rose-400" />
+                : <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />}
             </div>
             {totalOutstanding > 0 && outstandingPct > 0 && (
-              <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/15 px-2 py-0.5 rounded-full">
-                {outstandingPct}% of billed
+              <span className="text-[10px] sm:text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/15 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap">
+                <span className="sm:hidden">{outstandingPct}%</span>
+                <span className="hidden sm:inline">{outstandingPct}% of billed</span>
               </span>
             )}
           </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Outstanding</p>
-          <p className={`text-2xl font-black mt-1 tracking-tight ${totalOutstanding > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white"}`}>{fmt(totalOutstanding)}</p>
+          <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Outstanding</p>
+          <p className={`text-lg sm:text-2xl font-black mt-0.5 sm:mt-1 tracking-tight truncate ${totalOutstanding > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white"}`}>{fmt(totalOutstanding)}</p>
           {overdueCount > 0 && (
-            <p className="text-xs text-slate-400 mt-0.5">{overdueCount} overdue month{overdueCount !== 1 ? "s" : ""}</p>
+            <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">{overdueCount} overdue month{overdueCount !== 1 ? "s" : ""}</p>
           )}
         </a>
       </div>

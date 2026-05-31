@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { History, Loader2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { History, Loader2, X, ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 import { formatCurrency, formatDate, formatRentalPeriod } from "@/lib/utils";
 import { VoidPaymentButton } from "./void-payment-button";
 import { SendReminderButton } from "./send-reminder-button";
@@ -304,32 +304,43 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
       <div className="divide-y divide-slate-50 dark:divide-slate-800 sm:hidden">
         {paged.map(p => {
           const c = combine(p);
+          const balColor = c.balance > 0
+            ? (c.status === "OVERDUE" ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400")
+            : "text-emerald-600 dark:text-emerald-400";
           return (
-            <div key={p.id} className="p-4 space-y-2 hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{fmtMon(p.month)}</span>
+            <div key={p.id} className="p-4 space-y-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors">
+              {/* Header: month + status */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm leading-tight">{fmtMon(p.month)}</p>
+                  {p.breakdown && (
+                    <div className="mt-1">
+                      <BreakdownLines breakdown={p.breakdown} fmt={fmt} />
+                    </div>
+                  )}
+                </div>
                 <StatusBadge status={c.status} />
               </div>
 
-              {/* Amounts row */}
-              <div className="flex items-start justify-between text-xs">
-                <div className="flex items-center gap-3 text-slate-500">
-                  <div>
-                    <span>Due <span className="font-medium text-slate-700 dark:text-slate-300">{fmt(c.due)}</span></span>
-                    {p.breakdown && <BreakdownLines breakdown={p.breakdown} fmt={fmt} />}
-                  </div>
-                  <span>Paid <span className="font-semibold text-slate-900 dark:text-white">{fmt(c.paid)}</span></span>
-                  {c.balance > 0 && (
-                    <span className={c.status === "OVERDUE" ? "text-rose-600 font-bold" : "text-amber-600 font-bold"}>
-                      Bal {fmt(c.balance)}
-                    </span>
-                  )}
+              {/* Amounts: 3-column grid for visual scan */}
+              <div className="grid grid-cols-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 overflow-hidden">
+                <div className="px-2 py-2 text-center">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Due</p>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5 tabular-nums">{fmt(c.due)}</p>
+                </div>
+                <div className="px-2 py-2 text-center border-x border-slate-200/70 dark:border-slate-700/60">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Paid</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 tabular-nums">{fmt(c.paid)}</p>
+                </div>
+                <div className="px-2 py-2 text-center">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Balance</p>
+                  <p className={`text-sm font-bold mt-0.5 tabular-nums ${balColor}`}>{c.balance > 0 ? fmt(c.balance) : "—"}</p>
                 </div>
               </div>
 
               {/* Progress bar for partial payments */}
               {c.status === "PARTIAL" && c.due > 0 && (
-                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                <div className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-blue-400 rounded-full transition-all"
                     style={{ width: `${Math.min(100, (c.paid / c.due) * 100)}%` }}
@@ -337,40 +348,47 @@ export function PaymentLedger({ payments, currencySymbol, isPro, tenantPhone, wh
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-slate-400">
-                  {p.paidDate ? formatDate(p.paidDate) : ""}
-                  {p.method ? ` · ${p.method}` : ""}
+              {/* Primary action row: Add Payment + Notify when not yet PAID */}
+              {c.status !== "PAID" && (
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <Link href={`/payments/${p.id}/pay`}
+                    className="inline-flex items-center justify-center gap-1.5 bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-700 transition-colors whitespace-nowrap">
+                    + Add Payment
+                  </Link>
+                  <SendReminderButton
+                    paymentId={p.id} paymentStatus={c.status}
+                    hasPhone={!!tenantPhone} whatsappNotify={whatsappNotify} isPro={isPro}
+                  />
                 </div>
-                <div className="flex items-center gap-2">
-                  {c.status !== "PAID" && (
-                    <>
-                      <Link href={`/payments/${p.id}/pay`}
-                        className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium whitespace-nowrap">
-                        Add Payment
+              )}
+
+              {/* Receipt meta + secondary icons on a single row — when the
+                  bill is PAID this becomes the only action row, so the date/
+                  method sit inline with Receipt / WA / History instead of
+                  hogging their own line. */}
+              {(p.paidDate || p.amountPaid > 0) && (
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <p className="text-[11px] text-slate-400 truncate">
+                    {p.paidDate ? `${formatDate(p.paidDate)}${p.method ? ` · ${p.method}` : ""}` : ""}
+                  </p>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {p.amountPaid > 0 && (
+                      <Link href={`/payments/${p.id}/receipt`}
+                        title="Receipt"
+                        className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 px-2 py-1.5 rounded-lg transition-colors">
+                        <Receipt size={14} />
                       </Link>
-                      <SendReminderButton
-                        paymentId={p.id} paymentStatus={c.status}
+                    )}
+                    {p.amountPaid > 0 && (
+                      <ResendNotificationButton
+                        paymentId={p.id}
                         hasPhone={!!tenantPhone} whatsappNotify={whatsappNotify} isPro={isPro}
                       />
-                    </>
-                  )}
-                  {p.amountPaid > 0 && (
-                    <Link href={`/payments/${p.id}/receipt`}
-                      className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">
-                      Receipt
-                    </Link>
-                  )}
-                  {p.amountPaid > 0 && (
-                    <ResendNotificationButton
-                      paymentId={p.id}
-                      hasPhone={!!tenantPhone} whatsappNotify={whatsappNotify} isPro={isPro}
-                    />
-                  )}
-                  {p.amountPaid > 0 && <TransactionHistory paymentId={p.id} fmt={fmt} />}
+                    )}
+                    {p.amountPaid > 0 && <TransactionHistory paymentId={p.id} fmt={fmt} />}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}

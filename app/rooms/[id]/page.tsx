@@ -96,7 +96,13 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
             <h1 className="text-2xl font-bold text-white tracking-tight">{room.name}</h1>
             {currentTenant ? (
               <p className="text-indigo-200 text-sm mt-1">
-                Tenant: <span className="font-semibold text-white">{currentTenant.name}</span>
+                Tenant:{" "}
+                <Link
+                  href={`/tenants/${currentTenant.id}`}
+                  className="font-semibold text-white underline-offset-2 hover:underline"
+                >
+                  {currentTenant.name}
+                </Link>
               </p>
             ) : (
               <p className="text-slate-300 text-sm mt-1 font-medium">Vacant — awaiting tenant</p>
@@ -107,69 +113,80 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
             <p className="text-2xl font-black text-white mt-0.5">{fmt(room.monthlyRent)}</p>
           </div>
         </div>
-        <div className="relative z-10 flex flex-wrap items-center gap-2 mt-4">
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-            currentTenant ? "bg-emerald-400/30 text-white border border-emerald-300/30" : "bg-white/20 text-white border border-white/20"
-          }`}>
-            {currentTenant ? <UserCheck size={12} /> : <UserX size={12} />}
-            {currentTenant ? "Occupied" : "Vacant"}
-          </span>
-          {!currentTenant && (
-            <Link
-              href={`/tenants/new?roomId=${id}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-            >
-              <UserPlus size={12} />
-              Add Tenant
-            </Link>
+        {/* Bottom row: status pill on the left, Edit + Delete on the right.
+            All pills share the same shape/padding so they read as a set. */}
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 mt-4">
+          {currentTenant ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-400/25 text-white border border-emerald-300/30">
+              <UserCheck size={12} />
+              Occupied
+            </span>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/20 text-white border border-white/20">
+                <UserX size={12} />
+                Vacant
+              </span>
+              <Link
+                href={`/tenants/new?roomId=${id}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+              >
+                <UserPlus size={12} />
+                Add Tenant
+              </Link>
+            </div>
           )}
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Link href={`/rooms/${id}/edit`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/15 text-white border border-white/25 hover:bg-white/25 transition-colors">
+              Edit
+            </Link>
+            <DeleteRoomButton
+              roomId={id}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-rose-500/30 text-white border border-rose-300/40 hover:bg-rose-500/45 transition-colors"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-2">
-        <Link href={`/rooms/${id}/edit`}
-          className="border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-          Edit Room
-        </Link>
-        <DeleteRoomButton roomId={id} />
-      </div>
-
-      {/* Stat cards — Collected & Outstanding scroll to the Payment Ledger;
-          Expenses links to the filtered expenses list. */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Stat cards — Outstanding gets full-width prominence on mobile.
+          Mobile: Outstanding (full row), then Collected | Expenses.
+          sm+: 3-col equal when expenses exist, 2-col otherwise. */}
+      <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${room.expenses.length > 0 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         <a href="#payment-ledger"
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden block hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-500/40 transition-all cursor-pointer">
-          <div className="absolute inset-y-0 left-0 w-1 bg-emerald-400 rounded-l-2xl" />
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center mb-3">
-            <Banknote size={15} className="text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Collected</p>
-          <p className="text-xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">{fmt(totalCollected)}</p>
-          <p className="text-xs text-slate-400 mt-0.5">all-time</p>
-        </a>
-        <a href="#payment-ledger"
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden block hover:shadow-md hover:border-rose-200 dark:hover:border-rose-500/40 transition-all cursor-pointer">
+          className={`${room.expenses.length > 0 ? "col-span-2 sm:col-span-1 order-first sm:order-none sm:order-2" : "sm:order-2"} bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-3 sm:p-4 relative overflow-hidden block hover:shadow-md hover:border-rose-200 dark:hover:border-rose-500/40 transition-all cursor-pointer min-w-0`}>
           <div className={`absolute inset-y-0 left-0 w-1 ${currentTenantOutstanding > 0 ? "bg-rose-400" : "bg-emerald-400"} rounded-l-2xl`} />
-          <div className={`w-8 h-8 rounded-lg ${currentTenantOutstanding > 0 ? "bg-rose-50 dark:bg-rose-500/15" : "bg-emerald-50 dark:bg-emerald-500/15"} flex items-center justify-center mb-3`}>
+          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${currentTenantOutstanding > 0 ? "bg-rose-50 dark:bg-rose-500/15" : "bg-emerald-50 dark:bg-emerald-500/15"} flex items-center justify-center mb-2 sm:mb-3`}>
             {currentTenantOutstanding > 0
-              ? <AlertCircle size={15} className="text-rose-500 dark:text-rose-400" />
-              : <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400" />}
+              ? <AlertCircle size={14} className="text-rose-500 dark:text-rose-400" />
+              : <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />}
           </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Outstanding</p>
-          <p className={`text-xl font-black mt-1 tracking-tight ${currentTenantOutstanding > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white"}`}>{fmt(currentTenantOutstanding)}</p>
-          <p className="text-xs text-slate-400 mt-0.5">{currentTenant ? "current tenant" : "no tenant"}</p>
+          <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Outstanding</p>
+          <p className={`text-lg sm:text-xl font-black mt-0.5 sm:mt-1 tracking-tight truncate ${currentTenantOutstanding > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white"}`}>{fmt(currentTenantOutstanding)}</p>
+          <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">{currentTenant ? "current tenant" : "no tenant"}</p>
         </a>
-        <Link href={`/expenses?roomId=${id}`}
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden block hover:shadow-md hover:border-orange-200 dark:hover:border-orange-500/40 transition-all cursor-pointer">
-          <div className="absolute inset-y-0 left-0 w-1 bg-orange-400 rounded-l-2xl" />
-          <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-500/15 flex items-center justify-center mb-3">
-            <Wrench size={15} className="text-orange-600 dark:text-orange-400" />
+        <a href="#payment-ledger"
+          className="sm:order-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-3 sm:p-4 relative overflow-hidden block hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-500/40 transition-all cursor-pointer min-w-0">
+          <div className="absolute inset-y-0 left-0 w-1 bg-emerald-400 rounded-l-2xl" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center mb-2 sm:mb-3">
+            <Banknote size={14} className="text-emerald-600 dark:text-emerald-400" />
           </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Expenses</p>
-          <p className="text-xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">{room.expenses.length}</p>
-          <p className="text-xs text-slate-400 mt-0.5">recorded</p>
-        </Link>
+          <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Collected</p>
+          <p className="text-base sm:text-xl font-black text-slate-900 dark:text-white mt-0.5 sm:mt-1 tracking-tight truncate">{fmt(totalCollected)}</p>
+          <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">all-time</p>
+        </a>
+        {room.expenses.length > 0 && (
+          <Link href={`/expenses?roomId=${id}`}
+            className="sm:order-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-3 sm:p-4 relative overflow-hidden block hover:shadow-md hover:border-orange-200 dark:hover:border-orange-500/40 transition-all cursor-pointer min-w-0">
+            <div className="absolute inset-y-0 left-0 w-1 bg-orange-400 rounded-l-2xl" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-orange-50 dark:bg-orange-500/15 flex items-center justify-center mb-2 sm:mb-3">
+              <Wrench size={14} className="text-orange-600 dark:text-orange-400" />
+            </div>
+            <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Expenses</p>
+            <p className="text-base sm:text-xl font-black text-slate-900 dark:text-white mt-0.5 sm:mt-1 tracking-tight truncate">{room.expenses.length}</p>
+            <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">recorded</p>
+          </Link>
+        )}
       </div>
 
       {room.description && (
@@ -179,27 +196,25 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      {/* Current Tenant */}
+      {/* Current Tenant — whole card is a link to the tenant profile */}
       {currentTenant ? (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
-          <h2 className="font-bold text-slate-900 dark:text-white mb-4 text-sm">Current Tenant</h2>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-                {currentTenant.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900 dark:text-white">{currentTenant.name}</p>
-                <p className="text-xs text-slate-400">{currentTenant.phone}</p>
-                <p className="text-xs text-slate-400 mt-0.5">Since {formatDate(currentTenant.moveInDate)}</p>
-              </div>
-            </div>
-            <Link href={`/tenants/${currentTenant.id}`}
-              className="text-sm bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 font-semibold px-3 py-1.5 rounded-lg transition-colors">
-              View Profile →
-            </Link>
+        <Link href={`/tenants/${currentTenant.id}`}
+          className="block bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500/40 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-slate-900 dark:text-white text-sm">Current Tenant</h2>
+            <ChevronRight size={16} className="text-slate-300 dark:text-slate-600 shrink-0" />
           </div>
-        </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+              {currentTenant.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-slate-900 dark:text-white truncate">{currentTenant.name}</p>
+              <p className="text-xs text-slate-400 truncate">{currentTenant.phone}</p>
+              <p className="text-xs text-slate-400 mt-0.5">Since {formatDate(currentTenant.moveInDate)}</p>
+            </div>
+          </div>
+        </Link>
       ) : unassignedTenants.length > 0 ? (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
           <h2 className="font-bold text-slate-900 dark:text-white mb-4 text-sm">Assign Existing Tenant</h2>

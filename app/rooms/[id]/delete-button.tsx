@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
-export function DeleteRoomButton({ roomId }: { roomId: string }) {
+export function DeleteRoomButton({ roomId, className }: { roomId: string; className?: string }) {
   const router = useRouter();
   const [open,    setOpen]    = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,7 +33,7 @@ export function DeleteRoomButton({ roomId }: { roomId: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+        className={className ?? "bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"}
       >
         Delete
       </button>

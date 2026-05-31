@@ -45,7 +45,7 @@ export function MoveOutButton({
     return (
       <button
         onClick={() => setShowPicker(true)}
-        className="flex-1 sm:flex-none bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-orange-600 transition-colors"
+        className="flex-1 sm:flex-none bg-orange-500 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold hover:bg-orange-600 transition-colors"
       >
         Move Out
       </button>

@@ -425,76 +425,89 @@ export function OneTimeChargesPanel({
                 const isDeleting    = deletingId    === c.id;
                 const isUndoing     = undoingId     === c.id;
                 const isUndoLoading = undoLoadingId === c.id;
+                const balance = Math.max(0, c.amount - c.amountPaid);
+                const balColor = balance > 0
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400";
                 return (
-                  <div key={c.id} className="p-4 space-y-2">
+                  <div key={c.id} className="p-4 space-y-3">
+                    {/* Header */}
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{c.title}</p>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm leading-tight">{c.title}</p>
                         {c.notes && <p className="text-xs text-slate-400 mt-0.5">{c.notes}</p>}
+                        <p className="text-[11px] text-slate-400 mt-0.5">{formatDate(c.date)}</p>
                       </div>
                       <StatusBadge status={c.status} />
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span>{formatDate(c.date)}</span>
-                      <span>
-                        Due <span className="font-medium text-slate-700">{fmt(c.amount)}</span>
-                        {" · "}Paid <span className="font-bold text-slate-900">{fmt(c.amountPaid)}</span>
-                      </span>
+
+                    {/* Amounts: 3-col grid for visual scan */}
+                    <div className="grid grid-cols-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 overflow-hidden">
+                      <div className="px-2 py-2 text-center">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Due</p>
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5 tabular-nums">{fmt(c.amount)}</p>
+                      </div>
+                      <div className="px-2 py-2 text-center border-x border-slate-200/70 dark:border-slate-700/60">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Paid</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 tabular-nums">{fmt(c.amountPaid)}</p>
+                      </div>
+                      <div className="px-2 py-2 text-center">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Balance</p>
+                        <p className={`text-sm font-bold mt-0.5 tabular-nums ${balColor}`}>{balance > 0 ? fmt(balance) : "—"}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 pt-0.5 flex-wrap">
-                      {c.status !== "PAID" && (
-                        <Link href={`/tenants/${tenantId}/one-time-charge/${c.id}/pay`}
-                          className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors font-medium whitespace-nowrap">
-                          Add Payment
-                        </Link>
-                      )}
-                      {canEdit && (
-                        <button onClick={() => setEditCharge(c)}
-                          className="flex items-center gap-1 text-xs text-slate-500 hover:text-indigo-600 border border-slate-200 hover:border-indigo-200 px-2 py-1 rounded-lg transition-colors">
-                          <Pencil size={11} /> Edit
-                        </button>
-                      )}
-                      {isPaid && (
-                        isUndoing ? (
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-slate-500">Undo payment?</span>
-                            <button onClick={() => handleUndoPaid(c.id)} disabled={isUndoLoading}
-                              className="text-xs text-white bg-amber-500 hover:bg-amber-600 px-2 py-1 rounded-lg font-medium disabled:opacity-50 transition-colors">
-                              {isUndoLoading ? "…" : "Yes"}
-                            </button>
-                            <button onClick={() => setUndoingId(null)}
-                              className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg transition-colors">
-                              No
-                            </button>
-                          </div>
-                        ) : (
-                          <button onClick={() => setUndoingId(c.id)}
-                            className="flex items-center gap-1 text-xs text-slate-500 hover:text-amber-600 border border-slate-200 hover:border-amber-200 px-2 py-1 rounded-lg transition-colors">
-                            <RotateCcw size={11} /> Void
+
+                    {/* Actions: primary on left, icon row on right */}
+                    {(isUndoing || isVoiding) ? (
+                      // Inline confirmation row replaces actions when prompting
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{isUndoing ? "Undo payment?" : "Remove charge?"}</span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => isUndoing ? handleUndoPaid(c.id) : handleVoid(c.id)}
+                            disabled={isUndoLoading || !!isDeleting}
+                            className={`text-xs text-white px-3 py-1.5 rounded-lg font-semibold disabled:opacity-50 transition-colors ${isUndoing ? "bg-amber-500 hover:bg-amber-600" : "bg-rose-500 hover:bg-rose-600"}`}>
+                            {(isUndoLoading || isDeleting) ? "…" : "Yes"}
                           </button>
-                        )
-                      )}
-                      {canEdit && (
-                        isVoiding ? (
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-slate-500">Remove?</span>
-                            <button onClick={() => handleVoid(c.id)} disabled={!!isDeleting}
-                              className="text-xs text-white bg-rose-500 hover:bg-rose-600 px-2 py-1 rounded-lg font-medium disabled:opacity-50 transition-colors">
-                              {isDeleting ? "…" : "Yes"}
-                            </button>
-                            <button onClick={() => setVoidingId(null)}
-                              className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg transition-colors">
-                              No
-                            </button>
-                          </div>
-                        ) : (
-                          <button onClick={() => setVoidingId(c.id)}
-                            className="flex items-center gap-1 text-xs text-slate-500 hover:text-rose-600 border border-slate-200 hover:border-rose-200 px-2 py-1 rounded-lg transition-colors">
-                            <Trash2 size={11} /> Remove
+                          <button
+                            onClick={() => { setUndoingId(null); setVoidingId(null); }}
+                            className="text-xs text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg transition-colors">
+                            No
                           </button>
-                        )
-                      )}
-                    </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        <div className="flex-1 min-w-0">
+                          {c.status !== "PAID" && (
+                            <Link href={`/tenants/${tenantId}/one-time-charge/${c.id}/pay`}
+                              className="inline-flex items-center justify-center gap-1.5 bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-700 transition-colors whitespace-nowrap">
+                              + Add Payment
+                            </Link>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {canEdit && (
+                            <button onClick={() => setEditCharge(c)} title="Edit"
+                              className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 px-2 py-1.5 rounded-lg transition-colors">
+                              <Pencil size={14} />
+                            </button>
+                          )}
+                          {isPaid && (
+                            <button onClick={() => setUndoingId(c.id)} title="Undo payment"
+                              className="text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 px-2 py-1.5 rounded-lg transition-colors">
+                              <RotateCcw size={14} />
+                            </button>
+                          )}
+                          {canEdit && (
+                            <button onClick={() => setVoidingId(c.id)} title="Remove"
+                              className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-2 py-1.5 rounded-lg transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
