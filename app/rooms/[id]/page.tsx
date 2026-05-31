@@ -135,9 +135,11 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
         <DeleteRoomButton roomId={id} />
       </div>
 
-      {/* Stat cards */}
+      {/* Stat cards — Collected & Outstanding scroll to the Payment Ledger;
+          Expenses links to the filtered expenses list. */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden">
+        <a href="#payment-ledger"
+          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden block hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-500/40 transition-all cursor-pointer">
           <div className="absolute inset-y-0 left-0 w-1 bg-emerald-400 rounded-l-2xl" />
           <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center mb-3">
             <Banknote size={15} className="text-emerald-600 dark:text-emerald-400" />
@@ -145,8 +147,9 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Collected</p>
           <p className="text-xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">{fmt(totalCollected)}</p>
           <p className="text-xs text-slate-400 mt-0.5">all-time</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden">
+        </a>
+        <a href="#payment-ledger"
+          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden block hover:shadow-md hover:border-rose-200 dark:hover:border-rose-500/40 transition-all cursor-pointer">
           <div className={`absolute inset-y-0 left-0 w-1 ${currentTenantOutstanding > 0 ? "bg-rose-400" : "bg-emerald-400"} rounded-l-2xl`} />
           <div className={`w-8 h-8 rounded-lg ${currentTenantOutstanding > 0 ? "bg-rose-50 dark:bg-rose-500/15" : "bg-emerald-50 dark:bg-emerald-500/15"} flex items-center justify-center mb-3`}>
             {currentTenantOutstanding > 0
@@ -156,8 +159,9 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Outstanding</p>
           <p className={`text-xl font-black mt-1 tracking-tight ${currentTenantOutstanding > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white"}`}>{fmt(currentTenantOutstanding)}</p>
           <p className="text-xs text-slate-400 mt-0.5">{currentTenant ? "current tenant" : "no tenant"}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden">
+        </a>
+        <Link href={`/expenses?roomId=${id}`}
+          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 relative overflow-hidden block hover:shadow-md hover:border-orange-200 dark:hover:border-orange-500/40 transition-all cursor-pointer">
           <div className="absolute inset-y-0 left-0 w-1 bg-orange-400 rounded-l-2xl" />
           <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-500/15 flex items-center justify-center mb-3">
             <Wrench size={15} className="text-orange-600 dark:text-orange-400" />
@@ -165,7 +169,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Expenses</p>
           <p className="text-xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">{room.expenses.length}</p>
           <p className="text-xs text-slate-400 mt-0.5">recorded</p>
-        </div>
+        </Link>
       </div>
 
       {room.description && (
@@ -276,7 +280,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
 
       {/* Payment Ledger — full month-by-month view for the current tenant. */}
       {currentTenant && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div id="payment-ledger" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden scroll-mt-4">
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
             <h2 className="font-bold text-slate-900 dark:text-white text-sm">Payment Ledger</h2>
             <p className="text-xs text-slate-400 mt-0.5">{currentTenant.payments.length} months recorded</p>

@@ -222,9 +222,10 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      {/* Stat cards */}
+      {/* Stat cards — both scroll to the Payment Ledger below. */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+        <a href="#payment-ledger"
+          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 block hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-500/40 transition-all cursor-pointer">
           <div className="flex items-center justify-between mb-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center">
               <TrendingUp size={16} className="text-emerald-600 dark:text-emerald-400" />
@@ -240,9 +241,10 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
           {tenant.payments.length > 0 && (
             <p className="text-xs text-slate-400 mt-0.5">across {tenant.payments.length} month{tenant.payments.length !== 1 ? "s" : ""}</p>
           )}
-        </div>
+        </a>
 
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+        <a href="#payment-ledger"
+          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 block hover:shadow-md hover:border-rose-200 dark:hover:border-rose-500/40 transition-all cursor-pointer">
           <div className="flex items-center justify-between mb-3">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${totalOutstanding > 0 ? "bg-rose-50 dark:bg-rose-500/15" : "bg-emerald-50 dark:bg-emerald-500/15"}`}>
               {totalOutstanding > 0
@@ -260,7 +262,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
           {overdueCount > 0 && (
             <p className="text-xs text-slate-400 mt-0.5">{overdueCount} overdue month{overdueCount !== 1 ? "s" : ""}</p>
           )}
-        </div>
+        </a>
       </div>
 
       {/* Advance credit */}
@@ -314,7 +316,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       </CollapsibleGroup>
 
       {/* Payment Ledger — full month-by-month view for this tenant. */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div id="payment-ledger" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden scroll-mt-4">
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
           <h2 className="font-bold text-slate-900 dark:text-white text-sm">Payment Ledger</h2>
           <p className="text-xs text-slate-400 mt-0.5">{tenant.payments.length} month{tenant.payments.length !== 1 ? "s" : ""} recorded</p>
