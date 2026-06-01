@@ -3,9 +3,9 @@ import type { NextRequest } from "next/server";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-// Paths exempt from CSRF: bearer-token-authed callers (server-to-server, cron)
+// Paths exempt from CSRF: server-to-server callers (cron, third-party webhooks)
 // that won't send a browser Origin/Referer header.
-const CSRF_EXEMPT_PREFIXES = ["/api/cron/"];
+const CSRF_EXEMPT_PREFIXES = ["/api/cron/", "/api/whatsapp/webhook"];
 
 function hostMatches(headerValue: string | null, host: string): boolean {
   if (!headerValue) return false;
