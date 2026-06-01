@@ -281,6 +281,14 @@
       "namedRegex": "^/api/tenants/(?<nxtPid>[^/]+?)/recurring\\-charges(?:/)?$"
     },
     {
+      "page": "/inbox/[id]",
+      "regex": "^/inbox/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/inbox/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/payments/[id]/pay",
       "regex": "^/payments/([^/]+?)/pay(?:/)?$",
       "routeKeys": {
@@ -553,6 +561,12 @@
       "namedRegex": "^/api/health(?:/)?$"
     },
     {
+      "page": "/api/inbox/reply",
+      "regex": "^/api/inbox/reply(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/inbox/reply(?:/)?$"
+    },
+    {
       "page": "/api/maintenance",
       "regex": "^/api/maintenance(?:/)?$",
       "routeKeys": {},
@@ -715,6 +729,12 @@
       "namedRegex": "^/api/whatsapp/status(?:/)?$"
     },
     {
+      "page": "/api/whatsapp/webhook",
+      "regex": "^/api/whatsapp/webhook(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/whatsapp/webhook(?:/)?$"
+    },
+    {
       "page": "/apple-icon",
       "regex": "^/apple\\-icon(?:/)?$",
       "routeKeys": {},
@@ -773,6 +793,12 @@
       "regex": "^/icon\\-512(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/icon\\-512(?:/)?$"
+    },
+    {
+      "page": "/inbox",
+      "regex": "^/inbox(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/inbox(?:/)?$"
     },
     {
       "page": "/login",

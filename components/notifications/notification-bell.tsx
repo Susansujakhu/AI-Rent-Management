@@ -30,6 +30,7 @@ function destinationFor(type: string, data: string | null): string | null {
   }
   if (type === "maintenance_submitted") return "/maintenance";
   if (type.startsWith("meter_reading") && tenantId) return `/tenants/${tenantId}`;
+  if (type === "whatsapp_message") return tenantId ? `/inbox/${tenantId}` : "/inbox";
   return null;
 }
 

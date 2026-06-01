@@ -15,6 +15,26 @@ ALTER TABLE `Tenant`
 ALTER TABLE `RecurringCharge`
   ADD COLUMN IF NOT EXISTS `effectiveTo` varchar(191) DEFAULT NULL;
 
+-- ── 1c. WhatsAppMessage — inbox for the Cloud API webhook ────────────────────
+CREATE TABLE IF NOT EXISTS `WhatsAppMessage` (
+  `id`            varchar(191) NOT NULL,
+  `userId`        varchar(191) NOT NULL,
+  `tenantId`      varchar(191) DEFAULT NULL,
+  `direction`     varchar(191) NOT NULL,
+  `phone`         varchar(191) NOT NULL,
+  `body`          longtext     NOT NULL,
+  `metaMessageId` varchar(191) DEFAULT NULL,
+  `status`        varchar(191) DEFAULT NULL,
+  `readByOwner`   tinyint(1)   NOT NULL DEFAULT 0,
+  `createdAt`     datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `WhatsAppMessage_metaMessageId_key` (`metaMessageId`),
+  KEY `WhatsAppMessage_userId_tenantId_createdAt_idx` (`userId`, `tenantId`, `createdAt`),
+  KEY `WhatsAppMessage_userId_readByOwner_idx` (`userId`, `readByOwner`),
+  CONSTRAINT `WhatsAppMessage_userId_fkey`   FOREIGN KEY (`userId`)   REFERENCES `User`(`id`)   ON DELETE CASCADE,
+  CONSTRAINT `WhatsAppMessage_tenantId_fkey` FOREIGN KEY (`tenantId`) REFERENCES `Tenant`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ── 2. Unique index for portalToken ──────────────────────────────────────────
 -- Skip this statement if you get "Duplicate key name" — the index already exists
 ALTER TABLE `Tenant` ADD UNIQUE INDEX `Tenant_portalToken_key` (`portalToken`);

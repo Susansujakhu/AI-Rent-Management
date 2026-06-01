@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, DoorOpen, Users, CreditCard, Wrench, Hammer, BarChart3, Settings, LogOut, Crown, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, DoorOpen, Users, CreditCard, Wrench, Hammer, BarChart3, Settings, LogOut, Crown, Sun, Moon, MessageCircle } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/brand/logo-mark";
@@ -15,6 +15,7 @@ const links = [
   { href: "/payments",    label: "Payments",    icon: CreditCard },
   { href: "/expenses",    label: "Expenses",    icon: Wrench },
   { href: "/maintenance", label: "Maintenance", icon: Hammer },
+  { href: "/inbox",       label: "Inbox",       icon: MessageCircle },
   { href: "/reports",     label: "Reports",     icon: BarChart3 },
   { href: "/settings",    label: "Settings",    icon: Settings },
 ];

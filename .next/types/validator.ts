@@ -236,6 +236,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../app/inbox/[id]/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/inbox/[id]">> = Specific
+  const handler = {} as typeof import("../../app/inbox/[id]/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/inbox/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/inbox">> = Specific
+  const handler = {} as typeof import("../../app/inbox/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/login/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/login">> = Specific
@@ -627,6 +645,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/health">> = Specific
   const handler = {} as typeof import("../../app/api/health/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/api/inbox/reply/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/inbox/reply">> = Specific
+  const handler = {} as typeof import("../../app/api/inbox/reply/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -1077,6 +1104,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/whatsapp/status">> = Specific
   const handler = {} as typeof import("../../app/api/whatsapp/status/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/api/whatsapp/webhook/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/whatsapp/webhook">> = Specific
+  const handler = {} as typeof import("../../app/api/whatsapp/webhook/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
