@@ -29,6 +29,7 @@ function lastDigits(phone: string, n = 10): string {
 export async function POST(req: Request) {
   let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ ok: true }); }
+  console.error("[wa:webhook] POST received");
   const payload = body as {
     object?: string;
     entry?: Array<{
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
     }>;
   };
   if (payload?.object !== "whatsapp_business_account") {
+    console.error("[wa:webhook] dropping: object =", payload?.object);
     return NextResponse.json({ ok: true });
   }
 
@@ -51,17 +53,31 @@ export async function POST(req: Request) {
       if (change.field !== "messages") continue;
       const value   = change.value;
       const display = value?.metadata?.display_phone_number ?? "";
-      if (!display) continue;
+      if (!display) {
+        console.error("[wa:webhook] dropping: no display_phone_number in metadata");
+        continue;
+      }
 
-      // Route to the owner whose registered phone matches the WhatsApp business
-      // number. Works for single-business deployments; per-user mapping is a
-      // future step when multi-tenant rolls out.
+      // Owner lookup: prefer the `wa_owner_user_id` GlobalSetting if set; else
+      // fall back to matching the business number against User.phone.
       const ownerDigits = lastDigits(display, 10);
-      const owner = await prisma.user.findFirst({
-        where: { phone: { contains: ownerDigits } },
-        select: { id: true },
-      });
-      if (!owner) continue;
+      const ownerSetting = await prisma.globalSetting.findUnique({ where: { key: "wa_owner_user_id" } });
+      let owner: { id: string } | null = null;
+      if (ownerSetting?.value) {
+        owner = await prisma.user.findUnique({ where: { id: ownerSetting.value }, select: { id: true } });
+        if (!owner) console.error("[wa:webhook] wa_owner_user_id setting points to unknown user:", ownerSetting.value);
+      }
+      if (!owner) {
+        owner = await prisma.user.findFirst({
+          where: { phone: { contains: ownerDigits } },
+          select: { id: true },
+        });
+      }
+      if (!owner) {
+        console.error("[wa:webhook] dropping: no owner matched (display=", display, "ownerDigits=", ownerDigits, ")");
+        continue;
+      }
+      console.error("[wa:webhook] routing to owner", owner.id, "from", display);
 
       // ── Status updates (delivered / read / failed) — update outbound rows ──
       for (const s of value?.statuses ?? []) {
@@ -73,19 +89,20 @@ export async function POST(req: Request) {
 
       // ── New incoming messages ─────────────────────────────────────────────
       for (const m of value?.messages ?? []) {
-        if (m.type !== "text") continue;          // skip media for now
+        if (m.type !== "text") { console.error("[wa:webhook] skipping non-text message type:", m.type); continue; }
         const text = m.text?.body?.trim();
-        if (!text) continue;
+        if (!text) { console.error("[wa:webhook] skipping: empty text"); continue; }
 
         // Dedup: Meta retries the same webhook on errors.
         const existing = await prisma.whatsAppMessage.findUnique({ where: { metaMessageId: m.id } });
-        if (existing) continue;
+        if (existing) { console.error("[wa:webhook] dedup hit for wamid:", m.id); continue; }
 
         const fromE164 = `+${m.from}`;
         const tenant   = await prisma.tenant.findFirst({
           where:  { userId: owner.id, phone: { contains: lastDigits(m.from, 10) } },
           select: { id: true, name: true },
         });
+        console.error("[wa:webhook] saving message from", fromE164, "tenant=", tenant?.id ?? "(unknown)");
 
         await prisma.whatsAppMessage.create({
           data: {
