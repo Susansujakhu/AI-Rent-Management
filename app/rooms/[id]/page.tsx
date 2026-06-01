@@ -52,7 +52,52 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
 
   if (!room) notFound();
 
-  const currentTenant = room.tenants[0];
+  let currentTenant = room.tenants[0];
+
+  // Clean up phantom auto-generated rows for the current tenant — same rule
+  // as the tenant page, in case the user lands here before visiting there:
+  // delete amountPaid=0 rows that fall before the move-in month OR in the
+  // current calendar month before the billing day has arrived.
+  if (currentTenant) {
+    const today        = new Date();
+    const todayDay     = today.getDate();
+    const moveInDay    = currentTenant.moveInDate.getDate();
+    const daysInCur    = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const billingDay   = Math.min(moveInDay, daysInCur);
+    let lastY = today.getFullYear();
+    let lastM = today.getMonth() + 1;
+    if (todayDay < billingDay) { lastM--; if (lastM < 1) { lastM = 12; lastY--; } }
+    const lastMonthStr   = `${lastY}-${String(lastM).padStart(2, "0")}`;
+    const calCurrentMon  = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+    const moveInMonth    = `${currentTenant.moveInDate.getFullYear()}-${String(currentTenant.moveInDate.getMonth() + 1).padStart(2, "0")}`;
+    const removed = await prisma.payment.deleteMany({
+      where: {
+        userId:     user.id,
+        tenantId:   currentTenant.id,
+        amountPaid: 0,
+        OR: [
+          { month: { lt: moveInMonth } },
+          { AND: [
+              { month: { gt: lastMonthStr  } },
+              { month: { lte: calCurrentMon } },
+            ],
+          },
+        ],
+      },
+    });
+    if (removed.count > 0) {
+      // Re-fetch the tenant's payments so the page renders the cleaned set.
+      const refreshed = await prisma.tenant.findUnique({
+        where: { id: currentTenant.id },
+        include: {
+          oneTimeCharges: { orderBy: { date: "desc" } },
+          payments:       { orderBy: { month: "desc" } },
+        },
+      });
+      if (refreshed) currentTenant = { ...currentTenant, ...refreshed };
+    }
+  }
+
   const totalCollected = room.payments.reduce((s, p) => s + p.amountPaid, 0);
 
   // Outstanding is scoped to the *current* tenant — historical debts of past

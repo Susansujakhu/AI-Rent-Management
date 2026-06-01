@@ -67,16 +67,27 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
     const calCurrentMonth = monthString(today.getFullYear(), today.getMonth() + 1);
     const moveInMonth     = monthString(moveInDate.getFullYear(), moveInDate.getMonth() + 1);
 
-    // If the move-in date has been pushed forward, clean up the
-    // untouched auto-generated months that now fall before it. Anything
-    // with money applied (PAID / PARTIAL / manual entry) is kept so real
-    // receipt history isn't silently destroyed by a date correction.
+    // Clean up two kinds of phantom auto-generated rows (anything with
+    // money applied — PAID / PARTIAL / manual entry — is preserved):
+    //   1. Months before the (possibly moved-forward) move-in month.
+    //   2. The current calendar month when the billing day hasn't passed
+    //      yet — e.g. a "Jun 7 – Jul 7" row that lingered from before
+    //      today, while today is Jun 1 and billing day is the 7th.
+    //      Further-future rows (month > calCurrentMonth) are left alone
+    //      so intentional pre-generation isn't destroyed.
     await prisma.payment.deleteMany({
       where: {
         userId:     user.id,
         tenantId:   tenantBase.id,
-        month:      { lt: moveInMonth },
         amountPaid: 0,
+        OR: [
+          { month: { lt: moveInMonth } },
+          { AND: [
+              { month: { gt: lastMonthStr   } },
+              { month: { lte: calCurrentMonth } },
+            ],
+          },
+        ],
       },
     });
 
