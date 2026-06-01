@@ -31,9 +31,9 @@ CREATE TABLE IF NOT EXISTS `WhatsAppMessage` (
   UNIQUE KEY `WhatsAppMessage_metaMessageId_key` (`metaMessageId`),
   KEY `WhatsAppMessage_userId_tenantId_createdAt_idx` (`userId`, `tenantId`, `createdAt`),
   KEY `WhatsAppMessage_userId_readByOwner_idx` (`userId`, `readByOwner`),
-  CONSTRAINT `WhatsAppMessage_userId_fkey`   FOREIGN KEY (`userId`)   REFERENCES `User`(`id`)   ON DELETE CASCADE,
-  CONSTRAINT `WhatsAppMessage_tenantId_fkey` FOREIGN KEY (`tenantId`) REFERENCES `Tenant`(`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  CONSTRAINT `WhatsAppMessage_userId_fkey`   FOREIGN KEY (`userId`)   REFERENCES `User`   (`id`) ON DELETE CASCADE  ON UPDATE CASCADE,
+  CONSTRAINT `WhatsAppMessage_tenantId_fkey` FOREIGN KEY (`tenantId`) REFERENCES `Tenant` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── 2. Unique index for portalToken ──────────────────────────────────────────
 -- Skip this statement if you get "Duplicate key name" — the index already exists
