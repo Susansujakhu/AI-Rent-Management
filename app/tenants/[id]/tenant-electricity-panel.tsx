@@ -50,6 +50,7 @@ export function TenantElectricityPanel({
   const [togglingMeter, setTogglingMeter] = useState(false);
   const [readings,  setReadings]  = useState<Reading[]>([]);
   const [expanded,  setExpanded]  = useState<string | null>(null);
+  const [showAllHistory, setShowAllHistory] = useState(false);
   const [showForm,  setShowForm]  = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [deleteId,  setDeleteId]  = useState<string | null>(null);
@@ -245,6 +246,13 @@ export function TenantElectricityPanel({
 
   const pending   = readings.filter(r => r.status === "pending_review").sort((a, b) => b.month.localeCompare(a.month));
   const confirmed = readings.filter(r => r.status !== "pending_review").sort((a, b) => b.month.localeCompare(a.month));
+
+  // Show only the latest 2 confirmed readings by default to keep the panel
+  // compact. Pending submissions always show in full because they need a
+  // decision; only the "history" of past confirmed readings collapses.
+  const HISTORY_COUNT  = 2;
+  const visibleConfirmed = showAllHistory ? confirmed : confirmed.slice(0, HISTORY_COUNT);
+  const hiddenCount      = Math.max(0, confirmed.length - HISTORY_COUNT);
 
   const existingMonths = new Set(readings.map(r => r.month));
 
@@ -581,7 +589,7 @@ export function TenantElectricityPanel({
         {/* Confirmed readings */}
         {confirmed.length > 0 && (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {confirmed.map(r => (
+            {visibleConfirmed.map(r => (
               <div key={r.id}>
                 <button
                   onClick={() => setExpanded(expanded === r.id ? null : r.id)}
@@ -652,6 +660,14 @@ export function TenantElectricityPanel({
                 )}
               </div>
             ))}
+            {hiddenCount > 0 && (
+              <button
+                onClick={() => setShowAllHistory(s => !s)}
+                className="w-full px-5 py-2.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50/60 dark:hover:bg-indigo-500/10 transition-colors"
+              >
+                {showAllHistory ? "Hide history" : `Show ${hiddenCount} more ${hiddenCount === 1 ? "reading" : "readings"}`}
+              </button>
+            )}
           </div>
         )}
 

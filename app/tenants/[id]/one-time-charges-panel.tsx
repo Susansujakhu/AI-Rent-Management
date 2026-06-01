@@ -237,6 +237,9 @@ export function OneTimeChargesPanel({
 
   const [charges,       setCharges]       = useState(initialCharges);
   const [page,          setPage]          = useState(1);
+  // Collapsed by default to keep the panel compact. The user opts in to
+  // the full history when they need it.
+  const [expanded,      setExpanded]      = useState(false);
   const [editCharge,    setEditCharge]    = useState<SerializedCharge | null>(null);
   const [voidingId,     setVoidingId]     = useState<string | null>(null); // confirm delete
   const [deletingId,    setDeletingId]    = useState<string | null>(null); // loading delete
@@ -246,7 +249,18 @@ export function OneTimeChargesPanel({
   // Sync local state whenever the server re-renders (e.g. after router.refresh())
   useEffect(() => { setCharges(initialCharges); setPage(1); }, [initialCharges]);
 
-  const pagedCharges = charges.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const COLLAPSED_COUNT = 2;
+  // Collapsed view = latest 2 + every unpaid (PENDING/PARTIAL) charge so the
+  // actionable items are always visible. The hidden ones are the older PAID
+  // history that the user can pull up with the toggle.
+  const collapsedIds = new Set<string>();
+  charges.slice(0, COLLAPSED_COUNT).forEach(c => collapsedIds.add(c.id));
+  charges.filter(c => c.status !== "PAID").forEach(c => collapsedIds.add(c.id));
+  const collapsedCharges = charges.filter(c => collapsedIds.has(c.id));
+  const pagedCharges = expanded
+    ? charges.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    : collapsedCharges;
+  const hiddenCount = Math.max(0, charges.length - collapsedCharges.length);
 
   const handleVoid = async (id: string) => {
     setDeletingId(id);
@@ -413,7 +427,7 @@ export function OneTimeChargesPanel({
                   })}
                 </tbody>
               </table>
-              <Paginator page={page} total={charges.length} pageSize={PAGE_SIZE} onChange={setPage} />
+              {expanded && <Paginator page={page} total={charges.length} pageSize={PAGE_SIZE} onChange={setPage} />}
             </div>
 
             {/* Mobile */}
@@ -511,8 +525,18 @@ export function OneTimeChargesPanel({
                   </div>
                 );
               })}
-              <Paginator page={page} total={charges.length} pageSize={PAGE_SIZE} onChange={setPage} />
+              {expanded && <Paginator page={page} total={charges.length} pageSize={PAGE_SIZE} onChange={setPage} />}
             </div>
+
+            {/* Show / hide history toggle — only when there's something to reveal */}
+            {hiddenCount > 0 && (
+              <button
+                onClick={() => setExpanded(e => !e)}
+                className="w-full px-4 py-2.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50/60 dark:hover:bg-indigo-500/10 border-t border-slate-100 dark:border-slate-800 transition-colors"
+              >
+                {expanded ? "Hide history" : `Show ${hiddenCount} more ${hiddenCount === 1 ? "charge" : "charges"}`}
+              </button>
+            )}
           </>
         )}
       </div>
