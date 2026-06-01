@@ -29,7 +29,9 @@ export async function PATCH(
           tenantId: reading.tenantId,
           title:    `Electricity — ${new Date(y, m - 1).toLocaleDateString("en", { month: "long", year: "numeric" })}`,
           amount:   reading.amount,
-          date:     new Date(y, m - 1, 1),
+          // Use today (when the owner confirmed) rather than the 1st of the
+          // reading month, so the charge folds into the current rent period.
+          date:     new Date(),
           notes:    `${reading.unitsUsed} units × ${reading.ratePerUnit}/unit`,
         },
       });

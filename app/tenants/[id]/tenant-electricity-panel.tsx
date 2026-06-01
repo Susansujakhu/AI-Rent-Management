@@ -65,6 +65,7 @@ export function TenantElectricityPanel({
 
   const [form, setForm] = useState({
     month:        currentMonth(),
+    readingDate:  new Date().toISOString().split("T")[0],
     previous:     "",
     current:      "",
     rate:         defaultRate > 0 ? String(defaultRate) : "",
@@ -119,6 +120,7 @@ export function TenantElectricityPanel({
       body:    JSON.stringify({
         tenantId,
         month:       form.month,
+        readingDate: form.readingDate || null,
         previous:    prev,
         current:     curr,
         ratePerUnit: isNaN(rate) ? 0 : rate,
@@ -396,18 +398,29 @@ export function TenantElectricityPanel({
               </button>
             </div>
 
-            {/* Month */}
-            <div>
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1">Month</label>
-              <input
-                type="month"
-                value={form.month}
-                onChange={e => setForm(f => ({ ...f, month: e.target.value }))}
-                className={inputCls + (existingMonths.has(form.month) ? " border-rose-300" : "")}
-              />
-              {existingMonths.has(form.month) && (
-                <p className="text-xs text-rose-500 mt-1">A reading already exists for this month</p>
-              )}
+            {/* Month + Reading Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1">Month</label>
+                <input
+                  type="month"
+                  value={form.month}
+                  onChange={e => setForm(f => ({ ...f, month: e.target.value }))}
+                  className={inputCls + (existingMonths.has(form.month) ? " border-rose-300" : "")}
+                />
+                {existingMonths.has(form.month) && (
+                  <p className="text-xs text-rose-500 mt-1">A reading already exists for this month</p>
+                )}
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1">Reading Date</label>
+                <input
+                  type="date"
+                  value={form.readingDate}
+                  onChange={e => setForm(f => ({ ...f, readingDate: e.target.value }))}
+                  className={inputCls}
+                />
+              </div>
             </div>
 
             {/* Previous / Current */}

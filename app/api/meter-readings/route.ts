@@ -48,9 +48,10 @@ export async function POST(req: Request) {
     ratePerUnit: number;
     notes?:      string;
     createCharge?: boolean;
+    readingDate?: string | null;
   };
 
-  const { tenantId, month, previous, current, ratePerUnit, notes, createCharge } = body;
+  const { tenantId, month, previous, current, ratePerUnit, notes, createCharge, readingDate } = body;
 
   if (!tenantId || !month || !(/^\d{4}-\d{2}$/.test(month))) {
     return NextResponse.json({ error: "tenantId and month (YYYY-MM) are required" }, { status: 400 });
@@ -82,13 +83,19 @@ export async function POST(req: Request) {
 
   if (createCharge && amount > 0) {
     const [y, m] = month.split("-").map(Number);
+    // Prefer the user-supplied reading date; fall back to today, then to
+    // the 1st of the reading month if neither is usable.
+    const parsedDate = readingDate ? new Date(readingDate) : null;
+    const chargeDate = parsedDate && !isNaN(parsedDate.getTime())
+      ? parsedDate
+      : new Date();
     const charge = await prisma.oneTimeCharge.create({
       data: {
         userId,
         tenantId,
         title:  `Electricity — ${new Date(y, m - 1).toLocaleDateString("en", { month: "long", year: "numeric" })}`,
         amount,
-        date:   new Date(y, m - 1, 1),
+        date:   chargeDate,
         notes:  `${unitsUsed} units × ${ratePerUnit}/unit`,
       },
     });
