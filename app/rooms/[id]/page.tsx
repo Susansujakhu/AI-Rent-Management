@@ -144,9 +144,10 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
                 Tenant:{" "}
                 <Link
                   href={`/tenants/${currentTenant.id}`}
-                  className="font-semibold text-white underline-offset-2 hover:underline"
+                  className="inline-flex items-center gap-0.5 font-semibold text-white border-b border-white/40 hover:border-white/80 transition-colors"
                 >
                   {currentTenant.name}
+                  <ChevronRight size={14} className="text-white/70" />
                 </Link>
               </p>
             ) : (
