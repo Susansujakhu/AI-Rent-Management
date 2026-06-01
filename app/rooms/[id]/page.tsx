@@ -302,9 +302,17 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
           </div>
           <PaymentLedger
             payments={currentTenant.payments.map(p => {
+              // Match one-time charges by rent period (using moveInDay), not
+              // calendar month — a Jun 01 reading belongs to the "May 7 – Jun 7"
+              // row when the tenant moved in on the 7th.
+              const moveInDay = currentTenant.moveInDate.getDate();
               const otcForMonth = currentTenant.oneTimeCharges.filter(c => {
-                const d = new Date(c.date);
-                const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+                const d  = new Date(c.date);
+                const dd = d.getDate();
+                let yy   = d.getFullYear();
+                let mm   = d.getMonth() + 1;
+                if (dd < moveInDay) { mm--; if (mm < 1) { mm = 12; yy--; } }
+                const k = `${yy}-${String(mm).padStart(2, "0")}`;
                 return k === p.month;
               });
               const recurringForMonth = room.recurringCharges

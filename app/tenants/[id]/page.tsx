@@ -325,11 +325,19 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         </div>
         <PaymentLedger
           payments={tenant.payments.map(p => {
-            // Find one-time charges (electricity, repairs, etc.) dated within
-            // this payment's calendar month — they get folded into the row.
+            // Match one-time charges to the rent period they fall in (not
+            // calendar month). For a moveInDay of 7, a charge dated Jun 01
+            // belongs to the "May 7 – Jun 7" period (p.month "2026-05"),
+            // not to "2026-06". This is the rule that keeps Outstanding =
+            // ledger total even for next-month meter readings.
+            const moveInDay = tenant.moveInDate.getDate();
             const otcForMonth = tenant.oneTimeCharges.filter(c => {
-              const d = new Date(c.date);
-              const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+              const d  = new Date(c.date);
+              const dd = d.getDate();
+              let yy   = d.getFullYear();
+              let mm   = d.getMonth() + 1;
+              if (dd < moveInDay) { mm--; if (mm < 1) { mm = 12; yy--; } }
+              const k = `${yy}-${String(mm).padStart(2, "0")}`;
               return k === p.month;
             });
             const recurringForMonth = tenant.room ? tenant.room.recurringCharges
