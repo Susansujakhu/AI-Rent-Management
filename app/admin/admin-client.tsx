@@ -421,7 +421,7 @@ export default function AdminClient() {
                     <div>
                       <h3 className="font-semibold text-slate-800">Re-run all calculations</h3>
                       <p className="text-xs text-slate-500 mt-1 max-w-xl">
-                        Walks every non-PAID Payment across all landlords and rewrites <code>amountDue</code> + status from current rent (via rent-history) + active recurring charges. Useful for healing data after charge/rent edits the regular hooks missed. PAID bills are deliberately left alone — receipts already issued.
+                        Heals derived data across all landlords: rewrites every non-PAID Payment&apos;s <code>amountDue</code> + status from current rent (via rent-history) + active recurring charges, re-derives electricity charges from their meter readings (units × rate), and re-syncs one-time charge statuses. Useful after charge/rent/reading edits the regular hooks missed. Already-PAID money is left alone — receipts already issued, and a manually-typed charge amount can only be fixed by editing it directly.
                       </p>
                     </div>
                     {recomputeArmed ? (
@@ -431,9 +431,9 @@ export default function AdminClient() {
                             setRecomputing(true);
                             try {
                               const r = await fetch("/api/admin/recompute-bills", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-                              const d = await r.json().catch(() => ({})) as { scanned?: number; changed?: number; error?: string };
+                              const d = await r.json().catch(() => ({})) as { scanned?: number; changed?: number; electricityRederived?: number; chargeStatusFixed?: number; error?: string };
                               if (!r.ok) throw new Error(d.error ?? "Failed");
-                              toast.success(`Scanned ${d.scanned ?? 0} bills, ${d.changed ?? 0} updated.`);
+                              toast.success(`Scanned ${d.scanned ?? 0} bills, ${d.changed ?? 0} updated · ${d.electricityRederived ?? 0} electricity re-derived · ${d.chargeStatusFixed ?? 0} statuses fixed.`);
                             } catch (e: unknown) {
                               toast.error(e instanceof Error ? e.message : "Failed to recompute");
                             } finally {
