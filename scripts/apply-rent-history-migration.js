@@ -1,56 +1,79 @@
 #!/usr/bin/env node
-// One-shot migration runner for the RentHistory table. Safe to re-run —
-// the underlying CREATE TABLE is IF NOT EXISTS and the script checks first
-// and exits cleanly when the table is already there.
+// One-shot migration runner for the RentHistory table. Idempotent — the
+// SQL uses CREATE TABLE IF NOT EXISTS, and we check existence first so
+// re-runs are a no-op.
+//
+// Why not Prisma? On cPanel CloudLinux the Prisma Query Engine panics
+// (OpenSSL/libssl mismatch), so we shell out to the `mysql` CLI client
+// instead. Credentials are parsed out of DATABASE_URL in .env so the
+// operator doesn't have to copy them anywhere.
+//
 // Usage on cPanel:
 //   source ~/nodevenv/easy-rent.xpertthemes.com/20/bin/activate
 //   cd ~/easy-rent.xpertthemes.com
 //   node scripts/apply-rent-history-migration.js
 
-// Standalone `node` does NOT auto-load .env the way Next.js / prisma CLI
-// do, so the PrismaClient would be built without DATABASE_URL and just
-// silently hang. Load .env first.
-require("dotenv").config({ path: require("path").join(__dirname, "..", ".env") });
-
-const { PrismaClient } = require("@prisma/client");
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("child_process");
+
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 console.log("Applying RentHistory migration...");
-console.log("DATABASE_URL set:", process.env.DATABASE_URL ? "yes" : "NO — aborting");
-if (!process.env.DATABASE_URL) process.exit(1);
+if (!process.env.DATABASE_URL) {
+  console.error("✗ DATABASE_URL is not set. Check .env in the project root.");
+  process.exit(1);
+}
 
-(async () => {
-  const prisma = new PrismaClient();
-  try {
-    const existing = await prisma.$queryRawUnsafe(
-      "SHOW TABLES LIKE 'RentHistory'"
-    );
-    if (existing.length > 0) {
-      console.log("✓ RentHistory table already exists — nothing to do.");
-      return;
-    }
+const url = new URL(process.env.DATABASE_URL);
+const user = decodeURIComponent(url.username);
+const password = decodeURIComponent(url.password);
+const host = url.hostname;
+const port = url.port || "3306";
+const dbname = url.pathname.slice(1);
 
-    const sqlPath = path.join(__dirname, "migrations", "2026-06-02-rent-history.sql");
-    const sql = fs.readFileSync(sqlPath, "utf8");
+console.log(`Connecting to ${user}@${host}:${port}/${dbname}`);
 
-    // Strip line comments and split on semicolon-newline so we run each
-    // statement separately ($executeRawUnsafe only accepts one at a time).
-    const stmts = sql
-      .replace(/^--.*$/gm, "")
-      .split(/;\s*\n/)
-      .map(s => s.trim())
-      .filter(Boolean);
+// Idempotency check — skip if RentHistory already exists.
+const check = spawnSync(
+  "mysql",
+  ["-h", host, "-P", port, "-u", user, "-N", "-B", "-e", `USE \`${dbname}\`; SHOW TABLES LIKE 'RentHistory';`],
+  { env: { ...process.env, MYSQL_PWD: password }, encoding: "utf8" }
+);
+if (check.error) {
+  console.error("✗ Could not spawn `mysql`:", check.error.code === "ENOENT"
+    ? "the mysql CLI is not on PATH"
+    : check.error.message);
+  process.exit(1);
+}
+if (check.status !== 0) {
+  console.error("✗ Could not query the database:");
+  console.error(check.stderr || check.stdout || "(no output)");
+  process.exit(1);
+}
+if (check.stdout.trim().length > 0) {
+  console.log("✓ RentHistory table already exists — nothing to do.");
+  process.exit(0);
+}
 
-    for (const s of stmts) {
-      await prisma.$executeRawUnsafe(s);
-      console.log("  ✓", s.split("\n")[0].slice(0, 100));
-    }
-    console.log("\n✓ RentHistory migration applied.");
-  } catch (e) {
-    console.error("✗ Migration failed:", e.message);
-    process.exit(1);
-  } finally {
-    await prisma.$disconnect();
-  }
-})();
+// Apply the migration SQL file.
+const sqlPath = path.join(__dirname, "migrations", "2026-06-02-rent-history.sql");
+const sql = fs.readFileSync(sqlPath);
+
+console.log("Running migration SQL...");
+const run = spawnSync(
+  "mysql",
+  ["-h", host, "-P", port, "-u", user, dbname],
+  { env: { ...process.env, MYSQL_PWD: password }, input: sql, encoding: "utf8" }
+);
+if (run.error) {
+  console.error("✗ Could not spawn `mysql`:", run.error.message);
+  process.exit(1);
+}
+if (run.status !== 0) {
+  console.error("✗ Migration failed:");
+  console.error(run.stderr || run.stdout || "(no output)");
+  process.exit(1);
+}
+
+console.log("✓ RentHistory migration applied.");
