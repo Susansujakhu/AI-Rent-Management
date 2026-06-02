@@ -44,10 +44,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     where: {
       userId,
       roomId: id,
-      amountPaid: 0,
+      status: { not: "PAID" },               // PAID bills stay locked
       ...(effectiveFrom ? { month: { gte: effectiveFrom } } : {}),
     },
-    select: { id: true, month: true, tenantId: true },
+    select: { id: true, month: true, tenantId: true, amountPaid: true, status: true },
   });
   // Re-fetch room with the new charge included.
   const fresh = await prisma.room.findUnique({
@@ -55,6 +55,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     include: { recurringCharges: true, rentHistory: true },
   });
   if (fresh) {
+    const today        = new Date();
+    const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
     for (const p of unpaid) {
       const baseRent = pickRentForMonth(fresh.rentHistory, p.month, fresh.monthlyRent);
       const chargesForMonth = fresh.recurringCharges
@@ -62,9 +64,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           && (!c.effectiveFrom || c.effectiveFrom <= p.month)
           && (!c.effectiveTo   || p.month <= c.effectiveTo))
         .reduce((s, c) => s + c.amount, 0);
+      const newDue = baseRent + chargesForMonth;
+      const wasOverdue = p.status === "OVERDUE" || p.month < currentMonth;
+      const newStatus = newDue > 0 && p.amountPaid >= newDue ? "PAID"
+        : p.amountPaid > 0                                    ? "PARTIAL"
+        : wasOverdue                                          ? "OVERDUE" : "PENDING";
       await prisma.payment.update({
         where: { id: p.id },
-        data:  { amountDue: baseRent + chargesForMonth },
+        data:  { amountDue: newDue, status: newStatus },
       });
     }
   }

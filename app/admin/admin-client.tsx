@@ -98,6 +98,8 @@ const PAGE_SIZE = 15;
 
 export default function AdminClient() {
   const [tab, setTab] = useState<Tab>("overview");
+  const [recomputing,    setRecomputing]    = useState(false);
+  const [recomputeArmed, setRecomputeArmed] = useState(false);
 
   // WA
   const [wa,         setWa]         = useState<WAState>({ mode: "api", api: { configured: false, phoneNumberId: null }, direct: { status: "disconnected", phone: null, qrImage: null } });
@@ -411,6 +413,50 @@ export default function AdminClient() {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Recompute all bills — admin maintenance tool */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                      <h3 className="font-semibold text-slate-800">Re-run all calculations</h3>
+                      <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                        Walks every non-PAID Payment across all landlords and rewrites <code>amountDue</code> + status from current rent (via rent-history) + active recurring charges. Useful for healing data after charge/rent edits the regular hooks missed. PAID bills are deliberately left alone — receipts already issued.
+                      </p>
+                    </div>
+                    {recomputeArmed ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            setRecomputing(true);
+                            try {
+                              const r = await fetch("/api/admin/recompute-bills", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+                              const d = await r.json().catch(() => ({})) as { scanned?: number; changed?: number; error?: string };
+                              if (!r.ok) throw new Error(d.error ?? "Failed");
+                              toast.success(`Scanned ${d.scanned ?? 0} bills, ${d.changed ?? 0} updated.`);
+                            } catch (e: unknown) {
+                              toast.error(e instanceof Error ? e.message : "Failed to recompute");
+                            } finally {
+                              setRecomputing(false);
+                              setRecomputeArmed(false);
+                            }
+                          }}
+                          disabled={recomputing}
+                          className="text-xs font-semibold px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50 transition-colors whitespace-nowrap"
+                        >
+                          {recomputing ? "Running…" : "Confirm — run for all users"}
+                        </button>
+                        <button onClick={() => setRecomputeArmed(false)} disabled={recomputing} className="text-xs px-3 py-2 text-slate-500 hover:text-slate-700 rounded-lg transition-colors">Cancel</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setRecomputeArmed(true)}
+                        className="text-xs font-semibold px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors whitespace-nowrap"
+                      >
+                        Re-run all calculations
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Charts */}

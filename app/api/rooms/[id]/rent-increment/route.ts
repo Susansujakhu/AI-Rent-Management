@@ -79,14 +79,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // resolve the right rent for each month.
     const history = [...room.rentHistory, { effectiveFrom, amount }];
 
+    const today        = new Date();
+    const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
     const bills = await prisma.payment.findMany({
       where: {
         userId,
         roomId,
-        month:      { gte: effectiveFrom },
-        amountPaid: 0,                       // never touch bills with any money applied
+        month:  { gte: effectiveFrom },
+        status: { not: "PAID" },                // PAID bills stay locked
       },
-      select: { id: true, month: true, tenantId: true },
+      select: { id: true, month: true, tenantId: true, amountPaid: true, status: true },
     });
 
     for (const b of bills) {
@@ -96,9 +98,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           && (!c.effectiveFrom || c.effectiveFrom <= b.month)
           && (!c.effectiveTo   || b.month <= c.effectiveTo))
         .reduce((s, c) => s + c.amount, 0);
+      const newDue     = baseRent + chargesForMonth;
+      const wasOverdue = b.status === "OVERDUE" || b.month < currentMonth;
+      const newStatus  = newDue > 0 && b.amountPaid >= newDue ? "PAID"
+        : b.amountPaid > 0                                     ? "PARTIAL"
+        : wasOverdue                                           ? "OVERDUE" : "PENDING";
       await prisma.payment.update({
         where: { id: b.id },
-        data:  { amountDue: baseRent + chargesForMonth },
+        data:  { amountDue: newDue, status: newStatus },
       });
       recomputed++;
     }

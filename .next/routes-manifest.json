@@ -467,6 +467,12 @@
       "namedRegex": "^/api/admin/app\\-settings(?:/)?$"
     },
     {
+      "page": "/api/admin/recompute-bills",
+      "regex": "^/api/admin/recompute\\-bills(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/recompute\\-bills(?:/)?$"
+    },
+    {
       "page": "/api/admin/stats",
       "regex": "^/api/admin/stats(?:/)?$",
       "routeKeys": {},

@@ -104,16 +104,17 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
       const existing = await prisma.payment.findUnique({
         where:  { tenantId_month: { tenantId: tenantBase.id, month: m } },
-        select: { id: true, amountPaid: true },
+        select: { id: true, amountPaid: true, status: true },
       });
 
       if (!existing) {
         await prisma.payment.create({
           data: { userId: user.id, tenantId: tenantBase.id, roomId: tenantBase.roomId, month: m, amountDue, amountPaid: 0, status: m < calCurrentMonth ? "OVERDUE" : "PENDING" },
         });
-      } else if (existing.amountPaid === 0) {
-        // Only refresh amountDue on untouched bills. Any bill with money
-        // applied (PARTIAL / PAID) keeps its locked-in amount forever.
+      } else if (existing.status !== "PAID") {
+        // Refresh amountDue for any bill that isn't fully settled. PARTIAL
+        // bills DO update so charge edits flow through; only PAID bills
+        // (money received in full, receipt issued) stay locked.
         await prisma.payment.update({ where: { id: existing.id }, data: { amountDue } });
       }
     }

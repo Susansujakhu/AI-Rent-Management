@@ -106,10 +106,12 @@ export async function DELETE(
   const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 
   // Scope: tenant-specific charge → only that tenant's bills. Room-level
-  // charge → every payment for the room.
+  // charge → every payment for the room. PAID bills are deliberately
+  // skipped — receipts are out, history is locked.
   const payments = await prisma.payment.findMany({
     where: {
       userId, roomId,
+      status: { not: "PAID" },
       ...(charge.tenantId ? { tenantId: charge.tenantId } : {}),
     },
     select: { id: true, tenantId: true, month: true, amountDue: true, amountPaid: true, status: true },
