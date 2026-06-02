@@ -45,7 +45,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: "phone must be 20 characters or fewer" }, { status: 400 });
     data.phone = body.phone;
   }
-  if ("email"   in body) data.email  = body.email  || null;
+  if ("email" in body) {
+    if (typeof body.email !== "string" || !body.email.trim()) {
+      return NextResponse.json({ error: "email is required" }, { status: 400 });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())) {
+      return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
+    }
+    data.email = body.email.trim();
+  }
   if ("roomId"  in body) data.roomId = body.roomId || null;
   if (body.moveInDate !== undefined) {
     const d = new Date(body.moveInDate);

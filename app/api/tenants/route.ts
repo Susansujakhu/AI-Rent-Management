@@ -34,6 +34,12 @@ export async function POST(req: Request) {
   if (body.phone.trim().length > 20) {
     return NextResponse.json({ error: "phone must be 20 characters or fewer" }, { status: 400 });
   }
+  if (typeof body.email !== "string" || !body.email.trim()) {
+    return NextResponse.json({ error: "email is required" }, { status: 400 });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())) {
+    return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
+  }
   if (body.notes && typeof body.notes === "string" && body.notes.length > 5000) {
     return NextResponse.json({ error: "notes must be 5000 characters or fewer" }, { status: 400 });
   }
@@ -53,7 +59,7 @@ export async function POST(req: Request) {
       userId,
       name:      body.name.trim(),
       phone:     body.phone.trim(),
-      email:     body.email || null,
+      email:     body.email.trim(),
       roomId:    body.roomId || null,
       moveInDate,
       deposit,

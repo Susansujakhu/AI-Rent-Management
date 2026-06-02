@@ -57,13 +57,16 @@ export async function POST(req: Request) {
     }
   }
 
-  // Validate and check email uniqueness before sending OTP
-  if (email !== undefined && email !== null && email !== "") {
-    if (typeof email !== "string" || !z.string().email().safeParse(String(email).trim()).success) {
-      return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
-    }
-    const emailTaken = await prisma.user.findUnique({ where: { email: String(email).trim().toLowerCase() } });
-    if (emailTaken) return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
+  // Email is required (used as a fallback delivery channel for notifications).
+  if (typeof email !== "string" || !email.trim()) {
+    return NextResponse.json({ error: "Email is required" }, { status: 400 });
+  }
+  if (!z.string().email().safeParse(email.trim()).success) {
+    return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
+  }
+  const emailTaken = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
+  if (emailTaken) {
+    return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
   }
 
   const normalized = normalizePhone(phone.trim());

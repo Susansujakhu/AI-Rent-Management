@@ -26,6 +26,12 @@ export async function POST(req: Request) {
   if (typeof password !== "string" || !password) {
     return NextResponse.json({ error: "Password is required" }, { status: 400 });
   }
+  if (typeof email !== "string" || !email.trim()) {
+    return NextResponse.json({ error: "Email is required" }, { status: 400 });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
+  }
   if (password.length < 8) {
     return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
   }

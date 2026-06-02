@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
+import { pickRentForMonth } from "@/lib/rent-history";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAuthAPI();
@@ -36,6 +37,37 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       effectiveFrom: effectiveFrom || null,
     },
   });
+
+  // Recompute amountDue on the tenant's unpaid bills (amountPaid = 0) whose
+  // month falls inside this charge's effective window. PAID and PARTIAL
+  // bills are never touched — history is sacred.
+  const room = await prisma.room.findUnique({
+    where:   { id: tenant.roomId },
+    include: { recurringCharges: true, rentHistory: true },
+  });
+  if (room) {
+    const unpaid = await prisma.payment.findMany({
+      where: {
+        userId,
+        tenantId,
+        amountPaid: 0,
+        ...(effectiveFrom ? { month: { gte: effectiveFrom } } : {}),
+      },
+      select: { id: true, month: true },
+    });
+    for (const p of unpaid) {
+      const baseRent = pickRentForMonth(room.rentHistory, p.month, room.monthlyRent);
+      const chargesForMonth = room.recurringCharges
+        .filter(c => (c.tenantId === null || c.tenantId === tenantId)
+          && (!c.effectiveFrom || c.effectiveFrom <= p.month)
+          && (!c.effectiveTo   || p.month <= c.effectiveTo))
+        .reduce((s, c) => s + c.amount, 0);
+      await prisma.payment.update({
+        where: { id: p.id },
+        data:  { amountDue: baseRent + chargesForMonth },
+      });
+    }
+  }
 
   return NextResponse.json(charge);
 }

@@ -398,17 +398,18 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      {/* Rent History — admin action, kept at the bottom inside a collapsible
+      {/* Update Rent — admin action, kept at the bottom inside a collapsible
           so it doesn't crowd the day-to-day view. */}
       <CollapsibleGroup
-        title={`Rent History · ${room.rentHistory.length} ${room.rentHistory.length === 1 ? "entry" : "entries"}`}
-        subtitle="Track every rent change and apply increments"
+        title="Update Rent"
+        subtitle={`Apply an increase or view past changes (${room.rentHistory.length} ${room.rentHistory.length === 1 ? "entry" : "entries"})`}
         icon={<TrendingUp size={15} />}
       >
         <RentHistoryPanel
           roomId={id}
           currencySymbol={settings.currencySymbol}
           currentRent={room.monthlyRent}
+          moveInDay={currentTenant ? currentTenant.moveInDate.getDate() : 1}
           history={room.rentHistory.map(h => ({
             id:            h.id,
             amount:        h.amount,

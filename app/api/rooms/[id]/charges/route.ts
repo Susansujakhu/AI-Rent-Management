@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
+import { pickRentForMonth } from "@/lib/rent-history";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAuthAPI();
@@ -19,7 +20,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "effectiveFrom must be in YYYY-MM format" }, { status: 400 });
   }
   // Verify the room belongs to this user before creating a charge for it
-  const room = await prisma.room.findUnique({ where: { id, userId }, select: { id: true } });
+  const room = await prisma.room.findUnique({
+    where:   { id, userId },
+    include: { recurringCharges: true, rentHistory: true },
+  });
   if (!room) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const charge = await prisma.recurringCharge.create({
@@ -31,5 +35,39 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       effectiveFrom: effectiveFrom || null,
     },
   });
+
+  // Recompute unpaid bills (amountPaid = 0) across all tenants in this room
+  // whose month falls within the new charge's effective window. Room-level
+  // charges apply to every tenant (tenantId IS NULL on the charge), so the
+  // recompute spans the room's full payment list.
+  const unpaid = await prisma.payment.findMany({
+    where: {
+      userId,
+      roomId: id,
+      amountPaid: 0,
+      ...(effectiveFrom ? { month: { gte: effectiveFrom } } : {}),
+    },
+    select: { id: true, month: true, tenantId: true },
+  });
+  // Re-fetch room with the new charge included.
+  const fresh = await prisma.room.findUnique({
+    where:   { id, userId },
+    include: { recurringCharges: true, rentHistory: true },
+  });
+  if (fresh) {
+    for (const p of unpaid) {
+      const baseRent = pickRentForMonth(fresh.rentHistory, p.month, fresh.monthlyRent);
+      const chargesForMonth = fresh.recurringCharges
+        .filter(c => (c.tenantId === null || c.tenantId === p.tenantId)
+          && (!c.effectiveFrom || c.effectiveFrom <= p.month)
+          && (!c.effectiveTo   || p.month <= c.effectiveTo))
+        .reduce((s, c) => s + c.amount, 0);
+      await prisma.payment.update({
+        where: { id: p.id },
+        data:  { amountDue: baseRent + chargesForMonth },
+      });
+    }
+  }
+
   return NextResponse.json(charge);
 }

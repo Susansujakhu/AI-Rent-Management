@@ -38,7 +38,8 @@ export function SignupForm() {
     e.preventDefault();
     setError("");
 
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("Enter a valid email address"); return; }
+    if (!email.trim()) { setError("Email is required"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError("Enter a valid email address"); return; }
     if (!password) { setError("Password is required"); return; }
     if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
     if (password !== confirmPassword) { setError("Passwords do not match"); return; }
@@ -51,7 +52,7 @@ export function SignupForm() {
       const res  = await fetch("/api/auth/send-phone-otp", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ phone: fullPhone, email: email.trim() || undefined, password }),
+        body:    JSON.stringify({ phone: fullPhone, email: email.trim(), password }),
       });
       const data = await res.json() as { ok?: boolean; masked?: string; error?: string };
       if (!res.ok) { setError(data.error ?? "Failed to send code"); return; }
@@ -177,10 +178,10 @@ export function SignupForm() {
 
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em]">
-                  Email <span className="normal-case font-normal text-slate-300">(optional)</span>
+                  Email <span className="text-rose-400 normal-case font-normal">*</span>
                 </label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com" autoComplete="email" className={inputCls} />
+                  placeholder="you@example.com" autoComplete="email" required className={inputCls} />
               </div>
 
               <div className="space-y-1.5">

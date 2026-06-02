@@ -110,10 +110,11 @@ function NewTenantForm() {
             {errors.phone && <p className={err}>{errors.phone.message}</p>}
           </div>
           <div>
-            <label className={label}>Email</label>
+            <label className={label}>Email <span className="text-rose-400 normal-case font-normal">*</span></label>
             <input type="email" {...register("email", {
-              pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email address" },
-            })} className={field} placeholder="optional@email.com" />
+              required: "Email is required",
+              pattern:  { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email address" },
+            })} className={field} placeholder="tenant@example.com" />
             {errors.email && <p className={err}>{errors.email.message}</p>}
           </div>
         </div>

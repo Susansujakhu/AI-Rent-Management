@@ -81,11 +81,42 @@ async function sendViaAPI(phone: string, message: string): Promise<boolean> {
 
 export async function sendWhatsAppMessage(phone: string, message: string): Promise<boolean> {
   const mode = await getWAMode();
+  let ok: boolean;
   if (mode === "direct") {
     const { sendDirectMessage } = await import("./whatsapp-direct");
-    return sendDirectMessage(phone, message);
+    ok = await sendDirectMessage(phone, message);
+  } else {
+    ok = await sendViaAPI(phone, message);
   }
-  return sendViaAPI(phone, message);
+  // Mirror to email (best-effort, fire-and-forget). Doesn't gate the WA result.
+  void emailMirror(phone, message).catch(() => null);
+  return ok;
+}
+
+// Look up the tenant or user this phone belongs to and email them the same
+// content as an HTML message. Skips silently when there's no email on file.
+async function emailMirror(phone: string, message: string): Promise<void> {
+  const digits = phone.replace(/\D/g, "").slice(-9);
+  if (!digits) return;
+  const { prisma } = await import("./prisma");
+  const tenant = await prisma.tenant.findFirst({
+    where:  { phone: { contains: digits }, email: { not: null } },
+    select: { email: true },
+  });
+  let to = tenant?.email ?? null;
+  if (!to) {
+    const user = await prisma.user.findFirst({
+      where:  { phone: { contains: digits }, email: { not: null } },
+      select: { email: true },
+    });
+    to = user?.email ?? null;
+  }
+  if (!to) return;
+  const { sendEmail, whatsappToHtml } = await import("./email");
+  // Subject from the first line (without WhatsApp formatting marks).
+  const firstLine = message.split("\n")[0].replace(/[*_]/g, "").trim();
+  const subject   = firstLine ? `EasyRent: ${firstLine.slice(0, 90)}` : "EasyRent notification";
+  await sendEmail(to, subject, whatsappToHtml(message), message);
 }
 
 // ── Message templates ─────────────────────────────────────────────────────────
