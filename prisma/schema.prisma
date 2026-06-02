@@ -50,6 +50,7 @@ model User {
   notifications        Notification[]
   paymentClaims        PaymentClaim[]
   whatsAppMessages     WhatsAppMessage[]
+  rentHistory          RentHistory[]
 }
 
 model SubscriptionHistory {
@@ -113,6 +114,27 @@ model Room {
   payments         Payment[]
   expenses         Expense[]
   recurringCharges RecurringCharge[]
+  rentHistory      RentHistory[]
+}
+
+// Every rent change for a room. Room.monthlyRent stays as the *current* rent
+// (denormalised cache of the latest history row) so existing queries keep
+// working without rewrites; this table is the source of truth for "what was
+// the rent during month X".
+model RentHistory {
+  id            String   @id @default(cuid())
+  userId        String
+  roomId        String
+  amount        Float
+  effectiveFrom String                                // "YYYY-MM" — month the rate kicks in
+  reason        String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, effectiveFrom])
+  @@index([userId])
 }
 
 model Tenant {

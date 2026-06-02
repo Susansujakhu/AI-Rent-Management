@@ -232,6 +232,14 @@
       "namedRegex": "^/api/rooms/(?<nxtPid>[^/]+?)/charges/(?<nxtPchargeId>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/api/rooms/[id]/rent-increment",
+      "regex": "^/api/rooms/([^/]+?)/rent\\-increment(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/rooms/(?<nxtPid>[^/]+?)/rent\\-increment(?:/)?$"
+    },
+    {
       "page": "/api/tenants/[id]",
       "regex": "^/api/tenants/([^/]+?)(?:/)?$",
       "routeKeys": {

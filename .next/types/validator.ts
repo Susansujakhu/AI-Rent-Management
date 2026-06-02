@@ -974,6 +974,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../app/api/rooms/[id]/rent-increment/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/rooms/[id]/rent-increment">> = Specific
+  const handler = {} as typeof import("../../app/api/rooms/[id]/rent-increment/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/api/rooms/[id]/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/rooms/[id]">> = Specific

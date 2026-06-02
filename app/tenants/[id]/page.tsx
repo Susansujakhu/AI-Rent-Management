@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MoveOutButton } from "./move-out-button";
 import { PaymentLedger } from "./payment-ledger";
+import { pickRentForMonth } from "@/lib/rent-history";
 import { getSettings } from "@/lib/settings";
 import { ChevronRight, Phone, Mail, Home, Calendar, Shield, TrendingUp, AlertCircle, CheckCircle2, Sparkles, FileText } from "lucide-react";
 import { TenantDocumentsPanel } from "./tenant-documents";
@@ -45,7 +46,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
   const tenantBase = await prisma.tenant.findUnique({
     where: { id, userId: user.id },
-    include: { room: { include: { recurringCharges: true } }, oneTimeCharges: { orderBy: { date: "desc" } } },
+    include: { room: { include: { recurringCharges: true, rentHistory: true } }, oneTimeCharges: { orderBy: { date: "desc" } } },
   });
 
   if (!tenantBase) notFound();
@@ -91,26 +92,28 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       },
     });
 
+    const { pickRentForMonth } = await import("@/lib/rent-history");
     for (const m of monthRange(moveInMonth, lastMonthStr)) {
       const chargesForMonth = tenantBase.room.recurringCharges
         .filter(c => (c.tenantId === null || c.tenantId === tenantBase.id)
           && (!c.effectiveFrom || c.effectiveFrom <= m)
           && (!c.effectiveTo   || m <= c.effectiveTo))
         .reduce((s, c) => s + c.amount, 0);
-      const baseAmount = tenantBase.room.monthlyRent + chargesForMonth;
-
-      const amountDue = baseAmount;
+      const rentForM   = pickRentForMonth(tenantBase.room.rentHistory, m, tenantBase.room.monthlyRent);
+      const amountDue  = rentForM + chargesForMonth;
 
       const existing = await prisma.payment.findUnique({
-        where: { tenantId_month: { tenantId: tenantBase.id, month: m } },
-        select: { id: true, status: true },
+        where:  { tenantId_month: { tenantId: tenantBase.id, month: m } },
+        select: { id: true, amountPaid: true },
       });
 
       if (!existing) {
         await prisma.payment.create({
           data: { userId: user.id, tenantId: tenantBase.id, roomId: tenantBase.roomId, month: m, amountDue, amountPaid: 0, status: m < calCurrentMonth ? "OVERDUE" : "PENDING" },
         });
-      } else if (existing.status !== "PAID") {
+      } else if (existing.amountPaid === 0) {
+        // Only refresh amountDue on untouched bills. Any bill with money
+        // applied (PARTIAL / PAID) keeps its locked-in amount forever.
         await prisma.payment.update({ where: { id: existing.id }, data: { amountDue } });
       }
     }
@@ -142,7 +145,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   const tenant = await prisma.tenant.findUnique({
     where: { id, userId: user.id },
     include: {
-      room: { include: { recurringCharges: { orderBy: { createdAt: "asc" } } } },
+      room: { include: { recurringCharges: { orderBy: { createdAt: "asc" } }, rentHistory: true } },
       payments: { orderBy: { month: "desc" }, include: { room: true } },
       oneTimeCharges: { orderBy: { date: "desc" } },
     },
@@ -368,7 +371,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
               extraDue:   otcForMonth.reduce((s, c) => s + c.amount,     0),
               extraPaid:  otcForMonth.reduce((s, c) => s + c.amountPaid, 0),
               breakdown: tenant.room ? {
-                baseRent: tenant.room.monthlyRent,
+                baseRent: pickRentForMonth(tenant.room.rentHistory, p.month, tenant.room.monthlyRent),
                 charges:  [
                   ...recurringForMonth,
                   ...otcForMonth.map(c => ({ title: c.title, amount: c.amount })),

@@ -15,7 +15,9 @@ import { WhatsAppToggle } from "../../tenants/[id]/whatsapp-toggle";
 import { PortalAccessCard } from "../../tenants/[id]/portal-access";
 import { CollapsibleGroup } from "../../tenants/[id]/collapsible-group";
 import { PaymentLedger } from "../../tenants/[id]/payment-ledger";
-import { ChevronRight, DoorOpen, Banknote, Wrench, UserCheck, UserX, UserPlus, Receipt, Settings, AlertCircle, CheckCircle2 } from "lucide-react";
+import { pickRentForMonth } from "@/lib/rent-history";
+import { RentHistoryPanel } from "./rent-history-panel";
+import { ChevronRight, DoorOpen, Banknote, Wrench, UserCheck, UserX, UserPlus, Receipt, Settings, AlertCircle, CheckCircle2, TrendingUp } from "lucide-react";
 
 export default async function RoomDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -47,6 +49,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
       payments:         { select: { amountPaid: true } },
       expenses:         { orderBy: { date: "desc" }, take: 5 },
       recurringCharges: { orderBy: { createdAt: "asc" } },
+      rentHistory:      { orderBy: { effectiveFrom: "desc" } },
     },
   });
 
@@ -378,7 +381,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
                 extraDue:   otcForMonth.reduce((s, c) => s + c.amount,     0),
                 extraPaid:  otcForMonth.reduce((s, c) => s + c.amountPaid, 0),
                 breakdown: {
-                  baseRent: room.monthlyRent,
+                  baseRent: pickRentForMonth(room.rentHistory, p.month, room.monthlyRent),
                   charges:  [
                     ...recurringForMonth,
                     ...otcForMonth.map(c => ({ title: c.title, amount: c.amount })),
@@ -394,6 +397,27 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
           />
         </div>
       )}
+
+      {/* Rent History — admin action, kept at the bottom inside a collapsible
+          so it doesn't crowd the day-to-day view. */}
+      <CollapsibleGroup
+        title={`Rent History · ${room.rentHistory.length} ${room.rentHistory.length === 1 ? "entry" : "entries"}`}
+        subtitle="Track every rent change and apply increments"
+        icon={<TrendingUp size={15} />}
+      >
+        <RentHistoryPanel
+          roomId={id}
+          currencySymbol={settings.currencySymbol}
+          currentRent={room.monthlyRent}
+          history={room.rentHistory.map(h => ({
+            id:            h.id,
+            amount:        h.amount,
+            effectiveFrom: h.effectiveFrom,
+            reason:        h.reason,
+            createdAt:     h.createdAt.toISOString(),
+          }))}
+        />
+      </CollapsibleGroup>
     </div>
   );
 }

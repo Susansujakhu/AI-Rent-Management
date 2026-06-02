@@ -28,7 +28,11 @@ export default function EditRoomPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const res = await fetch(`/api/rooms/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      // monthlyRent is now managed via the Rent History panel — don't ship it
+      // from this form, otherwise direct edits would silently bypass history.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { monthlyRent: _ignored, ...payload } = data;
+      const res = await fetch(`/api/rooms/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!res.ok) throw new Error();
       toast.success("Room updated");
       router.push(`/rooms/${id}`);
@@ -60,9 +64,16 @@ export default function EditRoomPage() {
             <input {...register("floor")} className={field} placeholder="e.g. Ground, 1st" />
           </div>
           <div>
-            <label className={label}>Monthly Rent <span className="text-rose-500 normal-case">*</span></label>
-            <input type="number" {...register("monthlyRent", { required: "Required", min: { value: 1, message: "Must be > 0" } })} className={field} placeholder="e.g. 8000" />
-            {errors.monthlyRent && <p className={err}>{errors.monthlyRent.message}</p>}
+            <label className={label}>Monthly Rent</label>
+            <input
+              type="number"
+              {...register("monthlyRent")}
+              disabled
+              className={`${field} bg-slate-50 dark:bg-slate-800 cursor-not-allowed text-slate-500 dark:text-slate-400`}
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Rent is changed via the <span className="font-semibold">Rent History</span> panel on the room page so history stays intact.
+            </p>
           </div>
         </div>
 

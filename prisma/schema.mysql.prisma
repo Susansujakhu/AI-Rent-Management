@@ -85,6 +85,23 @@ model Room {
   payments         Payment[]
   expenses         Expense[]
   recurringCharges RecurringCharge[]
+  rentHistory      RentHistory[]
+}
+
+model RentHistory {
+  id            String   @id @default(cuid())
+  userId        String
+  roomId        String
+  amount        Float
+  effectiveFrom String                                // "YYYY-MM"
+  reason        String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, effectiveFrom])
+  @@index([userId])
 }
 
 model Tenant {
