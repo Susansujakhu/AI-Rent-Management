@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
-import { pickRentForMonth } from "@/lib/rent-history";
+import { recomputeBills } from "@/lib/recompute-bills";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAuthAPI();
@@ -38,43 +38,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     },
   });
 
-  // Recompute amountDue on the tenant's unpaid bills (amountPaid = 0) whose
-  // month falls inside this charge's effective window. PAID and PARTIAL
-  // bills are never touched — history is sacred.
-  const room = await prisma.room.findUnique({
-    where:   { id: tenant.roomId },
-    include: { recurringCharges: true, rentHistory: true },
-  });
-  if (room) {
-    const today        = new Date();
-    const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-    const unpaid = await prisma.payment.findMany({
-      where: {
-        userId,
-        tenantId,
-        status: { not: "PAID" },             // PAID bills stay locked (receipt issued)
-        ...(effectiveFrom ? { month: { gte: effectiveFrom } } : {}),
-      },
-      select: { id: true, month: true, amountPaid: true, status: true },
-    });
-    for (const p of unpaid) {
-      const baseRent = pickRentForMonth(room.rentHistory, p.month, room.monthlyRent);
-      const chargesForMonth = room.recurringCharges
-        .filter(c => (c.tenantId === null || c.tenantId === tenantId)
-          && (!c.effectiveFrom || c.effectiveFrom <= p.month)
-          && (!c.effectiveTo   || p.month <= c.effectiveTo))
-        .reduce((s, c) => s + c.amount, 0);
-      const newDue = baseRent + chargesForMonth;
-      const wasOverdue = p.status === "OVERDUE" || p.month < currentMonth;
-      const newStatus = newDue > 0 && p.amountPaid >= newDue ? "PAID"
-        : p.amountPaid > 0                                    ? "PARTIAL"
-        : wasOverdue                                          ? "OVERDUE" : "PENDING";
-      await prisma.payment.update({
-        where: { id: p.id },
-        data:  { amountDue: newDue, status: newStatus },
-      });
-    }
-  }
+  // Reconcile every non-PAID bill for this tenant through the shared recompute
+  // (one code path for add / stop / delete / admin button). Each bill only
+  // picks up the charge if its month is inside the charge's effective window,
+  // so bills before effectiveFrom are left unchanged. PAID bills stay locked.
+  await recomputeBills(prisma, { userId, tenantId });
 
   return NextResponse.json(charge);
 }

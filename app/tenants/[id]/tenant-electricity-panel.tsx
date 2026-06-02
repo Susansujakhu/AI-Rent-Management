@@ -146,6 +146,9 @@ export function TenantElectricityPanel({
     setForm(f => ({ ...f, previous: String(data.current), current: "", notes: "", photo: null }));
     setSubmitting(false);
     toast.success("Reading saved");
+    // A linked charge was created server-side — refresh so the server-rendered
+    // Payment Ledger picks up the new electricity charge without a hard reload.
+    if (data.chargeId) router.refresh();
   };
 
   const handleConfirm = async (id: string, createCharge: boolean) => {
@@ -159,6 +162,8 @@ export function TenantElectricityPanel({
       const updated: Reading = await res.json();
       setReadings(prev => prev.map(r => r.id === id ? updated : r));
       toast.success("Reading confirmed");
+      // Confirming created the linked charge — refresh the server-rendered ledger.
+      if (updated.chargeId) router.refresh();
     } else {
       toast.error("Failed to confirm");
     }
@@ -167,8 +172,13 @@ export function TenantElectricityPanel({
 
   const handleDelete = async () => {
     if (!deleteId) return;
+    const hadCharge = readings.find(r => r.id === deleteId)?.chargeId != null;
     const res = await fetch(`/api/meter-readings/${deleteId}`, { method: "DELETE" });
-    if (res.ok) setReadings(prev => prev.filter(r => r.id !== deleteId));
+    if (res.ok) {
+      setReadings(prev => prev.filter(r => r.id !== deleteId));
+      // Deleting also removes the linked charge — refresh the server ledger.
+      if (hadCharge) router.refresh();
+    }
     setDeleteId(null);
   };
 
