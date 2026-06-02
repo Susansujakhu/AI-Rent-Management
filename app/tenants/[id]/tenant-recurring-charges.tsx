@@ -33,6 +33,8 @@ export function TenantRecurringChargesPanel({
   const [stoppingId, setStoppingId] = useState<string | null>(null);
   const [stopMonth,  setStopMonth]  = useState(currentMonth());
   const [stopping,   setStopping]   = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting,        setDeleting]        = useState(false);
 
   const fmt = (n: number) => `${currencySymbol}${n.toLocaleString()}`;
 
@@ -104,13 +106,22 @@ export function TenantRecurringChargesPanel({
   };
 
   const handleDelete = async (chargeId: string) => {
+    setDeleting(true);
     try {
-      const res = await fetch(`/api/rooms/${roomId}/charges/${chargeId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      toast.success("Charge removed");
+      const res  = await fetch(`/api/rooms/${roomId}/charges/${chargeId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({})) as { recomputed?: number; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Failed to remove charge");
+      toast.success(
+        data.recomputed
+          ? `Charge removed. ${data.recomputed} bill${data.recomputed === 1 ? "" : "s"} recomputed.`
+          : "Charge removed",
+      );
+      setConfirmDeleteId(null);
       router.refresh();
-    } catch {
-      toast.error("Failed to remove charge");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to remove charge");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -175,15 +186,20 @@ export function TenantRecurringChargesPanel({
                       {ended ? (
                         <>
                           <button onClick={() => handleResume(c.id)} className="text-xs text-indigo-500 hover:text-indigo-700">Resume</button>
-                          <button onClick={() => handleDelete(c.id)} className="text-xs text-rose-500 hover:text-rose-700">Delete</button>
+                          <button onClick={() => setConfirmDeleteId(c.id)} className="text-xs text-rose-500 hover:text-rose-700">Delete</button>
                         </>
                       ) : (
-                        <button
-                          onClick={() => { setStoppingId(isStopping ? null : c.id); setStopMonth(currentMonth() < (c.effectiveFrom ?? moveInMonth) ? (c.effectiveFrom ?? moveInMonth) : currentMonth()); }}
-                          className="text-xs text-rose-500 hover:text-rose-700"
-                        >
-                          Stop
-                        </button>
+                        <>
+                          <button
+                            onClick={() => { setStoppingId(isStopping ? null : c.id); setStopMonth(currentMonth() < (c.effectiveFrom ?? moveInMonth) ? (c.effectiveFrom ?? moveInMonth) : currentMonth()); }}
+                            className="text-xs text-rose-500 hover:text-rose-700"
+                          >
+                            Stop
+                          </button>
+                          <button onClick={() => setConfirmDeleteId(c.id)} className="text-xs text-rose-600 hover:text-rose-800 font-semibold">
+                            Delete
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -206,6 +222,30 @@ export function TenantRecurringChargesPanel({
                       </button>
                       <button onClick={() => setStoppingId(null)} className="text-xs px-2 py-1.5 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Cancel</button>
                       <span className="text-[11px] text-slate-400 w-full">Billed through {formatMonth(stopMonth)}; removed from later months. Past months are unchanged.</span>
+                    </div>
+                  )}
+                  {confirmDeleteId === c.id && (
+                    <div className="mt-2 rounded-lg border border-rose-200 dark:border-rose-500/30 bg-rose-50/60 dark:bg-rose-500/10 p-3 space-y-2">
+                      <p className="text-xs font-semibold text-rose-700 dark:text-rose-300">Delete this charge entirely?</p>
+                      <p className="text-[11px] text-rose-600/90 dark:text-rose-400/90 leading-relaxed">
+                        This is destructive. Every past bill that included <span className="font-semibold">{c.title}</span> will be recomputed as if the charge never existed — paid totals and outstanding amounts will change. Use <span className="font-semibold">Stop</span> instead if you only want to end it from a future month.
+                      </p>
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={() => handleDelete(c.id)}
+                          disabled={deleting}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50 transition-colors"
+                        >
+                          {deleting ? "Deleting…" : "Yes, delete & recompute"}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          disabled={deleting}
+                          className="text-xs px-3 py-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
