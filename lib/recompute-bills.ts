@@ -19,12 +19,16 @@ export interface RecomputeResult {
 
 /**
  * Heals derived data after charge / rent / reading edits the regular hooks
- * missed. Used by the admin "Re-run all calculations" button. Runs three
- * passes; all of them treat money-already-settled (PAID) as sacred:
+ * missed. Used by the admin "Re-run all calculations" button. The money a
+ * tenant has actually paid (amountPaid) is NEVER changed by any pass — only
+ * what they owe (amountDue / a charge amount) and the resulting status.
  *
  *   1. PAYMENTS — recompute amountDue (base rent via rent-history + active
- *      recurring charges) and status on every non-PAID Payment. PAID bills
- *      are skipped (receipt issued). PARTIAL bills reclassify; amountPaid stays.
+ *      recurring charges) and status on EVERY bill, paid ones included. A
+ *      back-dated charge therefore raises a settled bill's due and flips it
+ *      PAID -> PARTIAL (amountPaid stays put, only the balance grows). A bill
+ *      whose due is unchanged is left exactly as-is, so correct PAID receipts
+ *      never move.
  *
  *   2. ELECTRICITY — for every meter reading with a linked one-time charge,
  *      re-derive units = current − previous and amount = units × ratePerUnit
@@ -48,12 +52,14 @@ export async function recomputeBills(
   const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 
   // ── Pass 1: payments ──────────────────────────────────────────────────────
+  // All bills, paid included — a back-dated charge must be able to raise a
+  // settled bill's due. amountPaid is never written below, so paid money is
+  // preserved; only amountDue + status change, and only when due actually moved.
   const payments = await prisma.payment.findMany({
     where: {
       ...(scope.userId   ? { userId:   scope.userId   } : {}),
       ...(scope.roomId   ? { roomId:   scope.roomId   } : {}),
       ...(scope.tenantId ? { tenantId: scope.tenantId } : {}),
-      status: { not: "PAID" },
     },
     select: {
       id: true, month: true, amountDue: true, amountPaid: true, status: true,

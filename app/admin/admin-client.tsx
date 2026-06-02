@@ -421,7 +421,7 @@ export default function AdminClient() {
                     <div>
                       <h3 className="font-semibold text-slate-800">Re-run all calculations</h3>
                       <p className="text-xs text-slate-500 mt-1 max-w-xl">
-                        Heals derived data across all landlords: rewrites every non-PAID Payment&apos;s <code>amountDue</code> + status from current rent (via rent-history) + active recurring charges, re-derives electricity charges from their meter readings (units × rate), and re-syncs one-time charge statuses. Useful after charge/rent/reading edits the regular hooks missed. Already-PAID money is left alone — receipts already issued, and a manually-typed charge amount can only be fixed by editing it directly.
+                        Heals derived data across all landlords: rewrites every Payment&apos;s <code>amountDue</code> + status from current rent (via rent-history) + active recurring charges, re-derives electricity charges from their meter readings (units × rate), and re-syncs one-time charge statuses. The amount a tenant has already paid is never changed — but a back-dated charge can raise a settled bill&apos;s balance and flip it PAID → PARTIAL. Useful after charge/rent/reading edits the regular hooks missed. A manually-typed charge amount can only be fixed by editing it directly.
                       </p>
                     </div>
                     {recomputeArmed ? (

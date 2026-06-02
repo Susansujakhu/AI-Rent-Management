@@ -6,9 +6,10 @@ import { recomputeBills } from "@/lib/recompute-bills";
 // POST /api/admin/recompute-bills
 // Body: { userId? }  -- if absent, walks every user.
 //
-// Heals derived data: payment amountDue + status (non-PAID only), electricity
+// Heals derived data: payment amountDue + status (all bills), electricity
 // charges re-derived from meter readings, and one-time charge statuses re-synced.
-// Already-settled (PAID) money is never reopened. Returns counts.
+// amountPaid is never changed; a back-dated charge can raise a paid bill's due
+// (PAID -> PARTIAL) without touching what was paid. Returns counts.
 export async function POST(req: Request) {
   const auth = await requireAuthAPI();
   if (auth instanceof NextResponse) return auth;
