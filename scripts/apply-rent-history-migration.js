@@ -7,9 +7,18 @@
 //   cd ~/easy-rent.xpertthemes.com
 //   node scripts/apply-rent-history-migration.js
 
+// Standalone `node` does NOT auto-load .env the way Next.js / prisma CLI
+// do, so the PrismaClient would be built without DATABASE_URL and just
+// silently hang. Load .env first.
+require("dotenv").config({ path: require("path").join(__dirname, "..", ".env") });
+
 const { PrismaClient } = require("@prisma/client");
 const fs = require("fs");
 const path = require("path");
+
+console.log("Applying RentHistory migration...");
+console.log("DATABASE_URL set:", process.env.DATABASE_URL ? "yes" : "NO — aborting");
+if (!process.env.DATABASE_URL) process.exit(1);
 
 (async () => {
   const prisma = new PrismaClient();
