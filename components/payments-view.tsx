@@ -374,7 +374,7 @@ function SessionDrawer({ session, fmt, isPro, canVoid, onClose, onVoided }: {
     try {
       const res = await fetch(`/api/payments/${firstPaymentId}/notify`, { method: "POST" });
       const d   = await res.json().catch(() => ({})) as { error?: string };
-      if (!res.ok) toast.error(d.error ?? "Failed"); else toast.success("Receipt sent via WhatsApp ✅");
+      if (!res.ok) toast.error(d.error ?? "Failed"); else toast.success("Receipt sent via WhatsApp & email ✅");
     } catch { toast.error("Failed"); } finally { setSending(false); }
   };
 
@@ -476,7 +476,7 @@ function SessionDrawer({ session, fmt, isPro, canVoid, onClose, onVoided }: {
             <button onClick={send} disabled={sending}
               className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors">
               <MessageCircle size={14} className={sending ? "animate-pulse" : ""} />
-              {sending ? "Sending…" : "Send Receipt via WhatsApp"}
+              {sending ? "Sending…" : "Send Receipt"}
             </button>
           )}
           <div className="flex gap-2">
@@ -846,9 +846,9 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro, initi
                                   onClick={async () => {
                                     const res = await fetch("/api/whatsapp/send-reminder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentId: g.paymentId, type: g.status === "OVERDUE" ? "overdue" : "due" }) });
                                     const d = await res.json() as { error?: string };
-                                    if (!res.ok) toast.error(d.error ?? "Failed"); else toast.success("Reminder sent ✅");
+                                    if (!res.ok) toast.error(d.error ?? "Failed"); else toast.success("Reminder sent via WhatsApp & email ✅");
                                   }}
-                                  title="Send WhatsApp reminder"
+                                  title="Send reminder via WhatsApp & email"
                                   className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10 rounded-lg transition-colors">
                                   <Bell size={14} />
                                 </button>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 import { sendWhatsAppMessage, msgPaymentReceived, isWhatsAppReady } from "@/lib/whatsapp";
+import { isEmailConfigured } from "@/lib/email";
 import { isPro } from "@/lib/plan";
 import { formatCurrency, formatRentalPeriod } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
@@ -16,8 +17,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Pro plan required" }, { status: 403 });
   }
 
-  if (!(await isWhatsAppReady())) {
-    return NextResponse.json({ error: "WhatsApp not configured" }, { status: 400 });
+  if (!(await isWhatsAppReady()) && !isEmailConfigured()) {
+    return NextResponse.json({ error: "No notification channel configured" }, { status: 400 });
   }
 
   const payment = await prisma.payment.findUnique({
@@ -88,10 +89,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     breakdownLines.length > 0 ? breakdownLines : undefined,
   );
 
-  const sent = await sendWhatsAppMessage(payment.tenant.phone, msg);
-  if (!sent) {
+  // Both channels: WhatsApp (with skipEmailMirror) + explicit email. Succeed if
+  // either delivers, so a down Baileys session still gets the receipt out.
+  const { sendEmail, whatsappToHtml } = await import("@/lib/email");
+  const waReady = await isWhatsAppReady();
+  const subjectLine = msg.split("\n")[0].replace(/[*_]/g, "").trim();
+  const [waSent, emailSent] = await Promise.all([
+    waReady ? sendWhatsAppMessage(payment.tenant.phone, msg, { skipEmailMirror: true }).catch(() => false) : Promise.resolve(false),
+    payment.tenant.email
+      ? sendEmail(payment.tenant.email, `EasyRent: ${subjectLine.slice(0, 90)}`, whatsappToHtml(msg), msg).catch(() => false)
+      : Promise.resolve(false),
+  ]);
+  if (!waSent && !emailSent) {
     return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, channels: { whatsapp: waSent, email: emailSent } });
 }

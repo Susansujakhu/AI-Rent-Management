@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuthAPI } from "@/lib/auth";
 import { sendWhatsAppMessage, msgRentOverdue, msgRentDue, isWhatsAppReady } from "@/lib/whatsapp";
+import { isEmailConfigured } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatMonth } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
@@ -11,10 +12,12 @@ export async function POST(req: Request) {
   if (auth instanceof NextResponse) return auth;
   const userId = auth.id;
 
-  if (!isPro(auth)) return planLimitResponse("WhatsApp messaging requires a Pro plan.");
+  if (!isPro(auth)) return planLimitResponse("Messaging requires a Pro plan.");
 
-  if (!(await isWhatsAppReady())) {
-    return NextResponse.json({ error: "WhatsApp not configured" }, { status: 503 });
+  // Need at least one channel. sendWhatsAppMessage mirrors to email, so an
+  // email-configured deployment can still notify even when WhatsApp is down.
+  if (!(await isWhatsAppReady()) && !isEmailConfigured()) {
+    return NextResponse.json({ error: "No notification channel configured" }, { status: 503 });
   }
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
@@ -46,8 +49,18 @@ export async function POST(req: Request) {
     ? msgRentOverdue(payment.tenant.name, fmt(balance), formatMonth(payment.month), payment.room.name, overdueTpl?.value)
     : msgRentDue(payment.tenant.name, fmt(payment.amountDue), formatMonth(payment.month), payment.room.name, dueTpl?.value);
 
-  const sent = await sendWhatsAppMessage(payment.tenant.phone, msg);
-  if (!sent) return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
+  // Send over both channels. skipEmailMirror avoids a double email since we
+  // send the email explicitly here. Succeed if either channel delivers.
+  const { sendEmail, whatsappToHtml } = await import("@/lib/email");
+  const waReady = await isWhatsAppReady();
+  const subjectLine = msg.split("\n")[0].replace(/[*_]/g, "").trim();
+  const [waSent, emailSent] = await Promise.all([
+    waReady ? sendWhatsAppMessage(payment.tenant.phone, msg, { skipEmailMirror: true }).catch(() => false) : Promise.resolve(false),
+    payment.tenant.email
+      ? sendEmail(payment.tenant.email, `EasyRent: ${subjectLine.slice(0, 90)}`, whatsappToHtml(msg), msg).catch(() => false)
+      : Promise.resolve(false),
+  ]);
+  if (!waSent && !emailSent) return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, channels: { whatsapp: waSent, email: emailSent } });
 }

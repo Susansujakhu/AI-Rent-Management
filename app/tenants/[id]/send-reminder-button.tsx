@@ -42,7 +42,11 @@ export function SendReminderButton({ paymentId, paymentStatus, hasPhone, whatsap
         if (data.upgrade) toast.error(`Pro required — ${data.error}`);
         else toast.error(data.error ?? "Failed to send notification");
       } else {
-        toast.success("Notification sent via WhatsApp");
+        const ch = (data as { channels?: { whatsapp: boolean; email: boolean } }).channels;
+        const via = ch
+          ? [ch.whatsapp && "WhatsApp", ch.email && "email"].filter(Boolean).join(" & ")
+          : "WhatsApp & email";
+        toast.success(`Notification sent via ${via || "WhatsApp"}`);
       }
     } catch {
       toast.error("Failed to send notification");

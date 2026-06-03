@@ -122,7 +122,7 @@ export function ForgotPasswordForm() {
                   className="flex-1 bg-transparent px-4 py-3.5 text-sm text-white placeholder:text-white/30 focus:outline-none"
                 />
               </div>
-              <p className="text-white/30 text-xs">We&apos;ll send a 6-digit code to this number via WhatsApp.</p>
+              <p className="text-white/30 text-xs">We&apos;ll send a 6-digit code via WhatsApp and email.</p>
             </div>
 
             {requestError && (
@@ -159,7 +159,7 @@ export function ForgotPasswordForm() {
             {sentInfo?.sent && (
               <div className="flex items-start gap-3 rounded-xl px-4 py-3 text-xs bg-emerald-500/15 border border-emerald-400/25">
                 <MessageCircle size={14} className="text-emerald-400 shrink-0 mt-0.5" />
-                <p className="text-emerald-300">Code sent to <span className="font-bold">{sentInfo.masked}</span> via WhatsApp.</p>
+                <p className="text-emerald-300">Code sent to <span className="font-bold">{sentInfo.masked}</span> via WhatsApp and email (if registered).</p>
               </div>
             )}
 

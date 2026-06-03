@@ -22,7 +22,7 @@ export function ResendNotificationButton({ paymentId, hasPhone, whatsappNotify, 
       const res  = await fetch(`/api/payments/${paymentId}/notify`, { method: "POST" });
       const data = await res.json().catch(() => ({})) as { error?: string };
       if (!res.ok) toast.error(data.error ?? "Failed to send notification");
-      else toast.success("Payment receipt sent via WhatsApp");
+      else toast.success("Payment receipt sent via WhatsApp & email");
     } catch {
       toast.error("Failed to send notification");
     } finally {
@@ -34,7 +34,7 @@ export function ResendNotificationButton({ paymentId, hasPhone, whatsappNotify, 
     <button
       onClick={send}
       disabled={busy}
-      title="Resend payment receipt via WhatsApp"
+      title="Resend payment receipt via WhatsApp & email"
       className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 hover:bg-green-50 px-2 py-1 rounded-lg transition-colors disabled:opacity-40 font-medium"
     >
       <MessageCircle size={12} className={busy ? "animate-pulse" : ""} />
