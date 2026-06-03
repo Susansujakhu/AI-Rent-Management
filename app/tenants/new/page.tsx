@@ -1,14 +1,98 @@
 "use client";
 
 import { useEffect, useRef, useState, Suspense } from "react";
+import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Users, Paperclip, X, FileText, Image } from "lucide-react";
+import { Users, Paperclip, X, FileText, Image, DoorOpen } from "lucide-react";
 
 type Room = { id: string; name: string; floor: string | null; monthlyRent: number; tenants: { id: string }[] };
 type FormData = { name: string; phone: string; email: string; roomId: string; moveInDate: string; deposit: number; notes: string };
+
+// Sentinel value used by the Assign Room <option> that opens the add-room modal.
+const ADD_ROOM = "__add_room__";
+
+type RoomFormData = { name: string; floor: string; monthlyRent: number; description: string };
+
+// Inline "create room" modal. Portaled to <body> so its <form> isn't nested
+// inside the tenant <form> (nested forms are invalid HTML). Calls onCreated
+// with the new room so the caller can select it.
+function AddRoomModal({ onClose, onCreated }: { onClose: () => void; onCreated: (room: Room) => void }) {
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RoomFormData>();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const submit = async (data: RoomFormData) => {
+    try {
+      const res  = await fetch("/api/rooms", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      const body = await res.json().catch(() => ({})) as { id?: string; name?: string; floor?: string | null; monthlyRent?: number; error?: string; upgrade?: boolean };
+      if (!res.ok) {
+        if (body.upgrade) { toast.error(`Pro required — ${body.error}`); return; }
+        throw new Error(body.error ?? "Failed to create room");
+      }
+      toast.success("Room created");
+      onCreated({ id: body.id!, name: body.name!, floor: body.floor ?? null, monthlyRent: body.monthlyRent ?? Number(data.monthlyRent), tenants: [] });
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Failed to create room"); }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-150"
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xl animate-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center">
+              <DoorOpen size={15} className="text-white" />
+            </div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">Add New Room</h2>
+          </div>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit(submit)} className="p-6 space-y-5">
+          <div>
+            <label className={label}>Room Name <span className="text-rose-500 normal-case">*</span></label>
+            <input autoFocus {...register("name", { required: "Room name is required" })} className={field} placeholder="e.g. Room 101, Big Room" />
+            {errors.name && <p className={err}>{errors.name.message}</p>}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={label}>Floor</label>
+              <input {...register("floor")} className={field} placeholder="e.g. Ground, 1st" />
+            </div>
+            <div>
+              <label className={label}>Monthly Rent <span className="text-rose-500 normal-case">*</span></label>
+              <input type="number" {...register("monthlyRent", { required: "Required", min: { value: 1, message: "Must be > 0" } })} className={field} placeholder="e.g. 8000" />
+              {errors.monthlyRent && <p className={err}>{errors.monthlyRent.message}</p>}
+            </div>
+          </div>
+          <div>
+            <label className={label}>Description</label>
+            <textarea {...register("description")} rows={2} className={`${field} resize-none`} placeholder="Optional notes about this room" />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="submit" disabled={isSubmitting}
+              className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-200">
+              {isSubmitting ? "Creating…" : "Create & Select"}
+            </button>
+            <button type="button" onClick={onClose} className="flex-1 text-center border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
+  );
+}
 
 const field = "w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-white dark:bg-slate-800 dark:text-slate-200";
 const label = "block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5";
@@ -29,11 +113,14 @@ function NewTenantForm() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [showRoomModal, setShowRoomModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     defaultValues: { deposit: 0, roomId: preselectedRoomId },
   });
+  const roomReg     = register("roomId");
+  const selectedRoom = watch("roomId");
 
   useEffect(() => {
     fetch("/api/rooms").then(r => r.json()).then((data: Room[]) => setRooms(data.filter(r => r.tenants.length === 0)));
@@ -121,11 +208,24 @@ function NewTenantForm() {
 
         <div>
           <label className={label}>Assign Room</label>
-          <select {...register("roomId")} className={field}>
+          <select
+            name={roomReg.name}
+            ref={roomReg.ref}
+            onBlur={roomReg.onBlur}
+            value={selectedRoom ?? ""}
+            className={field}
+            onChange={e => {
+              // Opening the modal must not leave the sentinel selected, so we
+              // don't write it to form state — just open and keep the prior value.
+              if (e.target.value === ADD_ROOM) { setShowRoomModal(true); return; }
+              setValue("roomId", e.target.value, { shouldDirty: true });
+            }}
+          >
             <option value="">— No room (assign later) —</option>
             {rooms.map(r => (
               <option key={r.id} value={r.id}>{r.name}{r.floor ? ` (${r.floor})` : ""} — {r.monthlyRent}/mo</option>
             ))}
+            <option value={ADD_ROOM}>+ Add new room…</option>
           </select>
         </div>
 
@@ -191,6 +291,17 @@ function NewTenantForm() {
           </Link>
         </div>
       </form>
+
+      {showRoomModal && (
+        <AddRoomModal
+          onClose={() => setShowRoomModal(false)}
+          onCreated={room => {
+            setRooms(prev => [...prev, room]);
+            setValue("roomId", room.id, { shouldValidate: true, shouldDirty: true });
+            setShowRoomModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
