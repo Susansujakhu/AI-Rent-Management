@@ -79,7 +79,11 @@ async function sendViaAPI(phone: string, message: string): Promise<boolean> {
   }
 }
 
-export async function sendWhatsAppMessage(phone: string, message: string): Promise<boolean> {
+export async function sendWhatsAppMessage(
+  phone: string,
+  message: string,
+  opts?: { skipEmailMirror?: boolean },
+): Promise<boolean> {
   const mode = await getWAMode();
   let ok: boolean;
   if (mode === "direct") {
@@ -89,7 +93,8 @@ export async function sendWhatsAppMessage(phone: string, message: string): Promi
     ok = await sendViaAPI(phone, message);
   }
   // Mirror to email (best-effort, fire-and-forget). Doesn't gate the WA result.
-  void emailMirror(phone, message).catch(() => null);
+  // OTP paths pass skipEmailMirror because they send their own formatted email.
+  if (!opts?.skipEmailMirror) void emailMirror(phone, message).catch(() => null);
   return ok;
 }
 

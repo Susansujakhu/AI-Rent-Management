@@ -2,8 +2,17 @@ import { NextResponse } from "next/server";
 import { randomInt } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppMessage, isWhatsAppReady } from "@/lib/whatsapp";
+import { sendEmail, isEmailConfigured } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
+
+function otpEmailHtml(otp: string): string {
+  return `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:420px">
+    <p style="font-size:15px;color:#1e293b">Your EasyRent verification code is:</p>
+    <p style="font-size:32px;font-weight:800;letter-spacing:6px;color:#4f46e5;margin:12px 0">${otp}</p>
+    <p style="font-size:13px;color:#64748b">This code expires in 15 minutes. Don't share it with anyone.</p>
+  </div>`;
+}
 
 const DEV_BYPASS = process.env.NODE_ENV !== "production" && process.env.BYPASS_PHONE_OTP === "true";
 const DEV_OTP    = "000000"; // fixed code used in bypass mode
@@ -96,8 +105,11 @@ export async function POST(req: Request) {
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  if (!(await isWhatsAppReady())) {
-    return NextResponse.json({ error: "WhatsApp is not configured — contact the admin to complete signup" }, { status: 503 });
+  // We need at least one delivery channel available (WhatsApp ready OR email
+  // configured). Otherwise there's no way to get the code to the user.
+  const waReady = await isWhatsAppReady();
+  if (!waReady && !isEmailConfigured()) {
+    return NextResponse.json({ error: "No verification channel available — contact the admin to complete signup" }, { status: 503 });
   }
 
   // Invalidate previous tokens for this phone
@@ -113,13 +125,22 @@ export async function POST(req: Request) {
     data: { phone: normalized, otp, expiresAt },
   });
 
-  const msg  = `Your Rent Manager verification code is:\n\n*${otp}*\n\nThis code expires in 15 minutes. Don't share it with anyone.`;
-  const sent = await sendWhatsAppMessage(normalized, msg);
+  // Send the code over BOTH channels in parallel. The account doesn't exist
+  // yet, so the email is taken from the signup form (sendWhatsAppMessage's
+  // DB-based email mirror can't find it). Succeed if EITHER channel delivers.
+  const waMsg = `Your EasyRent verification code is:\n\n*${otp}*\n\nThis code expires in 15 minutes. Don't share it with anyone.`;
+  const [waSent, emailSent] = await Promise.all([
+    waReady ? sendWhatsAppMessage(normalized, waMsg, { skipEmailMirror: true }).catch(() => false) : Promise.resolve(false),
+    sendEmail(email.trim(), "Your EasyRent verification code", otpEmailHtml(otp),
+      `Your EasyRent verification code is ${otp}. It expires in 15 minutes.`).catch(() => false),
+  ]);
 
-  if (!sent) {
-    return NextResponse.json({ error: "Failed to send WhatsApp message. Make sure this number is on WhatsApp." }, { status: 500 });
+  if (!waSent && !emailSent) {
+    return NextResponse.json({ error: "Couldn't send the code over WhatsApp or email. Please try again." }, { status: 500 });
   }
 
   const masked = digits.slice(0, 2) + "****" + digits.slice(-2);
-  return NextResponse.json({ ok: true, masked });
+  // Tell the client which channels actually went out so the verify screen
+  // can say "check your WhatsApp and email".
+  return NextResponse.json({ ok: true, masked, channels: { whatsapp: waSent, email: emailSent } });
 }

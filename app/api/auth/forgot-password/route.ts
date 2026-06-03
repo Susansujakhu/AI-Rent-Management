@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomInt } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppMessage, isWhatsAppReady } from "@/lib/whatsapp";
+import { sendEmail, isEmailConfigured } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const DEV_BYPASS = process.env.NODE_ENV !== "production" && process.env.BYPASS_PHONE_OTP === "true";
@@ -34,10 +35,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
   }
 
-  // Server-state gate (not user-existence dependent — safe to fail early).
-  if (!DEV_BYPASS && !(await isWhatsAppReady())) {
+  // Server-state gate: need at least one delivery channel (WhatsApp OR email).
+  if (!DEV_BYPASS && !(await isWhatsAppReady()) && !isEmailConfigured()) {
     return NextResponse.json(
-      { error: "Password reset requires WhatsApp to be configured. Contact the admin." },
+      { error: "Password reset is unavailable — no delivery channel configured. Contact the admin." },
       { status: 503 }
     );
   }
@@ -62,12 +63,25 @@ export async function POST(req: Request) {
   await prisma.passwordResetToken.updateMany({ where: { userId: user.id, used: false }, data: { used: true } });
   await prisma.passwordResetToken.create({ data: { userId: user.id, otp, expiresAt } });
 
-  const msg  = `Your Rent Manager password reset code is:\n\n*${otp}*\n\nThis code expires in 15 minutes. If you didn't request this, ignore this message.`;
-  const sent = await sendWhatsAppMessage(user.phone, msg);
-  if (!sent) {
-    // Don't surface the failure to the client — that would leak user existence.
-    // Log server-side so the admin can investigate.
-    console.error(`[forgot-password] WhatsApp send failed for user ${user.id}`);
+  const msg = `Your EasyRent password reset code is:\n\n*${otp}*\n\nThis code expires in 15 minutes. If you didn't request this, ignore this message.`;
+  // Send over both channels in parallel. sendWhatsAppMessage already mirrors to
+  // the user's email via DB lookup, but we also send explicitly so a missing/
+  // mismatched phone record still gets the email. De-dup isn't worth the
+  // complexity here — at most the user gets two identical emails.
+  const emailHtml = `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:420px">
+    <p style="font-size:15px;color:#1e293b">Your EasyRent password reset code is:</p>
+    <p style="font-size:32px;font-weight:800;letter-spacing:6px;color:#4f46e5;margin:12px 0">${otp}</p>
+    <p style="font-size:13px;color:#64748b">This code expires in 15 minutes. If you didn't request this, ignore this email.</p>
+  </div>`;
+  const [waSent] = await Promise.all([
+    (await isWhatsAppReady()) ? sendWhatsAppMessage(user.phone, msg, { skipEmailMirror: true }).catch(() => false) : Promise.resolve(false),
+    user.email
+      ? sendEmail(user.email, "Your EasyRent password reset code", emailHtml,
+          `Your EasyRent password reset code is ${otp}. It expires in 15 minutes.`).catch(() => false)
+      : Promise.resolve(false),
+  ]);
+  if (!waSent) {
+    console.error(`[forgot-password] WhatsApp send failed for user ${user.id} (email fallback attempted)`);
   }
 
   return okResponse;

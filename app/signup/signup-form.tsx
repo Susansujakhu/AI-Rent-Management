@@ -25,6 +25,7 @@ export function SignupForm() {
 
   const [step,       setStep]       = useState<Step>("form");
   const [masked,     setMasked]     = useState("");
+  const [channels,   setChannels]   = useState<{ whatsapp: boolean; email: boolean }>({ whatsapp: false, email: false });
   const [otp,        setOtp]        = useState("");
 
   const [sending,    setSending]    = useState(false);
@@ -54,9 +55,10 @@ export function SignupForm() {
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ phone: fullPhone, email: email.trim(), password }),
       });
-      const data = await res.json() as { ok?: boolean; masked?: string; error?: string };
+      const data = await res.json() as { ok?: boolean; masked?: string; error?: string; channels?: { whatsapp: boolean; email: boolean } };
       if (!res.ok) { setError(data.error ?? "Failed to send code"); return; }
       setMasked(data.masked ?? fullPhone);
+      if (data.channels) setChannels(data.channels);
       setStep("verify");
     } catch {
       setError("Something went wrong. Try again.");
@@ -160,7 +162,13 @@ export function SignupForm() {
               {step === "form" ? "Create account" : "Verify phone"}
             </h1>
             <p className="text-sm text-slate-400">
-              {step === "form" ? "Free forever — no credit card required" : "Check your WhatsApp for the code"}
+              {step === "form"
+                ? "Free forever — no credit card required"
+                : channels.whatsapp && channels.email
+                  ? "Check your WhatsApp and email for the code"
+                  : channels.email
+                    ? "Check your email for the code"
+                    : "Check your WhatsApp for the code"}
             </p>
           </div>
 
@@ -282,9 +290,17 @@ export function SignupForm() {
               <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3.5">
                 <MessageCircle size={15} className="text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-emerald-700 text-sm font-semibold">Code sent via WhatsApp</p>
+                  <p className="text-emerald-700 text-sm font-semibold">
+                    {channels.whatsapp && channels.email
+                      ? "Code sent via WhatsApp & email"
+                      : channels.email
+                        ? "Code sent via email"
+                        : "Code sent via WhatsApp"}
+                  </p>
                   <p className="text-emerald-600/70 text-xs mt-0.5">
-                    Sent to <span className="font-bold text-emerald-700">{masked}</span>
+                    {channels.whatsapp && <>WhatsApp to <span className="font-bold text-emerald-700">{masked}</span></>}
+                    {channels.whatsapp && channels.email && " · "}
+                    {channels.email && <>email to <span className="font-bold text-emerald-700">{email.trim()}</span></>}
                   </p>
                 </div>
               </div>
