@@ -520,12 +520,13 @@ function SessionDrawer({ session, fmt, isPro, canVoid, onClose, onVoided }: {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function PaymentsView({ sessions, openBills, currencySymbol, isPro, initialTenant }: {
+export function PaymentsView({ sessions, openBills, currencySymbol, isPro, initialTenant, tenantCredits }: {
   sessions:       ReceivedSession[];
   openBills:      OpenBill[];
   currencySymbol: string;
   isPro:          boolean;
   initialTenant?: string;   // tenant NAME to preselect (e.g. from a notification deep-link)
+  tenantCredits?: Record<string, number>;   // tenant name → advance credit balance
 }) {
   const fmt    = (n: number) => formatCurrency(n, currencySymbol);
   const router = useRouter();
@@ -588,7 +589,9 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro, initi
   const pagedGroups   = billGroups.slice((billPage - 1) * BILL_PAGE_SIZE, billPage * BILL_PAGE_SIZE);
 
   // ── Filter-reactive stats ──────────────────────────────────────────────────
-  const totalCollected   = visibleSessions.reduce((s, x) => s + x.total, 0);
+  // ADVANCE sessions re-apply credit that was already counted as cash when it
+  // was generated — exclude them so Collected reflects actual money received.
+  const totalCollected   = visibleSessions.filter(x => x.method !== "ADVANCE").reduce((s, x) => s + x.total, 0);
   const totalOutstanding = visibleBills.reduce((s, b) => s + (b.amountDue - b.amountPaid), 0);
   const overdueCount     = visibleBills.filter(b => b.status === "OVERDUE").length;
   const totalBilled      = totalCollected + totalOutstanding;
@@ -657,10 +660,20 @@ export function PaymentsView({ sessions, openBills, currencySymbol, isPro, initi
                 style={{ width: `${collectionRate}%` }}
               />
             </div>
-            {overdueCount > 0 && (
-              <div className="mt-3 inline-flex items-center gap-1.5 bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold px-3 py-1 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-                {overdueCount} overdue bill{overdueCount !== 1 ? "s" : ""} need attention
+            {(overdueCount > 0 || (tenant && (tenantCredits?.[tenant] ?? 0) > 0)) && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {overdueCount > 0 && (
+                  <div className="inline-flex items-center gap-1.5 bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold px-3 py-1 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                    {overdueCount} overdue bill{overdueCount !== 1 ? "s" : ""} need attention
+                  </div>
+                )}
+                {tenant && (tenantCredits?.[tenant] ?? 0) > 0 && (
+                  <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold px-3 py-1 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    {fmt(tenantCredits![tenant])} advance credit — auto-applies to the next bill
+                  </div>
+                )}
               </div>
             )}
           </div>

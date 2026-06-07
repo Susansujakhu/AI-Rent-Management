@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MoveOutButton } from "./move-out-button";
+import { SettlementActions } from "./settlement-actions";
 import { PaymentLedger } from "./payment-ledger";
 import { pickRentForMonth } from "@/lib/rent-history";
 import { getSettings } from "@/lib/settings";
@@ -126,6 +127,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       orderBy: { month: "asc" },
     });
     let credit = tenantBase.creditBalance;
+    const appliedAt = new Date();   // one timestamp → all applications group as one session
     for (const p of unpaid) {
       if (credit <= 0) break;
       const balance = p.amountDue - p.amountPaid;
@@ -135,7 +137,19 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       const newPaid = p.amountPaid + apply;
       await prisma.payment.update({
         where: { id: p.id },
-        data:  { amountPaid: newPaid, status: newPaid >= p.amountDue ? "PAID" : "PARTIAL", method: "ADVANCE", notes: "Applied from advance credit" },
+        data:  { amountPaid: newPaid, status: newPaid >= p.amountDue ? "PAID" : "PARTIAL", method: "ADVANCE", paidDate: appliedAt, notes: "Applied from advance credit" },
+      });
+      // Transaction record so the application is visible on /payments and a
+      // later void can RETURN this credit (method "ADVANCE" = credit consumed).
+      await prisma.paymentTransaction.create({
+        data: {
+          userId:    user.id,
+          paymentId: p.id,
+          amount:    apply,
+          method:    "ADVANCE",
+          paidAt:    appliedAt,
+          note:      "Advance credit applied",
+        },
       });
     }
     if (credit !== tenantBase.creditBalance) {
@@ -149,6 +163,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       room: { include: { recurringCharges: { orderBy: { createdAt: "asc" } }, rentHistory: true } },
       payments: { orderBy: { month: "desc" }, include: { room: true } },
       oneTimeCharges: { orderBy: { date: "desc" } },
+      settlement: true,
     },
   });
 
@@ -196,6 +211,12 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
                 }`}>
                   {isActive ? "Active" : "Past Tenant"}
                 </span>
+                {tenant.creditBalance > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                    <Sparkles size={10} />
+                    Advance {fmt(tenant.creditBalance)}
+                  </span>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
                 <span className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
@@ -232,10 +253,47 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
               className="flex-1 sm:flex-none text-center border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               Edit
             </Link>
-            {isActive && <MoveOutButton tenantId={id} moveInDate={tenant.moveInDate.toISOString()} />}
+            {isActive && <MoveOutButton tenantId={id} moveInDate={tenant.moveInDate.toISOString()} currencySymbol={settings.currencySymbol} />}
           </div>
         </div>
       </div>
+
+      {/* Move-out settlement summary */}
+      {tenant.settlement && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Move-out Settlement</h2>
+              <p className="text-xs text-slate-400">Settled on {formatDate(tenant.settlement.moveOutDate)}</p>
+            </div>
+            <SettlementActions tenantId={id} />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div>
+              <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Total Dues</p>
+              <p className="font-black text-slate-900 dark:text-white mt-0.5">{fmt(tenant.settlement.totalDue)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Deposit Applied</p>
+              <p className="font-black text-slate-900 dark:text-white mt-0.5">
+                {fmt(tenant.settlement.depositApplied)}
+                <span className="text-xs font-medium text-slate-400"> / {fmt(tenant.settlement.depositHeld)}</span>
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Refund to Tenant</p>
+              <p className={`font-black mt-0.5 ${tenant.settlement.refundDue > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-900 dark:text-white"}`}>{fmt(tenant.settlement.refundDue)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Balance Due</p>
+              <p className={`font-black mt-0.5 ${tenant.settlement.balanceDue > 0 ? "text-rose-600" : "text-slate-900 dark:text-white"}`}>{fmt(tenant.settlement.balanceDue)}</p>
+            </div>
+          </div>
+          {tenant.settlement.notes && (
+            <p className="text-xs text-slate-400 mt-3 border-t border-slate-50 dark:border-slate-800 pt-3">{tenant.settlement.notes}</p>
+          )}
+        </div>
+      )}
 
       {/* Stat cards — both scroll to the Payment Ledger below. */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4">

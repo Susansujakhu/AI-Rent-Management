@@ -29,12 +29,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid paidAt" }, { status: 400 });
   }
 
+  // A recorded settlement freezes the tenant's books: voiding sessions behind
+  // its back would desync the settlement snapshot (and double-restore credit
+  // when the settlement itself is voided). Force the one reconciled path.
+  const settled = await prisma.settlement.findFirst({
+    where: { tenantId: body.tenantId, userId }, select: { id: true },
+  });
+  if (settled) {
+    return NextResponse.json(
+      { error: "This tenant has a move-out settlement. Void the settlement first (tenant page → Settlement → Void)." },
+      { status: 409 },
+    );
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allPaymentTxns = await (prisma as any).paymentTransaction.findMany({
     where:   { userId, paidAt },
     include: { payment: { select: { id: true, tenantId: true, amountDue: true, amountPaid: true, status: true, month: true } } },
   }) as Array<{
-    id: string; paymentId: string; amount: number; creditAmount: number;
+    id: string; paymentId: string; amount: number; creditAmount: number; method: string | null;
     payment: { id: string; tenantId: string; amountDue: number; amountPaid: number; status: string; month: string };
   }>;
 
@@ -53,7 +66,10 @@ export async function POST(req: Request) {
 
   const today        = new Date();
   const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  // creditAmount = credit GENERATED in this session → take back on void.
+  // method "ADVANCE" = credit CONSUMED in this session → return on void.
   const creditToRestore = myPaymentTxns.reduce((s, t) => s + (t.creditAmount ?? 0), 0);
+  const creditToReturn  = myPaymentTxns.filter(t => t.method === "ADVANCE").reduce((s, t) => s + t.amount, 0);
 
   // Group payment txns by paymentId so a payment with multiple txns in this
   // session is reversed in one update.
@@ -118,6 +134,14 @@ export async function POST(req: Request) {
         data:  { creditBalance: { decrement: restore } },
       });
     }
+  }
+
+  // Return advance credit this session consumed
+  if (creditToReturn > 0) {
+    await prisma.tenant.update({
+      where: { id: body.tenantId },
+      data:  { creditBalance: { increment: creditToReturn } },
+    });
   }
 
   // Delete the transactions belonging to this session

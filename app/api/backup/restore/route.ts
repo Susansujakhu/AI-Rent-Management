@@ -6,6 +6,17 @@ import { requireAuthAPI } from "@/lib/auth";
 // nowhere near enough to OOM the cPanel worker on a malicious request.
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 
+// Large restores must not trip Prisma's default 5s interactive-transaction
+// timeout (row counts in the thousands on shared cPanel MySQL).
+const TX_TIMEOUT_MS = 120_000;
+
+type Row = Record<string, unknown>;
+const str  = (v: unknown) => v as string;
+const strN = (v: unknown) => (v as string | null) ?? null;
+const num  = (v: unknown, d = 0) => (v === undefined || v === null ? d : Number(v));
+const date = (v: unknown) => new Date(v as string);
+const dateN = (v: unknown) => (v ? new Date(v as string) : null);
+
 export async function POST(req: Request) {
   const auth = await requireAuthAPI();
   if (auth instanceof NextResponse) return auth;
@@ -31,19 +42,33 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid backup file — missing required fields" }, { status: 400 });
   }
 
-  const rooms               = backup.rooms               as Record<string, unknown>[];
-  const tenants             = backup.tenants             as Record<string, unknown>[];
-  const payments            = backup.payments            as Record<string, unknown>[];
-  const expenses            = backup.expenses            as Record<string, unknown>[] ?? [];
-  const recurringCharges    = backup.recurringCharges    as Record<string, unknown>[] ?? [];
-  const oneTimeCharges      = backup.oneTimeCharges      as Record<string, unknown>[] ?? [];
-  const paymentTransactions = backup.paymentTransactions as Record<string, unknown>[] ?? [];
-  const chargeTransactions  = backup.chargeTransactions  as Record<string, unknown>[] ?? [];
-  const settings            = backup.settings            as Record<string, unknown>[] ?? [];
+  const rooms               = (backup.rooms               as Row[]);
+  const tenants             = (backup.tenants             as Row[]);
+  const payments            = (backup.payments            as Row[]);
+  const expenses            = (backup.expenses            as Row[]) ?? [];
+  const recurringCharges    = (backup.recurringCharges    as Row[]) ?? [];
+  const oneTimeCharges      = (backup.oneTimeCharges      as Row[]) ?? [];
+  const paymentTransactions = (backup.paymentTransactions as Row[]) ?? [];
+  const chargeTransactions  = (backup.chargeTransactions  as Row[]) ?? [];
+  const settings            = (backup.settings            as Row[]) ?? [];
+  // v4 additions — absent (and therefore lost) in v3 files
+  const rentHistory         = (backup.rentHistory         as Row[]) ?? [];
+  const meterReadings       = (backup.meterReadings       as Row[]) ?? [];
+  const maintenanceRequests = (backup.maintenanceRequests as Row[]) ?? [];
+  const paymentClaims       = (backup.paymentClaims       as Row[]) ?? [];
+  const settlements         = (backup.settlements         as Row[]) ?? [];
+
+  // FK referential sets — tolerate orphans in hand-edited/older files by
+  // nulling optional FKs and skipping rows whose required parent is absent.
+  const roomIds   = new Set(rooms.map(r => r.id as string));
+  const tenantIds = new Set(tenants.map(t => t.id as string));
+  const chargeIds = new Set(oneTimeCharges.map(c => c.id as string));
+  const paymentIds = new Set(payments.map(p => p.id as string));
 
   try {
     await prisma.$transaction(async (tx) => {
-      // Delete only the current user's data in FK-safe order
+      // Delete only the current user's data. Cascades clear the dependents
+      // (rentHistory, meterReadings, claims, settlements, sessions, …).
       await tx.tenantSession.deleteMany({ where: { tenant: { userId } } });
       await tx.chargeTransaction.deleteMany({ where: { userId } });
       await tx.paymentTransaction.deleteMany({ where: { userId } });
@@ -54,157 +79,150 @@ export async function POST(req: Request) {
       await tx.tenant.deleteMany({ where: { userId } });
       await tx.room.deleteMany({ where: { userId } });
       await tx.setting.deleteMany({ where: { userId } });
+      await tx.rentHistory.deleteMany({ where: { userId } });
 
-      // Restore rooms
-      for (const r of rooms) {
-        await tx.room.create({ data: {
-          userId,
-          id:          r.id          as string,
-          name:        r.name        as string,
-          floor:       r.floor       as string | null ?? null,
-          monthlyRent: Number(r.monthlyRent),
-          description: r.description as string | null ?? null,
-          createdAt:   new Date(r.createdAt as string),
-          updatedAt:   new Date(r.updatedAt as string),
-        }});
-      }
+      await tx.room.createMany({ data: rooms.map(r => ({
+        userId,
+        id: str(r.id), name: str(r.name), floor: strN(r.floor),
+        monthlyRent: num(r.monthlyRent), description: strN(r.description),
+        createdAt: date(r.createdAt), updatedAt: date(r.updatedAt),
+      })) });
 
-      // Restore tenants (without portalToken to avoid conflicts)
-      for (const t of tenants) {
-        await tx.tenant.create({ data: {
+      await tx.rentHistory.createMany({ data: rentHistory
+        .filter(h => roomIds.has(h.roomId as string))
+        .map(h => ({
           userId,
-          id:             t.id            as string,
-          name:           t.name          as string,
-          phone:          t.phone         as string,
-          email:          t.email         as string | null ?? null,
-          roomId:         t.roomId        as string | null ?? null,
-          moveInDate:     new Date(t.moveInDate as string),
-          moveOutDate:    t.moveOutDate ? new Date(t.moveOutDate as string) : null,
-          deposit:        Number(t.deposit ?? 0),
-          creditBalance:  Number(t.creditBalance ?? 0),
-          notes:          t.notes         as string | null ?? null,
-          whatsappNotify: Boolean(t.whatsappNotify ?? true),
-          portalEnabled:  false,  // reset portal — links are no longer valid
-          portalToken:    null,
-          createdAt:      new Date(t.createdAt as string),
-          updatedAt:      new Date(t.updatedAt as string),
-        }});
-      }
+          id: str(h.id), roomId: str(h.roomId), amount: num(h.amount),
+          effectiveFrom: str(h.effectiveFrom), reason: strN(h.reason),
+          createdAt: date(h.createdAt),
+        })) });
 
-      // Restore payments
-      for (const p of payments) {
-        await tx.payment.create({ data: {
-          userId,
-          id:         p.id        as string,
-          tenantId:   p.tenantId  as string,
-          roomId:     p.roomId    as string,
-          month:      p.month     as string,
-          amountDue:  Number(p.amountDue),
-          amountPaid: Number(p.amountPaid ?? 0),
-          paidDate:   p.paidDate ? new Date(p.paidDate as string) : null,
-          method:     p.method    as string | null ?? null,
-          status:     p.status    as string,
-          notes:      p.notes     as string | null ?? null,
-          createdAt:  new Date(p.createdAt as string),
-          updatedAt:  new Date(p.updatedAt as string),
-        }});
-      }
+      // Tenants restore without portal tokens — links are no longer valid
+      await tx.tenant.createMany({ data: tenants.map(t => ({
+        userId,
+        id: str(t.id), name: str(t.name), phone: str(t.phone), email: strN(t.email),
+        roomId: t.roomId && roomIds.has(t.roomId as string) ? str(t.roomId) : null,
+        moveInDate: date(t.moveInDate), moveOutDate: dateN(t.moveOutDate),
+        deposit: num(t.deposit), creditBalance: num(t.creditBalance),
+        notes: strN(t.notes), whatsappNotify: Boolean(t.whatsappNotify ?? true),
+        portalEnabled: false, portalToken: null,
+        createdAt: date(t.createdAt), updatedAt: date(t.updatedAt),
+      })) });
 
-      // Restore payment transactions
-      for (const t of paymentTransactions) {
-        await tx.paymentTransaction.create({ data: {
+      await tx.settlement.createMany({ data: settlements
+        .filter(s => tenantIds.has(s.tenantId as string))
+        .map(s => ({
           userId,
-          id:           t.id           as string,
-          paymentId:    t.paymentId    as string,
-          amount:       Number(t.amount),
-          creditAmount: Number(t.creditAmount ?? 0),
-          totalEntered: Number(t.totalEntered ?? t.amount),
-          method:       t.method       as string,
-          paidAt:       new Date(t.paidAt as string),
-          note:         t.note         as string | null ?? null,
-          createdAt:    new Date(t.createdAt as string),
-        }});
-      }
+          id: str(s.id), tenantId: str(s.tenantId), moveOutDate: date(s.moveOutDate),
+          totalDue: num(s.totalDue), creditApplied: num(s.creditApplied),
+          depositHeld: num(s.depositHeld), depositApplied: num(s.depositApplied),
+          refundDue: num(s.refundDue), balanceDue: num(s.balanceDue),
+          detail: strN(s.detail), notes: strN(s.notes), createdAt: date(s.createdAt),
+        })) });
 
-      // Restore recurring charges
-      for (const c of recurringCharges) {
-        await tx.recurringCharge.create({ data: {
-          userId,
-          id:            c.id            as string,
-          roomId:        c.roomId        as string,
-          tenantId:      c.tenantId      as string | null ?? null,
-          title:         c.title         as string,
-          amount:        Number(c.amount),
-          effectiveFrom: c.effectiveFrom as string | null ?? null,
-          effectiveTo:   c.effectiveTo   as string | null ?? null,
-          createdAt:     new Date(c.createdAt as string),
-        }});
-      }
+      await tx.payment.createMany({ data: payments.map(p => ({
+        userId,
+        id: str(p.id), tenantId: str(p.tenantId), roomId: str(p.roomId),
+        month: str(p.month), amountDue: num(p.amountDue), amountPaid: num(p.amountPaid),
+        paidDate: dateN(p.paidDate), method: strN(p.method), status: str(p.status),
+        notes: strN(p.notes), createdAt: date(p.createdAt), updatedAt: date(p.updatedAt),
+      })) });
 
-      // Restore one-time charges (must be before chargeTransactions — FK dependency)
-      for (const c of oneTimeCharges) {
-        await tx.oneTimeCharge.create({ data: {
-          userId,
-          id:         c.id        as string,
-          tenantId:   c.tenantId  as string,
-          title:      c.title     as string,
-          amount:     Number(c.amount),
-          amountPaid: Number(c.amountPaid ?? 0),
-          date:       new Date(c.date as string),
-          status:     c.status    as string,
-          notes:      c.notes     as string | null ?? null,
-          createdAt:  new Date(c.createdAt as string),
-          updatedAt:  new Date(c.updatedAt as string),
-        }});
-      }
+      await tx.paymentTransaction.createMany({ data: paymentTransactions.map(t => ({
+        userId,
+        id: str(t.id), paymentId: str(t.paymentId), amount: num(t.amount),
+        creditAmount: num(t.creditAmount), totalEntered: num(t.totalEntered, num(t.amount)),
+        method: strN(t.method), paidAt: date(t.paidAt), note: strN(t.note),
+        createdAt: date(t.createdAt),
+      })) });
 
-      // Restore charge transactions (after oneTimeCharges — chargeId FK)
-      for (const t of chargeTransactions) {
-        await tx.chargeTransaction.create({ data: {
-          userId,
-          id:          t.id          as string,
-          tenantId:    t.tenantId    as string,
-          chargeId:    t.chargeId    as string,
-          chargeTitle: t.chargeTitle as string,
-          amount:      Number(t.amount),
-          method:      t.method      as string,
-          paidAt:      new Date(t.paidAt as string),
-          note:        t.note        as string | null ?? null,
-          createdAt:   new Date(t.createdAt as string),
-        }});
-      }
+      await tx.recurringCharge.createMany({ data: recurringCharges.map(c => ({
+        userId,
+        id: str(c.id), roomId: str(c.roomId), tenantId: strN(c.tenantId),
+        title: str(c.title), amount: num(c.amount),
+        effectiveFrom: strN(c.effectiveFrom), effectiveTo: strN(c.effectiveTo),
+        createdAt: date(c.createdAt),
+      })) });
 
-      // Restore expenses
-      for (const e of expenses) {
-        await tx.expense.create({ data: {
+      await tx.oneTimeCharge.createMany({ data: oneTimeCharges.map(c => ({
+        userId,
+        id: str(c.id), tenantId: str(c.tenantId), title: str(c.title),
+        amount: num(c.amount), amountPaid: num(c.amountPaid), date: date(c.date),
+        status: str(c.status), notes: strN(c.notes),
+        createdAt: date(c.createdAt), updatedAt: date(c.updatedAt),
+      })) });
+
+      await tx.meterReading.createMany({ data: meterReadings
+        .filter(m => tenantIds.has(m.tenantId as string))
+        .map(m => ({
           userId,
-          id:          e.id          as string,
-          title:       e.title       as string,
-          amount:      Number(e.amount),
-          date:        new Date(e.date as string),
-          category:    e.category    as string ?? "OTHER",
-          roomId:      e.roomId      as string | null ?? null,
-          description: e.description as string | null ?? null,
-          createdAt:   new Date(e.createdAt as string),
-          updatedAt:   new Date(e.updatedAt as string),
-        }});
-      }
+          id: str(m.id), tenantId: str(m.tenantId), month: str(m.month),
+          previous: num(m.previous), current: num(m.current),
+          ratePerUnit: num(m.ratePerUnit), unitsUsed: num(m.unitsUsed), amount: num(m.amount),
+          chargeId: m.chargeId && chargeIds.has(m.chargeId as string) ? str(m.chargeId) : null,
+          photoPath: strN(m.photoPath), notes: strN(m.notes),
+          submittedByTenant: Boolean(m.submittedByTenant ?? false),
+          status: str(m.status ?? "confirmed"),
+          createdAt: date(m.createdAt), updatedAt: date(m.updatedAt),
+        })) });
+
+      await tx.chargeTransaction.createMany({ data: chargeTransactions.map(t => ({
+        userId,
+        id: str(t.id), tenantId: str(t.tenantId), chargeId: str(t.chargeId),
+        chargeTitle: str(t.chargeTitle), amount: num(t.amount), method: strN(t.method),
+        paidAt: date(t.paidAt), note: strN(t.note), createdAt: date(t.createdAt),
+      })) });
+
+      await tx.paymentClaim.createMany({ data: paymentClaims
+        .filter(c => tenantIds.has(c.tenantId as string))
+        .map(c => ({
+          userId,
+          id: str(c.id), tenantId: str(c.tenantId),
+          paymentId: c.paymentId && paymentIds.has(c.paymentId as string) ? str(c.paymentId) : null,
+          amount: num(c.amount), method: str(c.method), reference: strN(c.reference),
+          paidDate: date(c.paidDate), note: strN(c.note), screenshotPath: strN(c.screenshotPath),
+          status: str(c.status ?? "pending"), reviewedAt: dateN(c.reviewedAt),
+          createdAt: date(c.createdAt), updatedAt: date(c.updatedAt),
+        })) });
+
+      await tx.maintenanceRequest.createMany({ data: maintenanceRequests
+        .filter(m => tenantIds.has(m.tenantId as string))
+        .map(m => ({
+          userId,
+          id: str(m.id), tenantId: str(m.tenantId), title: str(m.title),
+          description: strN(m.description), category: str(m.category ?? "OTHER"),
+          priority: str(m.priority ?? "MEDIUM"), status: str(m.status ?? "OPEN"),
+          notes: strN(m.notes), resolvedAt: dateN(m.resolvedAt),
+          createdAt: date(m.createdAt), updatedAt: date(m.updatedAt),
+        })) });
+
+      await tx.expense.createMany({ data: expenses.map(e => ({
+        userId,
+        id: str(e.id), title: str(e.title), amount: num(e.amount), date: date(e.date),
+        category: str(e.category ?? "OTHER"),
+        roomId: e.roomId && roomIds.has(e.roomId as string) ? str(e.roomId) : null,
+        description: strN(e.description),
+        createdAt: date(e.createdAt), updatedAt: date(e.updatedAt),
+      })) });
 
       // Restore settings (skip auth keys)
       const SKIP = new Set(["auth_email", "auth_password_hash", "session_token"]);
-      for (const s of settings) {
-        if (SKIP.has(s.key as string)) continue;
-        await tx.setting.create({ data: {
-          userId,
-          key:   s.key   as string,
-          value: s.value as string,
-        }});
-      }
-    });
+      await tx.setting.createMany({ data: settings
+        .filter(s => !SKIP.has(s.key as string))
+        .map(s => ({ userId, key: str(s.key), value: str(s.value) })) });
+    }, { timeout: TX_TIMEOUT_MS });
   } catch (e) {
     console.error("Restore failed:", e);
-    return NextResponse.json({ error: "Restore failed — data may be partially restored. Check server logs." }, { status: 500 });
+    return NextResponse.json({ error: "Restore failed — no changes were applied (transaction rolled back)." }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, restored: { rooms: rooms.length, tenants: tenants.length, payments: payments.length } });
+  return NextResponse.json({
+    ok: true,
+    restored: {
+      rooms: rooms.length, tenants: tenants.length, payments: payments.length,
+      rentHistory: rentHistory.length, meterReadings: meterReadings.length,
+      settlements: settlements.length, maintenanceRequests: maintenanceRequests.length,
+      paymentClaims: paymentClaims.length,
+    },
+  });
 }

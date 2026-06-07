@@ -6,6 +6,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { PAYMENT_METHODS } from "@/lib/utils";
 import { BreakdownLines, type BreakdownData } from "@/components/breakdown-lines";
+import { buildCoveragePreview, formatMonth, type UnpaidMonth, type UnpaidCharge } from "@/lib/payment-distribution";
 
 // Map a tenant-reported method (eSewa/Khalti/…) to the closest pay-form method.
 function mapClaimMethod(m: string | null): string {
@@ -28,23 +29,8 @@ type Payment = {
   method: string | null;
   paidDate: string | null;
   notes: string | null;
-  tenant: { id: string; name: string; phone: string };
+  tenant: { id: string; name: string; phone: string; creditBalance?: number };
   room: { name: string };
-};
-
-type UnpaidMonth = {
-  id: string;
-  month: string;
-  amountDue: number;
-  amountPaid: number;
-  status: string;
-};
-
-type UnpaidCharge = {
-  id: string;
-  title: string;
-  amount: number;
-  amountPaid: number;
 };
 
 type FormData = {
@@ -57,88 +43,6 @@ type FormData = {
 
 function formatCurrency(amount: number, symbol: string) {
   return `${symbol}${new Intl.NumberFormat("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)}`;
-}
-
-function formatMonth(month: string) {
-  const [year, m] = month.split("-");
-  return new Date(parseInt(year), parseInt(m) - 1).toLocaleDateString("en", { month: "long", year: "numeric" });
-}
-
-// Distributes the entered amount across ALL unpaid months oldest-first
-type PreviewItem =
-  | { kind: "payment"; label: string; amount: number; full: boolean; remainingAfter: number }
-  | { kind: "charge";  label: string; amount: number; full: boolean; remainingAfter: number }
-  | { kind: "credit";  amount: number };
-
-function buildCoveragePreview(
-  entered: number,
-  allUnpaid: UnpaidMonth[],
-  unpaidCharges: UnpaidCharge[],
-  applyToOneTime: boolean,
-  initiatingId: string,
-): PreviewItem[] {
-  const preview: PreviewItem[] = [];
-  let remaining = entered;
-
-  // When checkbox is checked: clear one-time charges first, then rent months
-  if (applyToOneTime) {
-    for (const c of unpaidCharges) {
-      if (remaining <= 0) break;
-      const bal = c.amount - c.amountPaid;
-      if (bal <= 0) continue;
-      const apply = Math.min(remaining, bal);
-      preview.push({ kind: "charge", label: c.title, amount: apply, full: apply >= bal, remainingAfter: bal - apply });
-      remaining -= apply;
-    }
-  }
-
-  const initiating      = allUnpaid.find(u => u.id === initiatingId);
-  const initiatingMonth = initiating?.month;
-
-  // 1) Older unpaid months (before initiating) — oldest first, partial allowed
-  if (initiatingMonth) {
-    for (const u of allUnpaid) {
-      if (remaining <= 0) break;
-      if (u.id === initiatingId) continue;
-      if (u.month >= initiatingMonth) continue;
-      const bal = u.amountDue - u.amountPaid;
-      if (bal <= 0) continue;
-      const apply = Math.min(remaining, bal);
-      preview.push({ kind: "payment", label: formatMonth(u.month), amount: apply, full: apply >= bal, remainingAfter: bal - apply });
-      remaining -= apply;
-    }
-  }
-
-  // 2) Initiating payment (full or partial)
-  if (initiating && remaining > 0) {
-    const bal = initiating.amountDue - initiating.amountPaid;
-    if (bal > 0) {
-      const apply = Math.min(remaining, bal);
-      preview.push({ kind: "payment", label: formatMonth(initiating.month), amount: apply, full: apply >= bal, remainingAfter: bal - apply });
-      remaining -= apply;
-    }
-  }
-
-  // 3) Newer unpaid months — full clearance only (mirrors backend)
-  if (initiatingMonth) {
-    for (const u of allUnpaid) {
-      if (remaining <= 0) break;
-      if (u.id === initiatingId) continue;
-      if (u.month <= initiatingMonth) continue;
-      const bal = u.amountDue - u.amountPaid;
-      if (bal <= 0) continue;
-      if (remaining < bal) break;
-      preview.push({ kind: "payment", label: formatMonth(u.month), amount: bal, full: true, remainingAfter: 0 });
-      remaining -= bal;
-    }
-  }
-
-  // 4) Whatever's left goes to the tenant's credit balance.
-  if (remaining > 0) {
-    preview.push({ kind: "credit", amount: remaining });
-  }
-
-  return preview;
 }
 
 export default function PayPage() {
@@ -325,6 +229,13 @@ export default function PayPage() {
             <div className="bg-rose-50 dark:bg-rose-500/10 rounded-xl p-3">
               <p className="text-xs text-rose-400 font-medium">Total Outstanding</p>
               <p className="font-bold text-rose-700 dark:text-rose-400 mt-0.5">{formatCurrency(totalOutstanding, currencySymbol)}</p>
+            </div>
+          )}
+          {(payment.tenant.creditBalance ?? 0) > 0 && (
+            <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-xl p-3">
+              <p className="text-xs text-emerald-500 font-medium">Advance Credit</p>
+              <p className="font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">{formatCurrency(payment.tenant.creditBalance!, currencySymbol)}</p>
+              <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500/70 mt-0.5">auto-applies to dues</p>
             </div>
           )}
         </div>

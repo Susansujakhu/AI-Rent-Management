@@ -289,6 +289,14 @@
       "namedRegex": "^/api/tenants/(?<nxtPid>[^/]+?)/recurring\\-charges(?:/)?$"
     },
     {
+      "page": "/api/tenants/[id]/settlement",
+      "regex": "^/api/tenants/([^/]+?)/settlement(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/tenants/(?<nxtPid>[^/]+?)/settlement(?:/)?$"
+    },
+    {
       "page": "/inbox/[id]",
       "regex": "^/inbox/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -433,6 +441,14 @@
         "nxtPchargeId": "nxtPchargeId"
       },
       "namedRegex": "^/tenants/(?<nxtPid>[^/]+?)/one\\-time\\-charge/(?<nxtPchargeId>[^/]+?)/pay(?:/)?$"
+    },
+    {
+      "page": "/tenants/[id]/settlement",
+      "regex": "^/tenants/([^/]+?)/settlement(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/tenants/(?<nxtPid>[^/]+?)/settlement(?:/)?$"
     }
   ],
   "staticRoutes": [

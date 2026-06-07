@@ -14,7 +14,11 @@ export async function GET(req: Request) {
       { status: 400 }
     );
   }
-  const [rooms, tenants, payments, expenses, charges, oneTimeCharges, settings, paymentTransactions, chargeTransactions] = await Promise.all([
+  const [
+    rooms, tenants, payments, expenses, charges, oneTimeCharges, settings,
+    paymentTransactions, chargeTransactions,
+    rentHistory, meterReadings, maintenanceRequests, paymentClaims, settlements,
+  ] = await Promise.all([
     prisma.room.findMany({ where: { userId } }),
     prisma.tenant.findMany({ where: { userId } }),
     prisma.payment.findMany({ where: { userId } }),
@@ -24,11 +28,16 @@ export async function GET(req: Request) {
     prisma.setting.findMany({ where: { userId } }),
     prisma.paymentTransaction.findMany({ where: { userId } }),
     prisma.chargeTransaction.findMany({ where: { userId } }),
+    prisma.rentHistory.findMany({ where: { userId } }),
+    prisma.meterReading.findMany({ where: { userId } }),
+    prisma.maintenanceRequest.findMany({ where: { userId } }),
+    prisma.paymentClaim.findMany({ where: { userId } }),
+    prisma.settlement.findMany({ where: { userId } }),
   ]);
 
   const backup = {
     exported_at: new Date().toISOString(),
-    version: 3,
+    version: 4,    // v4 adds: rentHistory, meterReadings, maintenanceRequests, paymentClaims, settlements
     rooms,
     tenants,
     payments,
@@ -37,6 +46,11 @@ export async function GET(req: Request) {
     oneTimeCharges,
     paymentTransactions,
     chargeTransactions,
+    rentHistory,
+    meterReadings,
+    maintenanceRequests,
+    paymentClaims,
+    settlements,
     settings: settings.filter(s => !["auth_email", "auth_password_hash", "session_token"].includes(s.key)),
   };
 

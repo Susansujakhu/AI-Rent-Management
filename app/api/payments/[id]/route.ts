@@ -34,17 +34,32 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const current = await prisma.payment.findUnique({ where: { id, userId } });
   if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Books are frozen once a settlement exists — voiding individual payments
+  // would desync it (and could double-restore consumed credit on settlement void).
+  const settled = await prisma.settlement.findFirst({
+    where: { tenantId: current.tenantId, userId }, select: { id: true },
+  });
+  if (settled) {
+    return NextResponse.json(
+      { error: "This tenant has a move-out settlement. Void the settlement first (tenant page → Settlement → Void)." },
+      { status: 409 },
+    );
+  }
+
   const today = new Date();
   const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   const isPast = current.month < currentMonth;
 
-  // Sum any credit that was generated in transactions for this payment (to restore it)
+  // Credit flows both ways on void:
+  //  - creditAmount = credit GENERATED in this payment's sessions → take it back
+  //  - method "ADVANCE" = credit CONSUMED to pay this bill → give it back
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const txns = await (prisma as any).paymentTransaction.findMany({
     where:  { paymentId: id },
-    select: { creditAmount: true },
-  }) as { creditAmount: number }[];
+    select: { creditAmount: true, amount: true, method: true },
+  }) as { creditAmount: number; amount: number; method: string | null }[];
   const creditToRestore = txns.reduce((s, t) => s + (t.creditAmount ?? 0), 0);
+  const creditToReturn  = txns.filter(t => t.method === "ADVANCE").reduce((s, t) => s + t.amount, 0);
 
   // Delete all transaction history for this payment
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,6 +72,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if (restore > 0) {
       await prisma.tenant.update({ where: { id: current.tenantId }, data: { creditBalance: { decrement: restore } } });
     }
+  }
+
+  // Return consumed advance credit to the tenant's balance
+  if (creditToReturn > 0) {
+    await prisma.tenant.update({ where: { id: current.tenantId }, data: { creditBalance: { increment: creditToReturn } } });
   }
 
   // Also reverse any charge payments that were part of this same session

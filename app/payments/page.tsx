@@ -275,6 +275,13 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
   const statusOrder: Record<string, number> = { OVERDUE: 0, PARTIAL: 1, PENDING: 2 };
   openBills.sort((a, b) => (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9));
 
+  // Advance credit balances (tenant name → amount) for the filter banner
+  const creditTenants = await prisma.tenant.findMany({
+    where:  { userId: user.id, creditBalance: { gt: 0 } },
+    select: { name: true, creditBalance: true },
+  });
+  const tenantCredits = Object.fromEntries(creditTenants.map(t => [t.name, t.creditBalance]));
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -294,6 +301,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         currencySymbol={settings.currencySymbol}
         isPro={isPro(user)}
         initialTenant={initialTenant}
+        tenantCredits={tenantCredits}
       />
     </div>
   );

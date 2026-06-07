@@ -1,9 +1,10 @@
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
-import { formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { getSettings } from "@/lib/settings";
 import Link from "next/link";
-import { Users, ChevronRight, Phone, Calendar, Plus } from "lucide-react";
+import { Users, ChevronRight, Phone, Calendar, Plus, Wallet } from "lucide-react";
 import { SearchInput } from "@/components/search-input";
 import { Suspense } from "react";
 import { hasAccess } from "@/lib/plan";
@@ -59,6 +60,9 @@ export default async function TenantsPage({ searchParams }: { searchParams: Prom
   const atLimit = !hasAccess(user);
   const activeTenants = allTenants.filter((t) => !t.moveOutDate);
   const pastTenants   = allTenants.filter((t) => !!t.moveOutDate);
+
+  const settings = await getSettings(user.id);
+  const fmt = (n: number) => formatCurrency(n, settings.currencySymbol);
 
   return (
     <div className="space-y-6">
@@ -167,6 +171,12 @@ export default async function TenantsPage({ searchParams }: { searchParams: Prom
                       <Calendar size={12} className="text-slate-400 shrink-0" />
                       <span className="text-xs">Since {formatDate(tenant.moveInDate)}</span>
                     </div>
+                    {tenant.creditBalance > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Wallet size={12} className="text-emerald-500 shrink-0" />
+                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{fmt(tenant.creditBalance)} advance credit</span>
+                      </div>
+                    )}
                   </div>
                 </Link>
               );

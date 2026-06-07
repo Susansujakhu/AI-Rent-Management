@@ -105,7 +105,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   // ── Move-out handling ────────────────────────────────────────────────────────
   if ("moveOutDate" in body && !body.moveOutDate) {
-    // Clearing move-out date (re-activating tenant)
+    // Clearing move-out date (re-activating tenant). If a settlement was
+    // recorded, it must be voided first so the financial records reverse too.
+    const settled = await prisma.settlement.findFirst({ where: { tenantId: id, userId }, select: { id: true } });
+    if (settled)
+      return NextResponse.json(
+        { error: "A move-out settlement exists for this tenant. Void the settlement to re-activate." },
+        { status: 400 },
+      );
     data.moveOutDate = null;
   } else if ("moveOutDate" in body && body.moveOutDate) {
     const moveOutDate = new Date(body.moveOutDate);
