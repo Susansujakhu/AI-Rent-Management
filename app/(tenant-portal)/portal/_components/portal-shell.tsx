@@ -155,6 +155,19 @@ export function PortalShell({
 
         <div className="max-w-3xl mx-auto px-4 py-5 md:px-8 md:py-8">
           {children}
+
+          {/* Growth loop: tenants are tomorrow's landlords */}
+          <div className="mt-10 pt-5 border-t border-slate-100 text-center">
+            <a
+              href="/?ref=portal"
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-teal-600 transition-colors"
+            >
+              <Building2 size={12} />
+              Powered by <span className="font-semibold">EasyRent</span> — manage your own rentals free
+            </a>
+          </div>
         </div>
       </main>
 

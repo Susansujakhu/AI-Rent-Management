@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuthAPI } from "@/lib/auth";
 import { isPro } from "@/lib/plan";
 import { previewSettlement, executeSettlement, voidSettlement } from "@/lib/settlement";
-import { sendWhatsAppMessage, isWhatsAppReady } from "@/lib/whatsapp";
+import { sendWhatsAppMessage, isWhatsAppReady, BRAND_FOOTER } from "@/lib/whatsapp";
 import { getSettings } from "@/lib/settings";
 import { formatCurrency } from "@/lib/utils";
 
@@ -125,5 +125,5 @@ async function notifyTenant(
   if (settlement.refundDue === 0 && settlement.balanceDue === 0) lines.push(`✅ Account fully settled — nothing due either way.`);
   lines.push(``, `Thank you for staying with us!`);
 
-  await sendWhatsAppMessage(tenant.phone, lines.join("\n"));
+  await sendWhatsAppMessage(tenant.phone, lines.join("\n") + BRAND_FOOTER);
 }

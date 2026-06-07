@@ -539,7 +539,7 @@ export default async function LandingPage() {
 
               <div className="relative inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold tracking-[0.15em] uppercase px-3.5 py-1.5 rounded-full mb-7 animate-fade-in">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse" />
-                Now in beta — free founding member access
+                Beta — first 30 landlords keep Pro free forever
               </div>
 
               <h1 className={`${serif.className} relative text-5xl sm:text-6xl lg:text-[66px] leading-[1.07] text-slate-900 dark:text-white mb-6 animate-fade-up`}>
@@ -551,8 +551,12 @@ export default async function LandingPage() {
                 under control.
               </h1>
 
-              <p className="relative text-lg sm:text-xl text-slate-500 dark:text-slate-400 leading-relaxed max-w-lg mb-10 animate-fade-up stagger-1">
+              <p className="relative text-lg sm:text-xl text-slate-500 dark:text-slate-400 leading-relaxed max-w-lg mb-4 animate-fade-up stagger-1">
                 EasyRent handles billing, payment tracking, WhatsApp reminders, and tenant portals — all in one place. Stop managing rent in notebooks.
+              </p>
+
+              <p className="relative text-base text-amber-700/80 dark:text-amber-400/80 leading-relaxed max-w-lg mb-10 animate-fade-up stagger-1 font-medium">
+                कापीको हिसाब छोड्नुस् — भाडा, बिजुली मिटर, रसिद, सबै मोबाइलबाटै। 🙏
               </p>
 
               <div className="relative flex flex-col sm:flex-row gap-3 mb-10 animate-fade-up stagger-2">
@@ -828,8 +832,8 @@ export default async function LandingPage() {
                 <Zap size={17} className="text-amber-600" />
               </div>
               <div>
-                <p className="text-sm font-bold text-amber-900 mb-0.5">Founding Member Perk</p>
-                <p className="text-sm text-amber-700/70">Sign up during beta and keep full Pro access free forever — no catch, no expiry date.</p>
+                <p className="text-sm font-bold text-amber-900 mb-0.5">Founding Member Perk — first 30 landlords only</p>
+                <p className="text-sm text-amber-700/70">Sign up during beta and keep full Pro access free forever — no catch, no expiry date. Once we reach 30 landlords, new signups start on the free tier.</p>
               </div>
             </div>
           </div>
@@ -878,9 +882,15 @@ export default async function LandingPage() {
             Your tenants deserve<br />
             a better experience.
           </h2>
-          <p className="text-white/40 text-lg mb-10 max-w-md mx-auto leading-relaxed">
+          <p className="text-white/40 text-lg mb-3 max-w-md mx-auto leading-relaxed">
             Stop chasing payments and losing records. Takes less than 5 minutes to set up.
           </p>
+          {!loggedIn && (
+            <p className="text-amber-400/80 text-sm mb-10 font-medium">
+              Founding member offer — free Pro forever — ends at 30 landlords.
+            </p>
+          )}
+          {loggedIn && <div className="mb-10" />}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href={ctaHref}
               className="btn-shimmer inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-10 py-4 rounded-xl text-sm shadow-[0_4px_28px_rgba(245,158,11,0.3)] hover:shadow-[0_6px_36px_rgba(245,158,11,0.5)] transition-all duration-200 active:scale-[0.97]">

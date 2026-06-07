@@ -126,6 +126,12 @@ async function emailMirror(phone: string, message: string): Promise<void> {
 
 // ── Message templates ─────────────────────────────────────────────────────────
 
+// One-line product footer on tenant-facing messages (receipts, reminders,
+// settlements). Every message a landlord sends is seen by a tenant — and many
+// tenants are landlords elsewhere. This is the growth loop; keep it short.
+// NOT appended to OTPs or inbox replies.
+export const BRAND_FOOTER = `\n\n_Sent via EasyRent — ${process.env.NEXT_PUBLIC_APP_URL || "https://easy-rent.xpertthemes.com"}_`;
+
 export const DEFAULT_TEMPLATES = {
   paymentReceived: "Hi {name}! ✅\n\nYour payment of *{amount}* for *{room}* ({month}) has been received.\n\nThank you! 🙏\n\n📄 Receipt: {receipt}",
   rentDue:         "Hi {name}! 📋\n\nYour rent of *{amount}* for *{room}* is due for *{month}*.\n\nPlease pay on time. Thank you!",
@@ -155,13 +161,13 @@ export function buildMessage(template: string, vars: { name: string; amount: str
 export function msgPaymentReceived(name: string, amount: string, month: string, room: string, template?: string, receiptUrl?: string, breakdownLines?: string[]) {
   let msg = fillTemplate(template ?? DEFAULT_TEMPLATES.paymentReceived, { name, amount, month, room, receipt: receiptUrl });
   if (breakdownLines?.length) msg += "\n\n*Breakdown:*\n" + breakdownLines.join("\n");
-  return msg;
+  return msg + BRAND_FOOTER;
 }
 
 export function msgRentDue(name: string, amount: string, month: string, room: string, template?: string) {
-  return fillTemplate(template ?? DEFAULT_TEMPLATES.rentDue, { name, amount, month, room });
+  return fillTemplate(template ?? DEFAULT_TEMPLATES.rentDue, { name, amount, month, room }) + BRAND_FOOTER;
 }
 
 export function msgRentOverdue(name: string, amount: string, month: string, room: string, template?: string) {
-  return fillTemplate(template ?? DEFAULT_TEMPLATES.rentOverdue, { name, amount, month, room });
+  return fillTemplate(template ?? DEFAULT_TEMPLATES.rentOverdue, { name, amount, month, room }) + BRAND_FOOTER;
 }
